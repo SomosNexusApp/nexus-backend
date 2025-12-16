@@ -19,7 +19,7 @@ import jakarta.validation.constraints.Pattern;
 public abstract class Actor extends DomainEntity{
 
 	@NotBlank
-	@Column(unique = true) 
+	@Column(name = "username", unique = true) 
 	private String user;
 	
 	@NotBlank
