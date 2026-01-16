@@ -29,3 +29,4 @@ Thumbs.db
 # --- SEGURIDAD (Lo más importante) ---
 # Ignorar el archivo de propiedades REAL que tiene tus claves
 src/main/resources/application.properties
+target/classes/META-INF/maven/com/nexus/pom.properties
