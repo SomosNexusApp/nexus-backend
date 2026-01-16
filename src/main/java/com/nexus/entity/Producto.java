@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Producto extends DomainEntity {
@@ -25,10 +28,13 @@ public class Producto extends DomainEntity {
     @Enumerated(EnumType.STRING)
     private EstadoProducto estadoProducto;
 
-
     @ManyToOne
     @JoinColumn(name = "publicador_id")
     private Usuario publicador;
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Mensaje> mensajes = new ArrayList<>();
 
     public Producto() {
         super();
@@ -45,7 +51,15 @@ public class Producto extends DomainEntity {
         this.estadoProducto = EstadoProducto.DISPONIBLE;
     }
 
-    // Getters y Setters
+    public void addMensaje(Mensaje mensaje) {
+        mensajes.add(mensaje);
+        mensaje.setProducto(this);
+    }
+
+    public void removeMensaje(Mensaje mensaje) {
+        mensajes.remove(mensaje);
+        mensaje.setProducto(null);
+    }
 
     public String getTitulo() {
         return titulo;
@@ -93,5 +107,13 @@ public class Producto extends DomainEntity {
 
     public void setPublicador(Usuario publicador) {
         this.publicador = publicador;
+    }
+
+    public List<Mensaje> getMensajes() {
+        return mensajes;
+    }
+
+    public void setMensajes(List<Mensaje> mensajes) {
+        this.mensajes = mensajes;
     }
 }
