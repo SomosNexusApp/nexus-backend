@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.nexus.entity.Usuario;
 import com.nexus.service.UsuarioService;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 @RestController
 @RequestMapping("/usuario")
 public class UsuarioController {
@@ -26,6 +28,8 @@ public class UsuarioController {
 	private UsuarioService usuarioService;
 	
 	// Obtener todos los usuarios
+	@GetMapping
+	@Operation(summary = "Obtener todos los usuarios")
 	public List<Usuario> getAllUsuarios() {
 		return usuarioService.findAll();
 	}
@@ -33,6 +37,7 @@ public class UsuarioController {
 	
 	// Obtener usuario por id
 	@GetMapping("/{id}")
+	@Operation(summary = "Obtener todos los usuarios por id")
 	public ResponseEntity<Usuario> getUsuarioById(@PathVariable Integer id) {
 		Optional<Usuario> usuarioOptional = usuarioService.findById(id);
 		
@@ -46,6 +51,7 @@ public class UsuarioController {
 	
 	// Crear usuario
 	@PostMapping
+	@Operation(summary = "Crear usuario")
 	public ResponseEntity<Usuario> createUsuario(@RequestBody Usuario usuario) {
 		Usuario nuevoUsuario = usuarioService.save(usuario);
 		return ResponseEntity.ok(nuevoUsuario);
@@ -54,6 +60,7 @@ public class UsuarioController {
 	
 	// Actualizar usuario
 	@PutMapping("/{id}")
+	@Operation(summary = "Actualizar usuario")
 	public ResponseEntity<Usuario> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuarioDetalles) {
 		Optional<Usuario> usuarioOptional = usuarioService.findById(id);
 		
@@ -72,6 +79,7 @@ public class UsuarioController {
 	
 	// Eliminar usuario
 	@DeleteMapping("/{id}")
+	@Operation(summary = "Eliminar usuario por id")
 	public ResponseEntity<String> deleteUsuario(@PathVariable Integer id) {
 		Optional<Usuario> usuarioOptional = usuarioService.findById(id);
 		
