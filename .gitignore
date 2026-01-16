@@ -1,1 +1,31 @@
-/target/
+# --- Maven ---
+target/
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# --- IDEs (Eclipse, IntelliJ, VSCode) ---
+.settings/
+.project
+.classpath
+.factorypath
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# --- Spring Boot & Logs ---
+logs/
+*.log
+tms/
+
+# --- OS System Files ---
+.DS_Store
+Thumbs.db
+
+# --- SEGURIDAD (Lo más importante) ---
+# Ignorar el archivo de propiedades REAL que tiene tus claves
+src/main/resources/application.properties
