@@ -30,3 +30,4 @@ Thumbs.db
 # Ignorar el archivo de propiedades REAL que tiene tus claves
 src/main/resources/application.properties
 target/classes/META-INF/maven/com/nexus/pom.properties
+target/classes/META-INF/maven/com/nexus/pom.properties
