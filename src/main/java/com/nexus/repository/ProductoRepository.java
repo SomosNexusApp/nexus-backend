@@ -1,6 +1,8 @@
 package com.nexus.repository;
 
 import java.util.List;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,6 +13,10 @@ import com.nexus.entity.Usuario;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Integer> {
 
+	@Override
+    @EntityGraph(attributePaths = {"publicador"})
+    List<Producto> findAll();
+	
     // Recuperar todos los productos con cierto estado 
     List<Producto> findByEstadoProducto(EstadoProducto estadoProducto);
 
