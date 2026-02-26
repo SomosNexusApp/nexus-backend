@@ -16,15 +16,3 @@ Nexus API es el backend encargado de gestionar la lógica de negocio y la persis
 * **Documentación API:** SpringDoc OpenAPI (Swagger UI)
 * **Gestor de Dependencias:** Maven
 * **Validación:** Hibernate Validator (Jakarta Validation)
-
-
-## 🚀 Instalación y Configuración
-
-### Prerrequisitos
-1.  Tener instalado **Java 17**.
-2.  Tener instalado **PostgreSQL**.
-
-### 1. Clonar el repositorio
-```bash
-git clone <url-del-repositorio>
-cd nexus-api
