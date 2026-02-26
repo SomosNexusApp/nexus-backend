@@ -1,17 +1,18 @@
 package com.nexus.security;
 
-import java.util.List;
-
+import com.nexus.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -19,74 +20,96 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
+/**
+ * Configuracion de seguridad de Nexus.
+ *
+ * FIX BeanDefinitionOverrideException:
+ *   El @Bean passwordEncoder() fue ELIMINADO de esta clase.
+ *   Ahora reside EXCLUSIVAMENTE en PasswordConfig.java
+ *   (com/nexus/security/PasswordConfig.java).
+ *
+ *   Spring Boot encuentra el bean 'passwordEncoder' en PasswordConfig
+ *   y lo inyecta aqui a traves de @Autowired.
+ *   Tener el @Bean en DOS clases simultaneamente causa el error:
+ *     BeanDefinitionOverrideException: Invalid bean definition with name 'passwordEncoder'
+ *
+ * RUTAS PUBLICAS (sin autenticacion):
+ *   GET  /api/productos/**         <- listado y detalle publico
+ *   GET  /api/ofertas/**           <- feed y detalle publico
+ *   GET  /api/vehiculos/**         <- busqueda y detalle publico
+ *   GET  /api/categorias/**        <- arbol de categorias publico
+ *   POST /api/auth/**              <- registro, login, oauth
+ *   GET  /api/usuarios/{id}/perfil <- perfil publico de usuario
+ */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
-    @Autowired
-    private JWTAuthenticationFilter jwtFilter;
+    @Autowired private UsuarioService   usuarioService;
+    @Autowired private JWTAuthenticationFilter jwtFilter;
+    @Autowired private PasswordEncoder  passwordEncoder; // inyectado desde PasswordConfig
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(usuarioService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
 
-                // ---- Swagger (solo en dev) --------------------------------
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                // ── Swagger / actuator ──────────────────────────────────────
+                .requestMatchers(
+                    "/swagger-ui/**", "/swagger-ui.html",
+                    "/v3/api-docs/**", "/v3/api-docs",
+                    "/actuator/**", "/ws/**"
+                ).permitAll()
 
-                // ---- WebSocket -------------------------------------------
-                .requestMatchers("/ws/**").permitAll()
+                // ── Auth: registro, login, verify, reset, OAuth ─────────────
+                .requestMatchers("/api/auth/**").permitAll()
 
-                // ---- Auth ------------------------------------------------
-                .requestMatchers("/auth/**").permitAll()
+                // ── Contenido publico (lectura) ─────────────────────────────
+                // Nexus funciona como Wallapop / Chollometro:
+                // cualquier visitante puede ver productos, ofertas y vehiculos
+                // sin necesidad de cuenta.
+                .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ofertas/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/vehiculos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/comentarios/**").permitAll()
 
-                // ---- Newsletter (suscribir, confirmar y baja son publicos) --
-                .requestMatchers(HttpMethod.POST, "/newsletter/suscribir").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/newsletter/confirmar").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/newsletter/baja").permitAll()
-                .requestMatchers("/newsletter/**").authenticated()
+                // Perfil publico de usuario (sin datos privados)
+                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/valoraciones").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/productos").permitAll()
 
-                // ---- Categorias (lectura publica, escritura admin) --------
-                .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
-                .requestMatchers("/categorias/**").hasAuthority("ADMIN")
+                // ── Newsletter: suscripcion publica ─────────────────────────
+                .requestMatchers(HttpMethod.POST, "/api/newsletter/suscribir").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/newsletter/confirmar").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/newsletter/cancelar").permitAll()
 
-                // ---- Ofertas (lectura publica, escritura autenticada) -----
-                .requestMatchers(HttpMethod.GET, "/oferta/**").permitAll()
-                .requestMatchers("/oferta/**").authenticated()
+                // ── Admin: solo nivelAcceso > 0 ─────────────────────────────
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // ---- Productos (lectura publica) -------------------------
-                .requestMatchers(HttpMethod.GET, "/producto/**").permitAll()
-                .requestMatchers("/producto/**").authenticated()
-
-                // ---- Vehiculos (lectura publica) -------------------------
-                .requestMatchers(HttpMethod.GET, "/vehiculo/**").permitAll()
-                .requestMatchers("/vehiculo/**").authenticated()
-
-                // ---- Usuarios (perfil publico, resto autenticado) --------
-                .requestMatchers(HttpMethod.GET, "/usuario/*/perfil").permitAll()
-                .requestMatchers("/usuario/**").authenticated()
-
-                // ---- Notificaciones, ajustes, compras, envios... ---------
-                .requestMatchers("/notificaciones/**").authenticated()
-                .requestMatchers("/ajustes/**").authenticated()
-                .requestMatchers("/compra/**").authenticated()
-                .requestMatchers("/envio/**").authenticated()
-                .requestMatchers("/devolucion/**").authenticated()
-                .requestMatchers("/valoracion/**").authenticated()
-                .requestMatchers("/chat/**").authenticated()
-                .requestMatchers("/bloqueo/**").authenticated()
-                .requestMatchers("/reporte/**").authenticated()
-                .requestMatchers("/spark-voto/**").authenticated()
-
-                // ---- Admin -----------------------------------------------
-                .requestMatchers("/admin/**").hasAuthority("ADMIN")
-
-                // ---- El resto requiere autenticacion --------------------
+                // ── Todo lo demas requiere autenticacion ───────────────────
                 .anyRequest().authenticated()
             )
+            .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -95,11 +118,7 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
-            "http://localhost:4200",
-            "http://localhost:3000",
-            "https://*.nexus.app"
-        ));
+        config.setAllowedOriginPatterns(List.of("http://localhost:4200", "http://localhost:*", "https://*.nexus.app"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
@@ -109,16 +128,5 @@ public class SecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg)
-            throws Exception {
-        return cfg.getAuthenticationManager();
     }
 }
