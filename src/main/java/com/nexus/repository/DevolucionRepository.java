@@ -13,7 +13,7 @@ public interface DevolucionRepository extends JpaRepository<Devolucion, Integer>
     @Query("SELECT d FROM Devolucion d WHERE d.compra.comprador.id = ?1 ORDER BY d.fechaSolicitud DESC")
     List<Devolucion> findByCompradorId(Integer compradorId);
 
-    @Query("SELECT d FROM Devolucion d WHERE d.compra.producto.publicador.id = ?1 ORDER BY d.fechaSolicitud DESC")
+    @Query("SELECT d FROM Devolucion d WHERE d.compra.producto.vendedor.id = :vendedorId ORDER BY d.fechaSolicitud DESC")
     List<Devolucion> findByVendedorId(Integer vendedorId);
 
     List<Devolucion> findByEstado(EstadoDevolucion estado);

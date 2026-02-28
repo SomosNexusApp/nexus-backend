@@ -129,4 +129,45 @@ public class UsuarioController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No se ha encontrado el usuario para eliminar");
         }
     }
+    
+    @GetMapping("/{id}/perfil")
+    @Operation(summary = "Ver perfil público de un usuario")
+    public ResponseEntity<?> getPerfilPublico(@PathVariable Integer id) {
+        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+        
+        if (usuarioOptional.isEmpty() || usuarioOptional.get().isCuentaEliminada()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Usuario usuario = usuarioOptional.get();
+
+        // Si el usuario configuró su cuenta como privada, bloqueamos el acceso
+        if (usuario.isCuentaPrivada()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Este perfil es privado"));
+        }
+
+        // --- SOLUCIÓN SIN DTO ---
+        // Construimos la respuesta al vuelo solo con los datos seguros
+        Map<String, Object> perfilPublico = new java.util.HashMap<>();
+        perfilPublico.put("id", usuario.getId());
+        perfilPublico.put("username", usuario.getUser());
+        perfilPublico.put("nombre", usuario.getNombre());
+        perfilPublico.put("avatar", usuario.getAvatar());
+        perfilPublico.put("biografia", usuario.getBiografia());
+        perfilPublico.put("reputacion", usuario.getReputacion());
+        perfilPublico.put("totalVentas", usuario.getTotalVentas());
+        perfilPublico.put("esVerificado", usuario.isEsVerificado());
+        perfilPublico.put("fechaRegistro", usuario.getFechaRegistro());
+
+        // Lógica de privacidad condicional
+        if (usuario.isMostrarUbicacion()) {
+            perfilPublico.put("ubicacion", usuario.getUbicacion());
+        }
+        if (usuario.isMostrarTelefono()) {
+            perfilPublico.put("telefono", usuario.getTelefono());
+        }
+
+        return ResponseEntity.ok(perfilPublico);
+    }
 }

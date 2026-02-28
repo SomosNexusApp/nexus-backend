@@ -1,6 +1,7 @@
 package com.nexus.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +17,33 @@ public class Usuario extends Actor {
     private String biografia;
 
     private String ubicacion;
-    private String telefono;
+    
+    // NUEVOS CAMPOS -----------------------------------------------------
+    @Enumerated(EnumType.STRING)
+    private TipoCuenta tipoCuenta = TipoCuenta.PERSONAL;
 
+    @Column(nullable = false)
+    private boolean cuentaPrivada = false;
+
+    @Column(nullable = false)
+    private boolean terminosAceptados = false;
+
+    @Column(nullable = false)
+    private boolean newsletterSuscrito = false;
+
+    @Column
+    private String googleId;
+
+    @Column
+    private String facebookId;
+
+    @Column
+    private String versionTerminosAceptados;
+
+    @Column
+    private LocalDateTime fechaAceptacionTerminos;
+
+    // CAMPOS EXISTENTES REVISADOS ---------------------------------------
     @Column(nullable = false)
     private double reputacion = 0.0;
 
@@ -55,14 +81,33 @@ public class Usuario extends Actor {
 
     public Usuario() {}
 
+    // ---- Getters / Setters -----------------------------------------------
+
     public String  getAvatar()                              { return avatar; }
     public void    setAvatar(String a)                      { this.avatar = a; }
     public String  getBiografia()                           { return biografia; }
     public void    setBiografia(String b)                   { this.biografia = b; }
     public String  getUbicacion()                           { return ubicacion; }
     public void    setUbicacion(String u)                   { this.ubicacion = u; }
-    public String  getTelefono()                            { return telefono; }
-    public void    setTelefono(String t)                    { this.telefono = t; }
+    
+    // Getters y Setters NUEVOS
+    public TipoCuenta getTipoCuenta()                       { return tipoCuenta; }
+    public void       setTipoCuenta(TipoCuenta t)           { this.tipoCuenta = t; }
+    public boolean    isCuentaPrivada()                     { return cuentaPrivada; }
+    public void       setCuentaPrivada(boolean b)           { this.cuentaPrivada = b; }
+    public boolean    isTerminosAceptados()                 { return terminosAceptados; }
+    public void       setTerminosAceptados(boolean b)       { this.terminosAceptados = b; }
+    public boolean    isNewsletterSuscrito()                { return newsletterSuscrito; }
+    public void       setNewsletterSuscrito(boolean b)      { this.newsletterSuscrito = b; }
+    public String     getGoogleId()                         { return googleId; }
+    public void       setGoogleId(String g)                 { this.googleId = g; }
+    public String     getFacebookId()                       { return facebookId; }
+    public void       setFacebookId(String f)               { this.facebookId = f; }
+    public String     getVersionTerminosAceptados()         { return versionTerminosAceptados; }
+    public void       setVersionTerminosAceptados(String v) { this.versionTerminosAceptados = v; }
+    public LocalDateTime getFechaAceptacionTerminos()       { return fechaAceptacionTerminos; }
+    public void       setFechaAceptacionTerminos(LocalDateTime d) { this.fechaAceptacionTerminos = d; }
+
     public double  getReputacion()                          { return reputacion; }
     public void    setReputacion(double r)                  { this.reputacion = r; }
     public int     getTotalVentas()                         { return totalVentas; }
@@ -71,9 +116,9 @@ public class Usuario extends Actor {
     public void    setEsVerificado(boolean v)               { this.esVerificado = v; }
     public boolean isPerfilPublico()                        { return perfilPublico; }
     public void    setPerfilPublico(boolean b)              { this.perfilPublico = b; }
-    public boolean getMostrarTelefono()                     { return mostrarTelefono; }
+    public boolean isMostrarTelefono()                      { return mostrarTelefono; }
     public void    setMostrarTelefono(boolean b)            { this.mostrarTelefono = b; }
-    public boolean getMostrarUbicacion()                    { return mostrarUbicacion; }
+    public boolean isMostrarUbicacion()                     { return mostrarUbicacion; }
     public void    setMostrarUbicacion(boolean b)           { this.mostrarUbicacion = b; }
     public DireccionEnvio getDireccionPorDefecto()          { return direccionPorDefecto; }
     public void    setDireccionPorDefecto(DireccionEnvio d) { this.direccionPorDefecto = d; }

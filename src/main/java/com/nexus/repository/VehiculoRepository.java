@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.nexus.entity.EstadoVehiculo;
 import com.nexus.entity.TipoCombustible;
@@ -37,8 +38,23 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
            "WHERE v.estadoVehiculo = 'DISPONIBLE' AND v.marca IS NOT NULL ORDER BY v.marca")
     List<String> findMarcasDistintas();
     
-    @Query("SELECT v FROM Vehiculo v WHERE ... ") // Tu query aquí
-    Page<Vehiculo> buscarPaginado(TipoVehiculo tipo, String marca, String modelo,
-                                  Double precioMin, Double precioMax, Integer anioMin,
-                                  Integer kmMax, TipoCombustible combustible, Pageable pageable);
+    @Query("SELECT v FROM Vehiculo v WHERE " +
+            "(:tipo IS NULL OR v.tipoVehiculo = :tipo) AND " +
+            "(:marca IS NULL OR v.marca = :marca) AND " +
+            "(:modelo IS NULL OR v.modelo = :modelo) AND " +
+            "(:precioMin IS NULL OR v.precio >= :precioMin) AND " +
+            "(:precioMax IS NULL OR v.precio <= :precioMax) AND " +
+            "(:anioMin IS NULL OR v.anio >= :anioMin) AND " + // <-- AQUÍ
+            "(:anioMax IS NULL OR v.anio <= :anioMax) AND " + // <-- Y AQUÍ
+            "(:combustible IS NULL OR v.combustible = :combustible)")
+     Page<Vehiculo> buscarPaginado(
+             @Param("tipo") TipoVehiculo tipo,
+             @Param("marca") String marca,
+             @Param("modelo") String modelo,
+             @Param("precioMin") Double precioMin,
+             @Param("precioMax") Double precioMax,
+             @Param("anioMin") Integer anioMin,
+             @Param("anioMax") Integer anioMax,
+             @Param("combustible") TipoCombustible combustible,
+             Pageable pageable);
 }

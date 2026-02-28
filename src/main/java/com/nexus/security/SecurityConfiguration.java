@@ -22,35 +22,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Configuracion de seguridad de Nexus.
- *
- * FIX BeanDefinitionOverrideException:
- *   El @Bean passwordEncoder() fue ELIMINADO de esta clase.
- *   Ahora reside EXCLUSIVAMENTE en PasswordConfig.java
- *   (com/nexus/security/PasswordConfig.java).
- *
- *   Spring Boot encuentra el bean 'passwordEncoder' en PasswordConfig
- *   y lo inyecta aqui a traves de @Autowired.
- *   Tener el @Bean en DOS clases simultaneamente causa el error:
- *     BeanDefinitionOverrideException: Invalid bean definition with name 'passwordEncoder'
- *
- * RUTAS PUBLICAS (sin autenticacion):
- *   GET  /api/productos/**         <- listado y detalle publico
- *   GET  /api/ofertas/**           <- feed y detalle publico
- *   GET  /api/vehiculos/**         <- busqueda y detalle publico
- *   GET  /api/categorias/**        <- arbol de categorias publico
- *   POST /api/auth/**              <- registro, login, oauth
- *   GET  /api/usuarios/{id}/perfil <- perfil publico de usuario
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfiguration {
 
-    @Autowired private UsuarioService   usuarioService;
+    @Autowired private UsuarioService usuarioService;
     @Autowired private JWTAuthenticationFilter jwtFilter;
-    @Autowired private PasswordEncoder  passwordEncoder; // inyectado desde PasswordConfig
+    @Autowired private PasswordEncoder passwordEncoder;
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -73,7 +52,7 @@ public class SecurityConfiguration {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
 
-                // ── Swagger / actuator ──────────────────────────────────────
+                // ── Swagger / actuator / WebSockets ─────────────────────────
                 .requestMatchers(
                     "/swagger-ui/**", "/swagger-ui.html",
                     "/v3/api-docs/**", "/v3/api-docs",
@@ -81,32 +60,34 @@ public class SecurityConfiguration {
                 ).permitAll()
 
                 // ── Auth: registro, login, verify, reset, OAuth ─────────────
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/auth/**").permitAll()
 
-                // ── Contenido publico (lectura) ─────────────────────────────
-                // Nexus funciona como Wallapop / Chollometro:
-                // cualquier visitante puede ver productos, ofertas y vehiculos
-                // sin necesidad de cuenta.
-                .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/ofertas/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/vehiculos/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/comentarios/**").permitAll()
+                // ── Legal: T&C y privacidad ─────────────────────────────────
+                .requestMatchers(HttpMethod.GET, "/api/legal/**", "/legal/**").permitAll()
 
-                // Perfil publico de usuario (sin datos privados)
-                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/valoraciones").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/usuarios/*/productos").permitAll()
+                // ── Contenido publico (lectura estilo Wallapop) ─────────────
+                .requestMatchers(HttpMethod.GET, "/api/productos/**", "/producto/**", "/productos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ofertas/**", "/oferta/**", "/ofertas/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/vehiculos/**", "/vehiculo/**", "/vehiculos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/categoria/**", "/categorias/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/comentarios/**", "/comentario/**", "/comentarios/**").permitAll()
 
-                // ── Newsletter: suscripcion publica ─────────────────────────
-                .requestMatchers(HttpMethod.POST, "/api/newsletter/suscribir").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/newsletter/confirmar").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/newsletter/cancelar").permitAll()
+                // ── Perfiles publicos de usuario ────────────────────────────
+                .requestMatchers(HttpMethod.GET, 
+                    "/api/usuarios/*/perfil", "/usuario/*/perfil",
+                    "/api/usuarios/*/valoraciones", "/usuario/*/valoraciones",
+                    "/api/usuarios/*/productos", "/usuario/*/productos"
+                ).permitAll()
 
-                // ── Admin: solo nivelAcceso > 0 ─────────────────────────────
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // ── Newsletter: suscripcion sin cuenta ──────────────────────
+                .requestMatchers(HttpMethod.POST, "/api/newsletter/suscribir", "/newsletter/suscribir").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/newsletter/confirmar", "/newsletter/confirmar").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/newsletter/cancelar", "/newsletter/cancelar").permitAll()
 
-                // ── Todo lo demas requiere autenticacion ───────────────────
+                // ── Admin: solo rol ADMIN ───────────────────────────────────
+                .requestMatchers("/api/admin/**", "/admin/**", "/api/moderation/**").hasRole("ADMIN")
+
+                // ── Todo lo demas requiere autenticacion (JWT) ──────────────
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

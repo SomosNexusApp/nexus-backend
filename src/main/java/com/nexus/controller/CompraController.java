@@ -46,25 +46,16 @@ public class CompraController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ── PASO 1: INICIAR PAGO ──────────────────────────────────────────────
+ // ── PASO 1: INICIAR PAGO ──────────────────────────────────────────────
 
-    /**
-     * Crea el PaymentIntent en Stripe y guarda la compra en estado PENDIENTE.
-     *
-     * Angular llama aquí primero para obtener el clientSecret de Stripe.
-     * Luego usa stripe.js para cobrar la tarjeta del comprador.
-     *
-     * Params:
-     *   productoId   - ID del producto a comprar
-     *   compradorId  - ID del usuario comprador
-     *   precioEnvio  - Coste del envío (0 si es en persona)
-     */
     @PostMapping("/intent")
-    @Operation(summary = "Paso 1: Crear PaymentIntent en Stripe")
+    @Operation(summary = "Paso 1: Crear PaymentIntent en Stripe calculando comisiones y envío")
     public ResponseEntity<?> crearIntentoPago(
             @RequestParam Integer productoId,
             @RequestParam Integer compradorId,
-            @RequestParam(defaultValue = "0") Double precioEnvio) {
+            @RequestParam TipoEnvio tipoEnvio,
+            @RequestParam(required = false) String direccionCompleta,
+            @RequestParam(required = false) String puntoRecogidaId) {
 
         Optional<Producto> p = productoService.findById(productoId);
         Optional<Usuario>  u = usuarioService.findById(compradorId);
@@ -78,14 +69,28 @@ public class CompraController {
                     .body(Map.of("error", "El producto ya no está disponible"));
         }
 
-        // No se puede comprar el propio producto
         if (p.get().getPublicador().getId() == compradorId) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "No puedes comprar tu propio producto"));
         }
 
         try {
-            double totalCobrar = p.get().getPrecio() + precioEnvio;
+            Double precioProducto = p.get().getPrecio();
+            
+            // Calcular Comisión
+            Double comisionNexus = compraService.calcularComisionNexus(precioProducto);
+
+            // Calcular Costo de Envío
+            Double costoEnvio = 0.0;
+            if (tipoEnvio == TipoEnvio.DOMICILIO) {
+                costoEnvio = 3.69;
+            } else if (tipoEnvio == TipoEnvio.PUNTO_RECOGIDA) {
+                costoEnvio = 2.69;
+            }
+
+            // Total que pagará el comprador en Stripe
+            double totalCobrar = precioProducto + costoEnvio + comisionNexus;
+
             PaymentIntent intent = stripeService.crearIntentoPago(
                 totalCobrar, "Nexus: " + p.get().getTitulo());
 
@@ -95,18 +100,36 @@ public class CompraController {
             compra.setProducto(p.get());
             compra.setFechaCompra(LocalDateTime.now());
             compra.setEstado(EstadoCompra.PENDIENTE);
+            
+            // Guardar los nuevos campos financieros y de logística
             compra.setPrecioFinal(totalCobrar);
+            compra.setTipoEnvio(tipoEnvio);
+            compra.setCostoEnvio(costoEnvio);
+            compra.setComisionNexus(comisionNexus);
+            
+            if (tipoEnvio == TipoEnvio.DOMICILIO) {
+                compra.setDireccionCompleta(direccionCompleta);
+            } else if (tipoEnvio == TipoEnvio.PUNTO_RECOGIDA) {
+                compra.setPuntoRecogidaId(puntoRecogidaId);
+            }
+
             compraRepository.save(compra);
 
+            // Preparar respuesta (DTO/Map ampliado)
             Map<String, Object> response = new HashMap<>();
             response.put("clientSecret", intent.getClientSecret());
             response.put("compraId",     compra.getId());
-            response.put("precioProducto", p.get().getPrecio());
-            response.put("precioEnvio",    precioEnvio);
-            response.put("total",          totalCobrar);
+            response.put("precioProducto", precioProducto);
+            response.put("costoEnvio",   costoEnvio);
+            response.put("comisionNexus", comisionNexus);
+            response.put("tipoEnvio",    tipoEnvio.name());
+            response.put("total",        totalCobrar);
 
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+            // Captura el error si el precio supera los 1000 EUR
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError()

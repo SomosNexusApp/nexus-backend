@@ -13,7 +13,7 @@ public interface CompraRepository extends JpaRepository<Compra, Integer> {
 
     List<Compra> findByCompradorIdOrderByFechaCompraDesc(Integer compradorId);
 
-    @Query("SELECT c FROM Compra c WHERE c.producto.publicador.id = ?1 ORDER BY c.fechaCompra DESC")
+    @Query("SELECT c FROM Compra c WHERE c.producto.vendedor.id = :vendedorId ORDER BY c.fechaCompra DESC")
     List<Compra> findByVendedorId(Integer vendedorId);
 
     Optional<Compra> findByStripePaymentIntentId(String paymentIntentId);

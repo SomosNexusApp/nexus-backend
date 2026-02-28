@@ -27,6 +27,6 @@ public interface EnvioRepository extends JpaRepository<Envio, Integer> {
     List<Envio> findByCompradorId(Integer compradorId);
 
     // Todos los envíos donde el vendedor es el usuario
-    @Query("SELECT e FROM Envio e WHERE e.compra.producto.publicador.id = ?1 ORDER BY e.fechaCreacion DESC")
+    @Query("SELECT e FROM Envio e WHERE e.compra.producto.vendedor.id = :vendedorId ORDER BY e.fechaCreacion DESC")
     List<Envio> findByVendedorId(Integer vendedorId);
 }

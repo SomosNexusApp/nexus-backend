@@ -24,13 +24,13 @@ public class ProductoService {
 
     public List<Producto> findAll()                    { return productoRepository.findAll(); }
     public Optional<Producto> findById(Integer id)     { return productoRepository.findById(id); }
-    public List<Producto> findDisponibles()            { return productoRepository.findByEstadoProducto(EstadoProducto.DISPONIBLE); }
+    public List<Producto> findDisponibles()            { return productoRepository.findByEstado(EstadoProducto.DISPONIBLE); }
 
     public Page<Producto> buscarConFiltrosPaginado(String busqueda, TipoOferta tipoOferta,
             Double precioMin, Double precioMax, Integer publicadorId, Pageable pageable) {
 
         List<Producto> filtrados = productoRepository
-            .findByEstadoProducto(EstadoProducto.DISPONIBLE).stream()
+            .findByEstado(EstadoProducto.DISPONIBLE).stream()
             .filter(p -> busqueda == null || busqueda.isBlank()
                 || p.getTitulo().toLowerCase().contains(busqueda.toLowerCase())
                 || p.getDescripcion().toLowerCase().contains(busqueda.toLowerCase()))

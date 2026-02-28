@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.nexus.entity.Actor;
 import com.nexus.entity.Oferta;
 import com.nexus.repository.ActorRepository;
+import com.nexus.service.ModerationService;
 import com.nexus.service.OfertaService;
 import com.nexus.service.StorageService;
 
@@ -28,6 +29,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Ofertas", description = "Sistema de chollos con Spark")
 public class OfertaController {
 
+    @Autowired 
+    private ModerationService moderationService;
     @Autowired private OfertaService ofertaService;
     @Autowired private ActorRepository actorRepository;
     @Autowired private StorageService storageService;
@@ -163,6 +166,17 @@ public class OfertaController {
                     .body(Map.of("error", "Actor no encontrado"));
             }
             
+            // --- VALIDACIÓN DE MODERACIÓN (CREAR) ---
+            String tituloAValidar = oferta.getTitulo() != null ? oferta.getTitulo() : "";
+            String descAValidar = oferta.getDescripcion() != null ? oferta.getDescripcion() : "";
+            String textoCompleto = tituloAValidar + " " + descAValidar;
+
+            if (!moderationService.esContenidoApropiado(textoCompleto)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+            }
+            // ----------------------------------------
+            
             oferta.setActor(actor.get());
             
             // Subir imagen principal
@@ -173,9 +187,9 @@ public class OfertaController {
             }
             oferta.setImagenPrincipal(urlPrincipal);
             
-            // Subir galería (máx 4)
+            // Subir galería (máx 5)
             if (galeria != null && !galeria.isEmpty()) {
-                for (int i = 0; i < Math.min(galeria.size(), 4); i++) {
+                for (int i = 0; i < Math.min(galeria.size(), 5); i++) {
                     String urlGaleria = storageService.subirImagen(galeria.get(i));
                     if (urlGaleria != null) {
                         oferta.addImagenGaleria(urlGaleria);
@@ -202,6 +216,18 @@ public class OfertaController {
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria) {
         
         try {
+            // --- VALIDACIÓN DE MODERACIÓN (ACTUALIZAR) ---
+            String tituloAValidar = nuevosDatos.getTitulo() != null ? nuevosDatos.getTitulo() : "";
+            String descAValidar = nuevosDatos.getDescripcion() != null ? nuevosDatos.getDescripcion() : "";
+            String textoCompleto = tituloAValidar + " " + descAValidar;
+
+            // Si está enviando título o descripción, los validamos
+            if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+            }
+            // ---------------------------------------------
+            
             return ofertaService.findById(id).map(oferta -> {
                 if (nuevosDatos.getTitulo() != null) oferta.setTitulo(nuevosDatos.getTitulo());
                 if (nuevosDatos.getDescripcion() != null) oferta.setDescripcion(nuevosDatos.getDescripcion());
@@ -211,6 +237,12 @@ public class OfertaController {
                 if (nuevosDatos.getUrlOferta() != null) oferta.setUrlOferta(nuevosDatos.getUrlOferta());
                 if (nuevosDatos.getFechaExpiracion() != null) oferta.setFechaExpiracion(nuevosDatos.getFechaExpiracion());
                 if (nuevosDatos.getCategoria() != null) oferta.setCategoria(nuevosDatos.getCategoria());
+                
+                // --- NUEVOS CAMPOS ---
+                if (nuevosDatos.getCodigoDescuento() != null) oferta.setCodigoDescuento(nuevosDatos.getCodigoDescuento());
+                if (nuevosDatos.getEsOnline() != null) oferta.setEsOnline(nuevosDatos.getEsOnline());
+                if (nuevosDatos.getCiudadOferta() != null) oferta.setCiudadOferta(nuevosDatos.getCiudadOferta());
+                if (nuevosDatos.getGastosEnvio() != null) oferta.setGastosEnvio(nuevosDatos.getGastosEnvio());
                 
                 if (imagenPrincipal != null && !imagenPrincipal.isEmpty()) {
                     String urlNueva = storageService.subirImagen(imagenPrincipal);
@@ -222,7 +254,8 @@ public class OfertaController {
                 
                 if (galeria != null && !galeria.isEmpty()) {
                     for (MultipartFile file : galeria) {
-                        if (oferta.getGaleriaImagenes().size() < 4) {
+                        // Límite a 5 imágenes
+                        if (oferta.getGaleriaImagenes().size() < 5) {
                             String urlGaleria = storageService.subirImagen(file);
                             if (urlGaleria != null) {
                                 oferta.addImagenGaleria(urlGaleria);

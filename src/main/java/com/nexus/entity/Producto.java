@@ -118,12 +118,10 @@ public class Producto extends DomainEntity {
 
     public Actor           getVendedor()                            { return vendedor; }
     public void            setVendedor(Actor v)                     { this.vendedor = v; }
-    public void            setVendedor(Usuario v)                   { this.vendedor = v; }
 
     /** Alias requerido por Compra.java, CompraController, DevolucionService, EnvioService, ProductoService */
     public Actor           getPublicador()                          { return vendedor; }
     public void            setPublicador(Actor v)                   { this.vendedor = v; }
-    public void            setPublicador(Usuario v)                 { this.vendedor = v; }
 
     public Categoria       getCategoria()                           { return categoria; }
     public void            setCategoria(Categoria c)                { this.categoria = c; }

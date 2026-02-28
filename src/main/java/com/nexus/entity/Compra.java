@@ -47,6 +47,15 @@ public class Compra extends DomainEntity {
     private LocalDateTime fechaEntrega;
     private LocalDateTime fechaCompletada;
     private LocalDateTime fechaCancelacion;
+    
+    @Enumerated(EnumType.STRING)
+    private TipoEnvio tipoEnvio;
+    
+    private Double costoEnvio;     // 0.0=personal | 2.69=punto | 3.69=domicilio
+    private Double comisionNexus;  // calculado automaticamente
+    
+    private String direccionCompleta;  // solo si DOMICILIO
+    private String puntoRecogidaId;    // solo si PUNTO_RECOGIDA
 
     @PrePersist
     protected void onCreate() {
@@ -99,4 +108,18 @@ public class Compra extends DomainEntity {
     public void      setFechaCompletada(LocalDateTime f)       { this.fechaCompletada = f; }
     public LocalDateTime getFechaCancelacion()                 { return fechaCancelacion; }
     public void      setFechaCancelacion(LocalDateTime f)      { this.fechaCancelacion = f; }
+    public TipoEnvio getTipoEnvio() { return tipoEnvio; }
+    public void setTipoEnvio(TipoEnvio tipoEnvio) { this.tipoEnvio = tipoEnvio; }
+
+    public Double getCostoEnvio() { return costoEnvio; }
+    public void setCostoEnvio(Double costoEnvio) { this.costoEnvio = costoEnvio; }
+
+    public Double getComisionNexus() { return comisionNexus; }
+    public void setComisionNexus(Double comisionNexus) { this.comisionNexus = comisionNexus; }
+
+    public String getDireccionCompleta() { return direccionCompleta; }
+    public void setDireccionCompleta(String direccionCompleta) { this.direccionCompleta = direccionCompleta; }
+
+    public String getPuntoRecogidaId() { return puntoRecogidaId; }
+    public void setPuntoRecogidaId(String puntoRecogidaId) { this.puntoRecogidaId = puntoRecogidaId; }
 }

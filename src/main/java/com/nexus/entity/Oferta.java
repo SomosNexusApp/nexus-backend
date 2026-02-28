@@ -3,6 +3,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 @Entity
 @Table(name = "oferta", indexes = {
     @Index(name = "idx_oferta_activa",      columnList = "esActiva"),
@@ -37,7 +39,22 @@ public class Oferta extends DomainEntity {
     @Column(nullable = false) private Integer numeroVistas = 0;
     @Column(nullable = false) private Integer numeroCompartidos = 0;
     @Column(nullable = false) private Integer numeroComentarios = 0;
-    @PrePersist @PreUpdate protected void onSave() {
+
+    @Schema(description = "Código de descuento a aplicar en la tienda", example = "CHOLLO20")
+    private String codigoDescuento;
+
+    @Schema(description = "Indica si la oferta es online (true) o en tienda física (false)", defaultValue = "true")
+    @Column(nullable = false)
+    private Boolean esOnline = true;
+
+    @Schema(description = "Ciudad donde se encuentra la oferta física (solo si esOnline=false)", example = "Madrid")
+    private String ciudadOferta;
+
+    @Schema(description = "Gastos de envío de la oferta. Null = no indicado, 0.0 = gratis", example = "3.99")
+    private Double gastosEnvio;
+    @PrePersist 
+    @PreUpdate 
+    protected void onSave() {
         if (fechaPublicacion  == null) fechaPublicacion  = LocalDateTime.now();
         if (sparkCount        == null) sparkCount        = 0;
         if (dripCount         == null) dripCount         = 0;
@@ -45,6 +62,7 @@ public class Oferta extends DomainEntity {
         if (numeroCompartidos == null) numeroCompartidos = 0;
         if (numeroComentarios == null) numeroComentarios = 0;
         if (esActiva          == null) esActiva          = true;
+        if (esOnline          == null) esOnline          = true; // Nuevo control por defecto
         if (galeriaImagenes   == null) galeriaImagenes   = new ArrayList<>();
         this.sparkScore = (sparkCount!=null?sparkCount:0) - (dripCount!=null?dripCount:0);
     }
@@ -93,6 +111,17 @@ public class Oferta extends DomainEntity {
     public Integer  getNumeroCompartidos()                   { return numeroCompartidos; }
     public void     setNumeroCompartidos(Integer c)          { this.numeroCompartidos = c; }
     public void     setNumeroCompartidos(int c)              { this.numeroCompartidos = c; }
+    public String getCodigoDescuento() { return codigoDescuento; }
+    public void setCodigoDescuento(String codigoDescuento) { this.codigoDescuento = codigoDescuento; }
+
+    public Boolean getEsOnline() { return esOnline; }
+    public void setEsOnline(Boolean esOnline) { this.esOnline = esOnline; }
+
+    public String getCiudadOferta() { return ciudadOferta; }
+    public void setCiudadOferta(String ciudadOferta) { this.ciudadOferta = ciudadOferta; }
+
+    public Double getGastosEnvio() { return gastosEnvio; }
+    public void setGastosEnvio(Double gastosEnvio) { this.gastosEnvio = gastosEnvio; }
     public Integer  getNumeroComentarios()                   { return numeroComentarios; }
     public void     setNumeroComentarios(Integer c)          { this.numeroComentarios = c; }
     public void addImagenGaleria(String url) { if(galeriaImagenes==null)galeriaImagenes=new ArrayList<>(); galeriaImagenes.add(url); }

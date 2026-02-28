@@ -214,9 +214,9 @@ public class ActorController {
 
             if (actor instanceof Usuario u) {
                 perfil.put("avatar",           u.getAvatar());
-                perfil.put("telefono",         u.getMostrarTelefono() ? u.getTelefono() : null);
+                perfil.put("telefono",         u.isMostrarTelefono() ? u.getTelefono() : null);
                 perfil.put("biografia",        u.getBiografia());
-                perfil.put("ubicacion",        u.getMostrarUbicacion() ? u.getUbicacion() : null);
+                perfil.put("ubicacion",        u.isMostrarUbicacion() ? u.getUbicacion() : null);
                 perfil.put("reputacion",       u.getReputacion());
                 perfil.put("esVerificado",     u.isEsVerificado());
                 perfil.put("perfilPublico",    u.isPerfilPublico());

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 @Repository
 public interface ComentarioRepository extends JpaRepository<Comentario, Integer> {
-    List<Comentario> findByProductoIdOrderByFechaDesc(Integer productoId);
+	List<Comentario> findByOfertaIdOrderByFechaDesc(Integer ofertaId);
     List<Comentario> findByActorIdOrderByFechaDesc(Integer actorId);
-    long countByProductoId(Integer productoId);
+    long countByOfertaId(Integer id);
 }

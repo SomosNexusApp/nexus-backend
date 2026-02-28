@@ -12,22 +12,24 @@ import com.nexus.entity.Producto;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Integer> {
 
-    List<Producto> findByPublicadorIdOrderByFechaPublicacionDesc(Integer publicadorId);
+	List<Producto> findByVendedorIdOrderByFechaPublicacionDesc(Integer id);
 
-    List<Producto> findByEstadoProducto(EstadoProducto estado);
+	List<Producto> findByEstado(EstadoProducto estado);
 
-    @Query("SELECT p FROM Producto p WHERE " +
-           "p.estadoProducto = 'DISPONIBLE' AND " +
-           "(?1 IS NULL OR p.categoria.nombre = ?1) AND " +
-           "(?2 IS NULL OR p.precio >= ?2) AND " +
-           "(?3 IS NULL OR p.precio <= ?3) AND " +
-           "(?4 IS NULL OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', ?4, '%'))) AND " +
-           "(?5 IS NULL OR p.ubicacion LIKE CONCAT('%', ?5, '%'))")
-    Page<Producto> buscarConFiltros(String categoria, Double precioMin, Double precioMax,
-                                     String busqueda, String ubicacion, Pageable pageable);
+	@Query("SELECT p FROM Producto p WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE " +
+	           "AND (?1 IS NULL OR p.categoria.nombre = ?1) " +
+	           "AND (?2 IS NULL OR p.precio >= ?2) " +
+	           "AND (?3 IS NULL OR p.precio <= ?3) " +
+	           "AND (?4 IS NULL OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', ?4, '%'))) " +
+	           "AND (?5 IS NULL OR p.ubicacion LIKE CONCAT('%', ?5, '%'))")
+	    Page<Producto> buscarConFiltros(
+	            String categoria, 
+	            Double precioMin, 
+	            Double precioMax, 
+	            String busqueda, 
+	            String ubicacion, 
+	            Pageable pageable);
 
-    @Query("SELECT DISTINCT p.categoria.nombre FROM Producto p " +
-           "WHERE p.estadoProducto = 'DISPONIBLE' AND p.categoria IS NOT NULL " +
-           "ORDER BY p.categoria.nombre")
+	@Query("SELECT DISTINCT p.categoria.nombre FROM Producto p WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE AND p.categoria IS NOT NULL ORDER BY p.categoria.nombre")
     List<String> findCategoriasDistintas();
 }

@@ -86,6 +86,17 @@ public class CompraService {
         return guardada;
     }
 
+    
+ // --- NUEVO MÉTODO ---
+    public Double calcularComisionNexus(Double precio) {
+        if (precio == null || precio <= 0) return 0.0;
+        if (precio > 1000.0) throw new IllegalArgumentException("El precio máximo permitido para compras en Nexus es de 1000 EUR");
+        
+        if (precio < 20.0)  return 1.60;
+        if (precio < 100.0) return 3.60;
+        return 5.60;  // maximo 1000 EUR de precio permitido
+    }
+    
     /**
      * Cancela una compra pendiente de pago o pendiente de envío.
      * Si ya fue pagada, genera reembolso automático.

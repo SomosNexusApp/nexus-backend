@@ -3,16 +3,14 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-/**
- * Clase base para Usuario, Empresa y Admin.
- * Usa herencia JOINED: tabla actor + tabla especifica.
- */
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "actor")
 @Inheritance(strategy = InheritanceType.JOINED)
 public abstract class Actor extends DomainEntity {
 
-    @Column(nullable = false, unique = true)
+	@Column(name = "username", nullable = false, unique = true)
     private String user;
 
     @Column(nullable = false, unique = true)
@@ -20,6 +18,16 @@ public abstract class Actor extends DomainEntity {
 
     @Column(nullable = false)
     private String password;
+
+    // ---- NUEVOS CAMPOS -------------------------------------------------
+    @Column
+    private String nombre;
+
+    @Column
+    private String apellidos;
+
+    @Column(unique = true)
+    private String telefono; // Movido desde Usuario.java
 
     // ---- 2FA -----------------------------------------------------------
     @Column(nullable = false)
@@ -29,7 +37,6 @@ public abstract class Actor extends DomainEntity {
     private String twoFactorSecret;  // Secret TOTP (encriptado)
 
     // ---- Sesiones -------------------------------------------------------
-    /** Incrementar para invalidar todos los JWT activos */
     @Column(nullable = false)
     private int jwtVersion = 0;
 
@@ -58,8 +65,18 @@ public abstract class Actor extends DomainEntity {
     public void    setUser(String u)                          { this.user = u; }
     public String  getEmail()                                 { return email; }
     public void    setEmail(String e)                         { this.email = e; }
-    public String  getPassword()                              { return password; }
+    @JsonIgnore
+    public String getPassword() { return password; }
     public void    setPassword(String p)                      { this.password = p; }
+    
+    // Getters y Setters NUEVOS
+    public String  getNombre()                                { return nombre; }
+    public void    setNombre(String n)                        { this.nombre = n; }
+    public String  getApellidos()                             { return apellidos; }
+    public void    setApellidos(String a)                     { this.apellidos = a; }
+    public String  getTelefono()                              { return telefono; }
+    public void    setTelefono(String t)                      { this.telefono = t; }
+
     public boolean isTwoFactorEnabled()                       { return twoFactorEnabled; }
     public void    setTwoFactorEnabled(boolean b)             { this.twoFactorEnabled = b; }
     public String  getTwoFactorMethod()                       { return twoFactorMethod; }

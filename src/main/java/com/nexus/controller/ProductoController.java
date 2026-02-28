@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
 import com.nexus.entity.TipoOferta;
+import com.nexus.service.ModerationService;
 import com.nexus.service.ProductoService;
 import com.nexus.service.StorageService;
 
@@ -24,12 +25,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/producto")
-@Tag(name = "Productos", description = "Mercado de segunda mano estilo Wallapop")
+@Tag(name = "Productos", description = "Mercado de segunda mano")
 public class ProductoController {
 
     @Autowired private ProductoService productoService;
     @Autowired private StorageService storageService;
-
+    @Autowired private ModerationService moderationService;
+    
     @GetMapping
     public ResponseEntity<List<Producto>> findAll() {
         return ResponseEntity.ok(productoService.findAll());
@@ -81,7 +83,7 @@ public class ProductoController {
     @PatchMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado (DISPONIBLE, RESERVADO, VENDIDO)")
     public ResponseEntity<?> cambiarEstado(@PathVariable Integer id,
-                                            @RequestBody Map<String, String> body) {
+                                           @RequestBody Map<String, String> body) {
         String estadoStr = body.get("estado");
         if (estadoStr == null || estadoStr.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Campo 'estado' requerido"));
@@ -106,20 +108,33 @@ public class ProductoController {
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria,
             @PathVariable Integer usuarioId) {
         try {
+            // --- VALIDACIÓN DE MODERACIÓN (CREAR) ---
+            String tituloAValidar = producto.getTitulo() != null ? producto.getTitulo() : "";
+            String descAValidar = producto.getDescripcion() != null ? producto.getDescripcion() : "";
+            String textoCompleto = tituloAValidar + " " + descAValidar;
+
+            if (!moderationService.esContenidoApropiado(textoCompleto)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+            }
+            // ----------------------------------------
+
             String url = storageService.subirImagen(imagenPrincipal);
-            if (url == null) return ResponseEntity.internalServerError().body("Error al subir imagen");
+            if (url == null) return ResponseEntity.internalServerError().body(Map.of("error", "Error al subir imagen principal"));
             producto.setImagenPrincipal(url);
+            
             if (galeria != null) {
                 for (int i = 0; i < Math.min(galeria.size(), 5); i++) {
                     String g = storageService.subirImagen(galeria.get(i));
                     if (g != null) producto.addImagenGaleria(g);
                 }
             }
+            
             Producto nuevo = productoService.publicar(producto, usuarioId);
             return nuevo != null ? ResponseEntity.status(HttpStatus.CREATED).body(nuevo)
-                                 : ResponseEntity.badRequest().body("Usuario no encontrado");
+                                 : ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -131,38 +146,57 @@ public class ProductoController {
             @RequestPart(value = "imagenPrincipal", required = false) MultipartFile imagenPrincipal,
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria) {
         try {
+            // --- VALIDACIÓN DE MODERACIÓN (ACTUALIZAR) ---
+            String tituloAValidar = detalles.getTitulo() != null ? detalles.getTitulo() : "";
+            String descAValidar = detalles.getDescripcion() != null ? detalles.getDescripcion() : "";
+            String textoCompleto = tituloAValidar + " " + descAValidar;
+
+            if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+            }
+            // ---------------------------------------------
+
             Optional<Producto> op = productoService.findById(id);
             if (op.isEmpty()) return ResponseEntity.notFound().build();
+            
             Producto p = op.get();
-            p.setTitulo(detalles.getTitulo());
-            p.setDescripcion(detalles.getDescripcion());
-            p.setPrecio(detalles.getPrecio());
-            p.setTipoOferta(detalles.getTipoOferta());
+            if (detalles.getTitulo() != null) p.setTitulo(detalles.getTitulo());
+            if (detalles.getDescripcion() != null) p.setDescripcion(detalles.getDescripcion());
+            if (detalles.getPrecio() != null) p.setPrecio(detalles.getPrecio());
+            if (detalles.getTipoOferta() != null) p.setTipoOferta(detalles.getTipoOferta());
+            
             if (imagenPrincipal != null && !imagenPrincipal.isEmpty()) {
                 String url = storageService.subirImagen(imagenPrincipal);
-                if (url != null) { storageService.eliminarImagen(p.getImagenPrincipal()); p.setImagenPrincipal(url); }
+                if (url != null) { 
+                    storageService.eliminarImagen(p.getImagenPrincipal()); 
+                    p.setImagenPrincipal(url); 
+                }
             }
+            
             if (galeria != null) {
                 for (MultipartFile f : galeria) {
                     if (p.getGaleriaImagenes().size() < 5) {
-                        String g = storageService.subirImagen(f); if (g != null) p.addImagenGaleria(g);
+                        String g = storageService.subirImagen(f); 
+                        if (g != null) p.addImagenGaleria(g);
                     }
                 }
             }
+            
             return ResponseEntity.ok(productoService.update(id, p));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar producto")
-    public ResponseEntity<String> delete(@PathVariable Integer id) {
+    public ResponseEntity<?> delete(@PathVariable Integer id) {
         return productoService.findById(id).map(p -> {
             storageService.eliminarImagen(p.getImagenPrincipal());
             p.getGaleriaImagenes().forEach(storageService::eliminarImagen);
             productoService.delete(id);
-            return ResponseEntity.ok("Producto eliminado");
+            return ResponseEntity.ok(Map.of("mensaje", "Producto eliminado"));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
