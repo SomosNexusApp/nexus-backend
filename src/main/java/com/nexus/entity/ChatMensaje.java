@@ -3,38 +3,39 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "chat_mensaje", indexes = {
-    @Index(name = "idx_chat_producto", columnList = "producto_id"),
+    @Index(name = "idx_chat_producto",  columnList = "producto_id"),
     @Index(name = "idx_chat_remitente", columnList = "remitente_id"),
-    @Index(name = "idx_chat_fecha",  columnList = "fechaEnvio")
+    @Index(name = "idx_chat_fecha",     columnList = "fechaEnvio")
 })
 public class ChatMensaje extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "vendedor", "categoria", "galeriaImagenes"})
     private Producto producto;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "remitente_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Usuario remitente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receptor_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Usuario receptor;
 
-    @Column(columnDefinition = "TEXT")
-    private String texto;
-
-    // URL de Cloudinary → imagen, vídeo o audio
-    @Column(columnDefinition = "TEXT")
-    private String mediaUrl;
-
-    // Thumbnail para vídeos (Cloudinary genera la misma URL con .jpg)
-    @Column(columnDefinition = "TEXT")
-    private String mediaThumbnail;
-
-    // Duración del audio en segundos (para mostrar la barra de progreso en Angular)
+    @Column(columnDefinition = "TEXT") private String texto;
+    @Column(columnDefinition = "TEXT") private String mediaUrl;
+    @Column(columnDefinition = "TEXT") private String mediaThumbnail;
     private Integer audioDuracionSegundos;
 
     @Enumerated(EnumType.STRING)
@@ -43,8 +44,6 @@ public class ChatMensaje extends DomainEntity {
 
     private LocalDateTime fechaEnvio;
     private Boolean leido = false;
-
-    // Propuesta de precio
     private Double  precioPropuesto;
     private String  estadoPropuesta;
 

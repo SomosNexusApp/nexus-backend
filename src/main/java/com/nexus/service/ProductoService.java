@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
@@ -16,14 +17,19 @@ import com.nexus.entity.TipoOferta;
 import com.nexus.entity.Usuario;
 import com.nexus.repository.ProductoRepository;
 
+
+
 @Service
 public class ProductoService {
 
     @Autowired private ProductoRepository productoRepository;
     @Autowired private UsuarioService usuarioService;
 
-    public List<Producto> findAll()                    { return productoRepository.findAll(); }
+    @Transactional(readOnly = true)
+    public List<Producto> findAll(  )                    { return productoRepository.findAllWithDetails(); }
+    @Transactional(readOnly = true)
     public Optional<Producto> findById(Integer id)     { return productoRepository.findById(id); }
+    @Transactional(readOnly = true)
     public List<Producto> findDisponibles()            { return productoRepository.findByEstado(EstadoProducto.DISPONIBLE); }
 
     public Page<Producto> buscarConFiltrosPaginado(String busqueda, TipoOferta tipoOferta,

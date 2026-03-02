@@ -1,6 +1,8 @@
 package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
  * Notificacion in-app.
  * NOMBRE: NotificacionInApp  (el repo extiende CrudRepository<NotificacionInApp,Integer>)
@@ -14,6 +16,7 @@ import java.time.LocalDateTime;
 public class NotificacionInApp extends DomainEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actor_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     private Actor actor;
     @Enumerated(EnumType.STRING) @Column(nullable = false)
     private TipoNotificacion tipo;

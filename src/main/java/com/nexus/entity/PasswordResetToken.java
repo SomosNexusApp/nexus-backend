@@ -3,6 +3,8 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "password_reset_token")
 public class PasswordResetToken {
@@ -15,6 +17,9 @@ public class PasswordResetToken {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actor_id", nullable = false)
+  @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+  "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+  "cuentaEliminada", "cuentaVerificada"})
     private Actor actor;
 
     @Column(nullable = false)

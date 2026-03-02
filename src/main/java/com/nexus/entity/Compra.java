@@ -3,6 +3,8 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "compra", indexes = {
     @Index(name = "idx_compra_comprador", columnList = "comprador_id"),
@@ -12,10 +14,15 @@ public class Compra extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comprador_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Usuario comprador;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "vendedor", "categoria", "galeriaImagenes"})
     private Producto producto;
 
     @Enumerated(EnumType.STRING)
@@ -25,15 +32,12 @@ public class Compra extends DomainEntity {
     @Column(name = "stripe_payment_intent_id")
     private String stripePaymentIntentId;
 
-    @Column(nullable = false)
-    private Double precioFinal = 0.0;
-
+    @Column(nullable = false) private Double precioFinal = 0.0;
     private Double precioEnvio = 0.0;
 
     @Enumerated(EnumType.STRING)
     private MetodoEntrega metodoEntrega;
 
-    // Copia de la direccion en el momento de la compra
     private String dirNombre;
     private String dirCalle;
     private String dirCiudad;
@@ -47,15 +51,14 @@ public class Compra extends DomainEntity {
     private LocalDateTime fechaEntrega;
     private LocalDateTime fechaCompletada;
     private LocalDateTime fechaCancelacion;
-    
+
     @Enumerated(EnumType.STRING)
     private TipoEnvio tipoEnvio;
-    
-    private Double costoEnvio;     // 0.0=personal | 2.69=punto | 3.69=domicilio
-    private Double comisionNexus;  // calculado automaticamente
-    
-    private String direccionCompleta;  // solo si DOMICILIO
-    private String puntoRecogidaId;    // solo si PUNTO_RECOGIDA
+
+    private Double costoEnvio;
+    private Double comisionNexus;
+    private String direccionCompleta;
+    private String puntoRecogidaId;
 
     @PrePersist
     protected void onCreate() {
@@ -68,7 +71,6 @@ public class Compra extends DomainEntity {
     public Producto  getProducto()                             { return producto; }
     public void      setProducto(Producto p)                   { this.producto = p; }
 
-    /** Acceso directo al vendedor = publicador del producto */
     @Transient
     public Actor getVendedor() {
         return (producto != null) ? producto.getPublicador() : null;
@@ -108,18 +110,14 @@ public class Compra extends DomainEntity {
     public void      setFechaCompletada(LocalDateTime f)       { this.fechaCompletada = f; }
     public LocalDateTime getFechaCancelacion()                 { return fechaCancelacion; }
     public void      setFechaCancelacion(LocalDateTime f)      { this.fechaCancelacion = f; }
-    public TipoEnvio getTipoEnvio() { return tipoEnvio; }
-    public void setTipoEnvio(TipoEnvio tipoEnvio) { this.tipoEnvio = tipoEnvio; }
-
-    public Double getCostoEnvio() { return costoEnvio; }
-    public void setCostoEnvio(Double costoEnvio) { this.costoEnvio = costoEnvio; }
-
-    public Double getComisionNexus() { return comisionNexus; }
-    public void setComisionNexus(Double comisionNexus) { this.comisionNexus = comisionNexus; }
-
-    public String getDireccionCompleta() { return direccionCompleta; }
-    public void setDireccionCompleta(String direccionCompleta) { this.direccionCompleta = direccionCompleta; }
-
-    public String getPuntoRecogidaId() { return puntoRecogidaId; }
-    public void setPuntoRecogidaId(String puntoRecogidaId) { this.puntoRecogidaId = puntoRecogidaId; }
+    public TipoEnvio getTipoEnvio()                            { return tipoEnvio; }
+    public void      setTipoEnvio(TipoEnvio t)                 { this.tipoEnvio = t; }
+    public Double    getCostoEnvio()                           { return costoEnvio; }
+    public void      setCostoEnvio(Double c)                   { this.costoEnvio = c; }
+    public Double    getComisionNexus()                        { return comisionNexus; }
+    public void      setComisionNexus(Double c)                { this.comisionNexus = c; }
+    public String    getDireccionCompleta()                    { return direccionCompleta; }
+    public void      setDireccionCompleta(String d)            { this.direccionCompleta = d; }
+    public String    getPuntoRecogidaId()                      { return puntoRecogidaId; }
+    public void      setPuntoRecogidaId(String p)              { this.puntoRecogidaId = p; }
 }

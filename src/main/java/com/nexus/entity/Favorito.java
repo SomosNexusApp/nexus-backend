@@ -3,20 +3,25 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "favorito")
 public class Favorito extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oferta_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "actor", "galeriaImagenes"})
     private Oferta oferta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "vendedor", "galeriaImagenes"})
     private Producto producto;
 
     private LocalDateTime fechaGuardado;

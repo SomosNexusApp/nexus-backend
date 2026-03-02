@@ -1,6 +1,9 @@
 package com.nexus.entity;
 
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,11 +23,13 @@ public class Mensaje extends DomainEntity {
     // RELACIÓN: Mensaje pertenece a 1 Producto
     @ManyToOne
     @JoinColumn(name = "producto_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "vendedor", "galeriaImagenes"})
     private Producto producto;
 
     // RELACIÓN: Mensaje lo escribe 1 Usuario
     @ManyToOne
     @JoinColumn(name = "usuario_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig", "cuentaEliminada", "cuentaVerificada"})
     private Usuario usuario;
     
     public Mensaje() {

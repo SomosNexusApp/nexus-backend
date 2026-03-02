@@ -6,23 +6,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * SOLUCION AL CICLO CIRCULAR:
+ * PasswordEncoder en clase separada para evitar dependencia circular:
  *
- *   JWTAuthenticationFilter -> UserDetailsService (UsuarioService)
- *        -> PasswordEncoder -> SecurityConfiguration
- *        -> JWTAuthenticationFilter   <- CICLO
+ *   SecurityConfiguration → JWTAuthenticationFilter
+ *        → UsuarioService (UserDetailsService)
+ *        → PasswordEncoder
+ *        → SecurityConfiguration   ← CICLO
  *
- * El problema: PasswordEncoder estaba definido como @Bean dentro de
- * SecurityConfiguration, la cual inyecta JWTAuthenticationFilter,
- * que a su vez necesita UsuarioService, que necesita PasswordEncoder.
- *
- * La solucion: sacar el @Bean PasswordEncoder a esta clase independiente.
- * Asi SecurityConfiguration ya no tiene dependencia transitiva de si misma.
- *
- * PASOS:
- *   1. Crea este archivo en com/nexus/security/PasswordConfig.java
- *   2. En SecurityConfiguration.java: ELIMINA el metodo @Bean passwordEncoder()
- *   3. Reinicia. El ciclo desaparece.
+ * Al tener el @Bean aquí, SecurityConfiguration puede inyectar
+ * PasswordEncoder sin crear el ciclo.
  */
 @Configuration
 public class PasswordConfig {

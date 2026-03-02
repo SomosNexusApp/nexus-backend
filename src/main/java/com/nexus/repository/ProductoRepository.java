@@ -32,4 +32,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
 
 	@Query("SELECT DISTINCT p.categoria.nombre FROM Producto p WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE AND p.categoria IS NOT NULL ORDER BY p.categoria.nombre")
     List<String> findCategoriasDistintas();
+	
+	@Query("SELECT p FROM Producto p JOIN FETCH p.vendedor v LEFT JOIN FETCH p.categoria c")
+	List<Producto> findAllWithDetails();
 }

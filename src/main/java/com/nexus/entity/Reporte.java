@@ -3,6 +3,8 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Reporte de contenido inapropiado.
  *
@@ -49,26 +51,32 @@ public class Reporte extends DomainEntity {
     // ---- Objeto denunciado (solo uno es no-null segun tipo) ----------
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "actor_denunciado_id")
     private Actor actorDenunciado;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "producto_denunciado_id")
     private Producto productoDenunciado;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "oferta_denunciada_id")
     private Oferta ofertaDenunciada;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "vehiculo_denunciado_id")
     private Vehiculo vehiculoDenunciado;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "mensaje_denunciado_id")
     private Mensaje mensajeDenunciado;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     @JoinColumn(name = "comentario_denunciado_id")
     private Comentario comentarioDenunciado;
 

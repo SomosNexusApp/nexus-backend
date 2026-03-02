@@ -3,12 +3,15 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "notificacion")
 public class Notificacion extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "twoFactorSecret", "jwtVersion", "notificacionConfig", "cuentaEliminada", "cuentaVerificada"})
     private Usuario usuario;
 
     @Column(nullable = false)

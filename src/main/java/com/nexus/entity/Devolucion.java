@@ -3,6 +3,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Entity
 @Table(name = "devolucion", indexes = {
     @Index(name = "idx_devolucion_compra", columnList = "compra_id"),
@@ -10,6 +12,7 @@ import java.util.List;
 })
 public class Devolucion extends DomainEntity {
     @OneToOne(fetch = FetchType.LAZY) @JoinColumn(name = "compra_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comprador", "producto"})
     private Compra compra;
     @Enumerated(EnumType.STRING) @Column(nullable = false)
     private EstadoDevolucion estado = EstadoDevolucion.SOLICITADA;

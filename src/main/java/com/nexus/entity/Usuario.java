@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "usuario")
 @PrimaryKeyJoinColumn(name = "actor_id")
@@ -73,6 +75,7 @@ public class Usuario extends Actor {
     })
     private DireccionEnvio direccionPorDefecto;
 
+    @JsonIgnore
     @ElementCollection
     @CollectionTable(name = "usuario_bloqueados",
                      joinColumns = @JoinColumn(name = "usuario_id"))

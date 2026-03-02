@@ -20,5 +20,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class NexusApplication {
     public static void main(String[] args) {
         SpringApplication.run(NexusApplication.class, args);
+        PopulateDB pdb = new PopulateDB();
     }
 }

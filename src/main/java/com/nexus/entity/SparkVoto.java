@@ -3,6 +3,8 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "spark_voto",
        uniqueConstraints = @UniqueConstraint(
@@ -12,14 +14,17 @@ public class SparkVoto extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actor_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     private Actor actor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oferta_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "actor", "galeriaImagenes"})
     private Oferta oferta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "vendedor", "galeriaImagenes"})
     private Producto producto;
 
     /** +1 = upvote (Spark), -1 = downvote (Drip) */

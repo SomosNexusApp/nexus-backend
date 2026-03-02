@@ -4,13 +4,8 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Categoria de Productos y Ofertas.
- * Permite filtrar en Angular por categoria.
- *
- * Ejemplos raiz: Electronica, Ropa, Vehiculos, Hogar, Deportes
- * Sub-categorias: Moviles (hijo de Electronica), Coches (hijo de Vehiculos)
- */
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "categoria")
 public class Categoria extends DomainEntity {
@@ -18,32 +13,29 @@ public class Categoria extends DomainEntity {
     @Column(nullable = false, unique = true)
     private String nombre;
 
-    /** Slug para URLs: electronica, ropa-hombre, coches */
     @Column(unique = true)
     private String slug;
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
-    /** Nombre de icono Material (smartphone, directions_car...) o URL de imagen */
     private String icono;
-
-    /** Color de acento en HEX (#FF5722) para Angular */
     private String color;
 
-    /** Orden de aparicion en el menu */
     @Column(nullable = false)
     private Integer orden = 0;
 
     @Column(nullable = false)
     private Boolean activa = true;
 
-    /** Categoria padre (null si es categoria raiz) */
+    // Sin @JsonIgnoreProperties aquí causaría recursión infinita: parent -> hijos -> parent -> ...
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
     private Categoria parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
     private List<Categoria> hijos = new ArrayList<>();
 
     public Categoria() {}

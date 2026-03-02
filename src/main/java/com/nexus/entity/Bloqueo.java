@@ -3,13 +3,8 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-/**
- * Registro de usuario bloqueado.
- * Cuando A bloquea a B:
- *  - B no puede enviar mensajes a A
- *  - B no aparece en los resultados de búsqueda de A
- *  - A no aparece en los resultados de búsqueda de B
- */
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "bloqueo",
        uniqueConstraints = @UniqueConstraint(columnNames = {"bloqueador_id", "bloqueado_id"}))
@@ -17,16 +12,22 @@ public class Bloqueo extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bloqueador_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Usuario bloqueador;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bloqueado_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Usuario bloqueado;
 
     private LocalDateTime fechaBloqueo;
 
     @Column(columnDefinition = "TEXT")
-    private String motivo; // Opcional (puede ser vacío)
+    private String motivo;
 
     public Bloqueo() { super(); this.fechaBloqueo = LocalDateTime.now(); }
 

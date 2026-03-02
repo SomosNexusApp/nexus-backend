@@ -1,10 +1,13 @@
 package com.nexus.entity;
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Table(name = "oferta", indexes = {
     @Index(name = "idx_oferta_activa",      columnList = "esActiva"),
@@ -13,28 +16,39 @@ import io.swagger.v3.oas.annotations.media.Schema;
     @Index(name = "idx_oferta_publicacion", columnList = "fechaPublicacion")
 })
 public class Oferta extends DomainEntity {
+
     @Column(nullable = false) private String titulo;
     @Column(columnDefinition = "TEXT") private String descripcion;
     @Column(nullable = false) private Double precioOferta = 0.0;
     private Double precioOriginal;
     private String tienda;
     @Column(name = "url_oferta", columnDefinition = "TEXT") private String urlOferta;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "categoria_id")
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categoria_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
     private Categoria categoria;
+
     @Column(columnDefinition = "TEXT") private String imagenPrincipal;
+
     @ElementCollection
     @CollectionTable(name = "oferta_imagenes", joinColumns = @JoinColumn(name = "oferta_id"))
     @Column(name = "url", columnDefinition = "TEXT")
     private List<String> galeriaImagenes = new ArrayList<>();
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "actor_id", nullable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "actor_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Actor actor;
+
     @Column(nullable = false) private Boolean esActiva = true;
     @Enumerated(EnumType.STRING) private BadgeOferta badge;
     private LocalDateTime fechaPublicacion;
     private LocalDateTime fechaExpiracion;
     @Column(nullable = false) private Integer sparkCount = 0;
     @Column(nullable = false) private Integer dripCount  = 0;
-    /** PERSISTIDO: permite ORDER BY y setSparkScore() desde schedulers */
     @Column(nullable = false) private Integer sparkScore = 0;
     @Column(nullable = false) private Integer numeroVistas = 0;
     @Column(nullable = false) private Integer numeroCompartidos = 0;
@@ -52,8 +66,8 @@ public class Oferta extends DomainEntity {
 
     @Schema(description = "Gastos de envío de la oferta. Null = no indicado, 0.0 = gratis", example = "3.99")
     private Double gastosEnvio;
-    @PrePersist 
-    @PreUpdate 
+
+    @PrePersist @PreUpdate
     protected void onSave() {
         if (fechaPublicacion  == null) fechaPublicacion  = LocalDateTime.now();
         if (sparkCount        == null) sparkCount        = 0;
@@ -62,10 +76,11 @@ public class Oferta extends DomainEntity {
         if (numeroCompartidos == null) numeroCompartidos = 0;
         if (numeroComentarios == null) numeroComentarios = 0;
         if (esActiva          == null) esActiva          = true;
-        if (esOnline          == null) esOnline          = true; // Nuevo control por defecto
+        if (esOnline          == null) esOnline          = true;
         if (galeriaImagenes   == null) galeriaImagenes   = new ArrayList<>();
-        this.sparkScore = (sparkCount!=null?sparkCount:0) - (dripCount!=null?dripCount:0);
+        this.sparkScore = (sparkCount != null ? sparkCount : 0) - (dripCount != null ? dripCount : 0);
     }
+
     public String   getTitulo()                              { return titulo; }
     public void     setTitulo(String t)                      { this.titulo = t; }
     public String   getDescripcion()                         { return descripcion; }
@@ -78,10 +93,10 @@ public class Oferta extends DomainEntity {
     public void     setTienda(String t)                      { this.tienda = t; }
     public String   getUrlOferta()                           { return urlOferta; }
     public void     setUrlOferta(String u)                   { this.urlOferta = u; }
-    public void     setUrlExterna(String u)                  { this.urlOferta = u; }  // alias OfertaService
+    public void     setUrlExterna(String u)                  { this.urlOferta = u; }
     public String   getUrlExterna()                          { return urlOferta; }
     public Categoria getCategoria()                          { return categoria; }
-    public void     setCategoria(Categoria c)                { this.categoria = c; }  // objeto, NUNCA String
+    public void     setCategoria(Categoria c)                { this.categoria = c; }
     public String   getImagenPrincipal()                     { return imagenPrincipal; }
     public void     setImagenPrincipal(String i)             { this.imagenPrincipal = i; }
     public List<String> getGaleriaImagenes()                 { return galeriaImagenes; }
@@ -102,40 +117,45 @@ public class Oferta extends DomainEntity {
     public void     setSparkCount(Integer s)                 { this.sparkCount = s; }
     public Integer  getDripCount()                           { return dripCount; }
     public void     setDripCount(Integer d)                  { this.dripCount = d; }
-    public Integer  getSparkScore()                          { return sparkScore!=null?sparkScore:0; }
-    public void     setSparkScore(Integer s)                 { this.sparkScore = s; }  // UpvoteRankingScheduler
-    public void     setSparkScore(int s)                     { this.sparkScore = s; }  // SparkVotoService
+    public Integer  getSparkScore()                          { return sparkScore != null ? sparkScore : 0; }
+    public void     setSparkScore(Integer s)                 { this.sparkScore = s; }
+    public void     setSparkScore(int s)                     { this.sparkScore = s; }
     public Integer  getNumeroVistas()                        { return numeroVistas; }
     public void     setNumeroVistas(Integer v)               { this.numeroVistas = v; }
     public void     setNumeroVistas(int v)                   { this.numeroVistas = v; }
     public Integer  getNumeroCompartidos()                   { return numeroCompartidos; }
     public void     setNumeroCompartidos(Integer c)          { this.numeroCompartidos = c; }
     public void     setNumeroCompartidos(int c)              { this.numeroCompartidos = c; }
-    public String getCodigoDescuento() { return codigoDescuento; }
-    public void setCodigoDescuento(String codigoDescuento) { this.codigoDescuento = codigoDescuento; }
-
-    public Boolean getEsOnline() { return esOnline; }
-    public void setEsOnline(Boolean esOnline) { this.esOnline = esOnline; }
-
-    public String getCiudadOferta() { return ciudadOferta; }
-    public void setCiudadOferta(String ciudadOferta) { this.ciudadOferta = ciudadOferta; }
-
-    public Double getGastosEnvio() { return gastosEnvio; }
-    public void setGastosEnvio(Double gastosEnvio) { this.gastosEnvio = gastosEnvio; }
+    public String   getCodigoDescuento()                     { return codigoDescuento; }
+    public void     setCodigoDescuento(String c)             { this.codigoDescuento = c; }
+    public Boolean  getEsOnline()                            { return esOnline; }
+    public void     setEsOnline(Boolean e)                   { this.esOnline = e; }
+    public String   getCiudadOferta()                        { return ciudadOferta; }
+    public void     setCiudadOferta(String c)                { this.ciudadOferta = c; }
+    public Double   getGastosEnvio()                         { return gastosEnvio; }
+    public void     setGastosEnvio(Double g)                 { this.gastosEnvio = g; }
     public Integer  getNumeroComentarios()                   { return numeroComentarios; }
     public void     setNumeroComentarios(Integer c)          { this.numeroComentarios = c; }
-    public void addImagenGaleria(String url) { if(galeriaImagenes==null)galeriaImagenes=new ArrayList<>(); galeriaImagenes.add(url); }
-    public void actualizarNumeroComentarios() { if(numeroComentarios==null)numeroComentarios=0; this.numeroComentarios++; }
-    public void actualizarBadge() {
-        if(precioOferta!=null&&precioOferta<=0.0){this.badge=BadgeOferta.GRATUITA;return;}
-        if(fechaExpiracion!=null&&fechaExpiracion.isBefore(LocalDateTime.now().plusHours(24))){this.badge=BadgeOferta.EXPIRA_HOY;return;}
-        if(fechaPublicacion!=null&&fechaPublicacion.isAfter(LocalDateTime.now().minusHours(1))){this.badge=BadgeOferta.NUEVA;return;}
-        double pct=getPorcentajeDescuento();
-        if(pct>=70)this.badge=BadgeOferta.CHOLLAZO;
-        else if(pct>=40)this.badge=BadgeOferta.PORCENTAJE;
+
+    public void addImagenGaleria(String url) {
+        if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();
+        galeriaImagenes.add(url);
     }
-    @Transient public double getPorcentajeDescuento() {
-        if(precioOriginal==null||precioOriginal<=0||precioOferta==null)return 0;
-        return Math.round(((precioOriginal-precioOferta)/precioOriginal)*100.0);
+    public void actualizarNumeroComentarios() {
+        if (numeroComentarios == null) numeroComentarios = 0;
+        this.numeroComentarios++;
+    }
+    public void actualizarBadge() {
+        if (precioOferta != null && precioOferta <= 0.0) { this.badge = BadgeOferta.GRATUITA; return; }
+        if (fechaExpiracion != null && fechaExpiracion.isBefore(LocalDateTime.now().plusHours(24))) { this.badge = BadgeOferta.EXPIRA_HOY; return; }
+        if (fechaPublicacion != null && fechaPublicacion.isAfter(LocalDateTime.now().minusHours(1))) { this.badge = BadgeOferta.NUEVA; return; }
+        double pct = getPorcentajeDescuento();
+        if (pct >= 70) this.badge = BadgeOferta.CHOLLAZO;
+        else if (pct >= 40) this.badge = BadgeOferta.PORCENTAJE;
+    }
+    @Transient
+    public double getPorcentajeDescuento() {
+        if (precioOriginal == null || precioOriginal <= 0 || precioOferta == null) return 0;
+        return Math.round(((precioOriginal - precioOferta) / precioOriginal) * 100.0);
     }
 }

@@ -5,16 +5,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * IMPORTANTE - UBICACION CORRECTA:
- *   src/main/java/com/nexus/entity/Vehiculo.java
- *
- * Si tienes otro Vehiculo.java en com/nexus/entity/vehiculos/
- * DEBES ELIMINARLO o reemplazarlo por este archivo.
- *
- * La categoria se asigna automaticamente en VehiculoService.crear()
- * usando el slug "vehiculos". No necesitas pasarla desde el controller.
- */
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "vehiculo", indexes = {
     @Index(name = "idx_vehiculo_publicador", columnList = "publicador_id"),
@@ -24,20 +16,14 @@ import java.util.List;
 })
 public class Vehiculo extends DomainEntity {
 
-    @Column(nullable = false)
-    private String titulo;
-
-    @Column(columnDefinition = "TEXT")
-    private String descripcion;
-
-    @Column(nullable = false)
-    private Double precio = 0.0;
+    @Column(nullable = false) private String titulo;
+    @Column(columnDefinition = "TEXT") private String descripcion;
+    @Column(nullable = false) private Double precio = 0.0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoOferta tipoOferta = TipoOferta.VENTA;
 
-    // ---- Tipo y estado de venta ----------------------------------------
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoVehiculo tipoVehiculo = TipoVehiculo.COCHE;
@@ -49,31 +35,19 @@ public class Vehiculo extends DomainEntity {
     @Enumerated(EnumType.STRING)
     private CondicionProducto condicion;
 
-    // ---- Categoria (siempre "Vehiculos", asignada por VehiculoService) -
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
     private Categoria categoria;
 
-    // ---- Datos del vehiculo --------------------------------------------
     private String  marca;
     private String  modelo;
     private Integer anio;
-
-    /** Kilometros recorridos - getKilometros() / setKilometros() */
     private Integer kilometros;
-
-    /** Tipo de combustible: GASOLINA, DIESEL, ELECTRICO, HIBRIDO, GLP */
     private String  combustible;
-
-    /** MANUAL o AUTOMATICO - getCambio() / setCambio() */
     private String  cambio;
-
-    /** Potencia en CV - getPotencia() / setPotencia() */
     private Integer potencia;
-
-    /** Cilindrada en cc - getCilindrada() / setCilindrada() */
     private Integer cilindrada;
-
     private String  color;
     private Integer numeroPuertas;
     private Integer plazas;
@@ -83,19 +57,19 @@ public class Vehiculo extends DomainEntity {
     private Boolean garantia;
     private String  ubicacion;
 
-    // ---- Imagenes ------------------------------------------------------
     @Column(columnDefinition = "TEXT")
     private String imagenPrincipal;
 
     @ElementCollection
-    @CollectionTable(name = "vehiculo_imagenes",
-                     joinColumns = @JoinColumn(name = "vehiculo_id"))
+    @CollectionTable(name = "vehiculo_imagenes", joinColumns = @JoinColumn(name = "vehiculo_id"))
     @Column(name = "url", columnDefinition = "TEXT")
     private List<String> galeriaImagenes = new ArrayList<>();
 
-    // ---- Publicador ----------------------------------------------------
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "publicador_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+        "cuentaEliminada", "cuentaVerificada"})
     private Actor publicador;
 
     private LocalDateTime fechaPublicacion;
@@ -109,8 +83,6 @@ public class Vehiculo extends DomainEntity {
         if (galeriaImagenes  == null) galeriaImagenes  = new ArrayList<>();
     }
 
-    // ---- Getters / Setters (todos los que usa VehiculoService) ----------
-
     public String       getTitulo()                           { return titulo; }
     public void         setTitulo(String t)                   { this.titulo = t; }
     public String       getDescripcion()                      { return descripcion; }
@@ -119,15 +91,10 @@ public class Vehiculo extends DomainEntity {
     public void         setPrecio(Double p)                   { this.precio = p; }
     public TipoOferta   getTipoOferta()                       { return tipoOferta; }
     public void         setTipoOferta(TipoOferta t)           { this.tipoOferta = t; }
-
-    /** TipoVehiculo: COCHE, MOTO, FURGONETA... */
     public TipoVehiculo getTipoVehiculo()                     { return tipoVehiculo; }
     public void         setTipoVehiculo(TipoVehiculo t)       { this.tipoVehiculo = t; }
-
-    /** EstadoVehiculo: DISPONIBLE, VENDIDO, PAUSADO... */
     public EstadoVehiculo getEstadoVehiculo()                 { return estadoVehiculo; }
     public void         setEstadoVehiculo(EstadoVehiculo e)   { this.estadoVehiculo = e; }
-
     public CondicionProducto getCondicion()                   { return condicion; }
     public void         setCondicion(CondicionProducto c)     { this.condicion = c; }
     public Categoria    getCategoria()                        { return categoria; }
@@ -138,26 +105,16 @@ public class Vehiculo extends DomainEntity {
     public void         setModelo(String m)                   { this.modelo = m; }
     public Integer      getAnio()                             { return anio; }
     public void         setAnio(Integer a)                    { this.anio = a; }
-
-    /** Kilometros recorridos */
     public Integer      getKilometros()                       { return kilometros; }
     public void         setKilometros(Integer k)              { this.kilometros = k; }
-
     public String       getCombustible()                      { return combustible; }
     public void         setCombustible(String c)              { this.combustible = c; }
-
-    /** MANUAL o AUTOMATICO */
     public String       getCambio()                           { return cambio; }
     public void         setCambio(String c)                   { this.cambio = c; }
-
-    /** Potencia en CV */
     public Integer      getPotencia()                         { return potencia; }
     public void         setPotencia(Integer p)                { this.potencia = p; }
-
-    /** Cilindrada en cc */
     public Integer      getCilindrada()                       { return cilindrada; }
     public void         setCilindrada(Integer c)              { this.cilindrada = c; }
-
     public String       getColor()                            { return color; }
     public void         setColor(String c)                    { this.color = c; }
     public Integer      getNumeroPuertas()                    { return numeroPuertas; }
