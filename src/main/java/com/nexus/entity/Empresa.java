@@ -17,6 +17,9 @@ public class Empresa extends Actor {
 
     private String web;
     private String telefono;
+    
+    @Column(columnDefinition = "TEXT")
+    private String avatar;
 
     @Column(columnDefinition = "TEXT")
     private String logo;
@@ -40,4 +43,15 @@ public class Empresa extends Actor {
     public void    setLogo(String l)           { this.logo = l; }
     public boolean isVerificada()              { return verificada; }
     public void    setVerificada(boolean v)    { this.verificada = v; }
+
+	public String getAvatar() {
+		return avatar;
+	}
+
+	public void setAvatar(String avatar) {
+		this.avatar = avatar;
+	}
+    
+    
+
 }

@@ -11,7 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.nexus.entity.Actor;
+import com.nexus.entity.Empresa;
 import com.nexus.entity.Usuario;
+import com.nexus.security.JWTUtils;
+import com.nexus.service.EmpresaService;
 import com.nexus.service.StorageService;
 import com.nexus.service.UsuarioService;
 
@@ -26,6 +30,12 @@ public class UsuarioController {
     
     @Autowired
     private StorageService storageService;
+    
+    @Autowired
+    private JWTUtils jwtUtils;
+
+    @Autowired
+    private EmpresaService empresaService;
     
     @GetMapping
     @Operation(summary = "Obtener todos los usuarios")
@@ -87,6 +97,64 @@ public class UsuarioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error al procesar la imagen: " + e.getMessage()));
+        }
+    }
+    
+    @PatchMapping("/me/terminos")
+    @Operation(summary = "Actualizar términos y tipo de cuenta tras registro OAuth")
+    public ResponseEntity<?> actualizarTerminosOAuth(@RequestBody Map<String, Object> payload) {
+        try {
+            Actor actorLogueado = jwtUtils.userLogin();
+            if (actorLogueado == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Optional<Usuario> usuarioOptional = usuarioService.findById(actorLogueado.getId());
+            if (usuarioOptional.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Usuario usuario = usuarioOptional.get();
+
+            // 1. Actualizar el consentimiento del newsletter si viene en el payload
+            if (payload.containsKey("newsletterSuscrito")) {
+                // Si tienes un servicio específico de newsletter, llámalo aquí.
+                // Por simplicidad, asumimos que se guarda en el usuario o que tienes lógica separada.
+                // boolean newsletter = (Boolean) payload.get("newsletterSuscrito");
+                // usuario.setNewsletterSuscrito(newsletter); // Si existe el campo en tu entidad
+            }
+
+            // 2. Gestionar el tipo de cuenta (Usuario vs Empresa)
+            String tipoCuenta = (String) payload.get("tipoCuenta");
+            
+            if ("EMPRESA".equals(tipoCuenta)) {
+                // Lógica de migración de Usuario a Empresa
+                // NOTA: Como la jerarquía de herencia (Actor -> Usuario/Empresa) no permite 
+                // casteos directos ni "transformaciones" mágicas en Hibernate, la forma más segura 
+                // es crear una entidad Empresa, copiar los datos base, eliminar el Usuario y guardar la Empresa.
+                
+                Empresa nuevaEmpresa = new Empresa();
+                nuevaEmpresa.setUser(usuario.getUser());
+                nuevaEmpresa.setEmail(usuario.getEmail());
+                nuevaEmpresa.setPassword(usuario.getPassword()); // Ya está hasheada
+                nuevaEmpresa.setAvatar(usuario.getAvatar());
+                nuevaEmpresa.setCuentaVerificada(usuario.isCuentaVerificada());
+                // ... copiar otros campos comunes
+                
+                // Borramos el usuario (con cuidado de dependencias) y guardamos la empresa
+                usuarioService.delete(usuario.getId());
+                empresaService.save(nuevaEmpresa);
+                
+                return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa con éxito"));
+            }
+
+            // Si es 'USUARIO', simplemente guardamos (los términos se asumen aceptados por el simple hecho de llamar al endpoint)
+            usuarioService.save(usuario);
+            return ResponseEntity.ok(Map.of("mensaje", "Preferencias actualizadas con éxito"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al procesar la solicitud: " + e.getMessage()));
         }
     }
     

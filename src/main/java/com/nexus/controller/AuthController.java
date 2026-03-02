@@ -6,13 +6,12 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.nexus.entity.Usuario;
 import com.nexus.repository.ActorRepository;
-import com.nexus.repository.UsuarioRepository;
 import com.nexus.service.CaptchaService;
+import com.nexus.service.UsuarioService;
 
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -20,9 +19,8 @@ import io.swagger.v3.oas.annotations.Operation;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ActorRepository actorRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private UsuarioService usuarioService;
     @Autowired private CaptchaService captchaService;
 
     // DTO Interno para recibir la petición
@@ -41,7 +39,7 @@ public class AuthController {
     @Operation(summary = "Registrar un nuevo usuario")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         
-        // 1. Validar Captcha (corregido a verificar)
+        // 1. Validar Captcha
         if (!captchaService.verificar(req.captchaToken)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", "Captcha inválido."));
@@ -53,21 +51,13 @@ public class AuthController {
                 .body(Map.of("error", "Debes aceptar los términos y condiciones para registrarte."));
         }
 
-        // 3. Validar disponibilidad de Email y Username (corregido a findByUsername)
-        if (actorRepository.findByEmail(req.email).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "El email ya está en uso."));
-        }
-        if (actorRepository.findByUsername(req.username).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "El nombre de usuario ya está en uso."));
-        }
-
-        // 4. Crear el Usuario
+        // 3. Crear el Usuario
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setUser(req.username);
         nuevoUsuario.setEmail(req.email);
-        nuevoUsuario.setPassword(passwordEncoder.encode(req.password));
+        
+        // Pasamos la contraseña SIN encriptar aquí, el servicio UsuarioService lo encriptará.
+        nuevoUsuario.setPassword(req.password);
         
         // Nuevos campos base
         nuevoUsuario.setNombre(req.nombre);
@@ -79,11 +69,21 @@ public class AuthController {
         nuevoUsuario.setVersionTerminosAceptados("1.0"); 
         nuevoUsuario.setNewsletterSuscrito(req.newsletterSuscrito);
 
-        // Guardar
-        usuarioRepository.save(nuevoUsuario);
+        try {
+            // 4. Guardar usando el SERVICIO (esto lanza el email automáticamente)
+            Usuario usuarioGuardado = usuarioService.registrarUsuario(nuevoUsuario);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(Map.of("mensaje", "Usuario registrado exitosamente.", "id", nuevoUsuario.getId()));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of(
+                    "mensaje", "Usuario registrado exitosamente. Revisa tu correo para verificar la cuenta.", 
+                    "id", usuarioGuardado.getId()
+                ));
+                
+        } catch (IllegalArgumentException e) {
+            // Atrapa si el usuario o el email ya existen (lanzado desde el servicio)
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/check-email")
@@ -96,7 +96,6 @@ public class AuthController {
     @GetMapping("/check-username")
     @Operation(summary = "Comprueba si un nombre de usuario está disponible (true) o ya existe (false)")
     public ResponseEntity<Map<String, Boolean>> checkUsername(@RequestParam String username) {
-        // Corregido a findByUsername
         boolean disponible = actorRepository.findByUsername(username).isEmpty();
         return ResponseEntity.ok(Map.of("disponible", disponible));
     }

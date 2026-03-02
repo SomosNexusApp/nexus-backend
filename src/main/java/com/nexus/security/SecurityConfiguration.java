@@ -75,6 +75,7 @@ public class SecurityConfiguration {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
             "http://localhost:4200",
+            "https://localhost:4200",
             "http://localhost:4300",
             "https://*.nexus.app",
             "https://nexus.app"
@@ -122,7 +123,16 @@ public class SecurityConfiguration {
             .authenticationProvider(authenticationProvider())
 
             .authorizeHttpRequests(auth -> auth
+            		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    
+                    // NUEVO: Permite que Spring devuelva los 404 reales en lugar de transformarlos en 403
+                    .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll() 
 
+                    // 1. PRIMERO LAS RUTAS DE AUTH QUE REQUIEREN TOKEN
+                    .requestMatchers("/auth/me").authenticated()
+
+                    // 2. DESPUÉS LAS RUTAS DE AUTH PÚBLICAS (Bloque general)
+                    .requestMatchers("/auth/**", "/api/auth/**").permitAll()
                 // ══════════════════════════════════════════════════════════
                 //  BLOQUE 1 – INFRAESTRUCTURA PÚBLICA
                 // ══════════════════════════════════════════════════════════
@@ -144,7 +154,7 @@ public class SecurityConfiguration {
                 //  /auth/**     → ActorController (login, 2FA, OAuth, reset…)
                 //  /api/auth/** → AuthController  (register, check-email…)
                 // ══════════════════════════════════════════════════════════
-                .requestMatchers("/auth/**", "/api/auth/**").permitAll()
+    
 
                 // ══════════════════════════════════════════════════════════
                 //  BLOQUE 4 – PRODUCTOS: lectura pública
@@ -322,7 +332,6 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/notificaciones/**").authenticated()
                 .requestMatchers("/envio/**", "/api/envios/**").authenticated()
                 .requestMatchers("/ajustes/**", "/api/usuarios/me/**").authenticated()
-                .requestMatchers("/auth/me").authenticated()
 
                 // Resto de /usuario/** (editar perfil, cambiar pass, etc.)
                 // Los sub-endpoints públicos (/usuario/*/perfil…) ya tienen permitAll

@@ -114,6 +114,82 @@ public class ActorController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    
+ // ── CONFIGURACIÓN DE 2FA (POST-REGISTRO / POPUP) ──────────────────────
+
+    @GetMapping("/2fa/totp-setup")
+    @Operation(summary = "Generar QR y Secret para configurar Google Authenticator")
+    public ResponseEntity<?> setupTotp() {
+        try {
+            Actor actor = jwtUtils.userLogin();
+            if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+            // Llama a tu servicio para generar el QR
+            Map<String, String> datos = twoFactorService.configurarTotp(actor.getId());
+            
+            // El frontend espera las variables "qrCode" y "secret"
+            return ResponseEntity.ok(Map.of(
+                "secret", datos.get("secret"),
+                "qrCode", datos.get("qr") 
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/2fa/activar")
+    @Operation(summary = "Solicitar envío de código al email para activar 2FA")
+    public ResponseEntity<?> solicitarActivacionEmail(@RequestParam String metodo) {
+        try {
+            Actor actor = jwtUtils.userLogin();
+            if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+            if ("EMAIL".equals(metodo)) {
+                // Genera el código y lo envía al correo del usuario
+                twoFactorService.enviarOtpEmail(actor.getId(), actor.getEmail(), "activar tu seguridad en dos pasos");
+                return ResponseEntity.ok(Map.of("mensaje", "Código enviado al correo"));
+            }
+            
+            return ResponseEntity.badRequest().body(Map.of("error", "Método no soportado"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/2fa/confirmar")
+    @Operation(summary = "Confirmar el código e incrustar la seguridad 2FA en la cuenta")
+    public ResponseEntity<?> confirmarActivacion(@RequestParam String metodo, @RequestBody Map<String, String> body) {
+        try {
+            Actor actor = jwtUtils.userLogin();
+            if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+            String codigo = body.get("codigo");
+            boolean ok = false;
+
+            if ("TOTP".equals(metodo)) {
+                // Este método del servicio ya guarda todo en base de datos si es correcto
+                ok = twoFactorService.confirmarActivacionTotp(actor.getId(), codigo);
+                
+            } else if ("EMAIL".equals(metodo)) {
+                // Comprueba el código
+                ok = twoFactorService.verificarOtpEmail(actor.getId(), codigo);
+                if (ok) {
+                    // A diferencia del TOTP, aquí debemos actualizar la BD manualmente
+                    actor.setTwoFactorEnabled(true);
+                    actor.setTwoFactorMethod("EMAIL");
+                    actorRepository.save(actor);
+                }
+            }
+
+            if (ok) {
+                return ResponseEntity.ok(Map.of("mensaje", "2FA activado correctamente"));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código incorrecto o expirado"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     // ── OLVIDÉ CONTRASEÑA ─────────────────────────────────────────────────
 
@@ -162,20 +238,43 @@ public class ActorController {
     }
 
     @PostMapping("/verificar")
+    @Operation(summary = "Verificar código de registro e iniciar sesión automáticamente")
     public ResponseEntity<?> verificar(@RequestBody Map<String, String> body) {
-        boolean ok = usuarioService.verificarCuenta(body.get("email"), body.get("codigo"));
-        return ok
-            ? ResponseEntity.ok(Map.of("mensaje", "Cuenta verificada correctamente"))
-            : ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+        try {
+            String email = body.get("email");
+            boolean ok = usuarioService.verificarCuenta(email, body.get("codigo"));
+            
+            if (ok) {
+                // 1. Buscamos al usuario que se acaba de verificar
+                Actor actor = actorRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                
+                // 2. Le creamos una sesión Spring Security al vuelo
+                UserDetails ud = usuarioService.loadUserByUsername(actor.getUser());
+                Authentication auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                
+                // 3. Generamos su Token JWT y devolvemos la misma respuesta que un Login normal
+                Map<String, Object> response = buildLoginResponse(jwtUtils.generateToken(auth), auth, actor);
+                response.put("mensaje", "Cuenta verificada correctamente");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al verificar la cuenta"));
+        }
     }
 
     // ── OAUTH ─────────────────────────────────────────────────────────────
-
     @PostMapping("/google")
     public ResponseEntity<Map<String, Object>> loginGoogle(@RequestBody Map<String, String> body) {
         try {
-            Actor actor = usuarioService.ingresarConGoogle(body.get("token"));
-            return buildOAuthResponse(actor);
+            Map<String, Object> res = usuarioService.ingresarConGoogle(body.get("token"));
+            Actor actor = (Actor) res.get("actor");
+            boolean esNuevo = (boolean) res.get("esNuevo");
+            return buildOAuthResponse(actor, esNuevo); // Llamamos al nuevo helper
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -185,7 +284,7 @@ public class ActorController {
     public ResponseEntity<Map<String, Object>> loginFacebook(@RequestBody Map<String, String> body) {
         try {
             Actor actor = facebookAuthService.loginConFacebook(body.get("token"));
-            return buildOAuthResponse(actor);
+            return buildOAuthResponse(actor, false); // Pendiente de actualizar Facebook después
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
@@ -247,10 +346,14 @@ public class ActorController {
         return r;
     }
 
-    private ResponseEntity<Map<String, Object>> buildOAuthResponse(Actor actor) {
+    private ResponseEntity<Map<String, Object>> buildOAuthResponse(Actor actor, boolean isNew) {
         UserDetails ud = usuarioService.loadUserByUsername(actor.getUser());
         Authentication auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
-        return ResponseEntity.ok(buildLoginResponse(jwtUtils.generateToken(auth), auth, actor));
+        
+        Map<String, Object> response = buildLoginResponse(jwtUtils.generateToken(auth), auth, actor);
+        response.put("esNuevoUsuario", isNew); // <--- ¡Esto es lo que Angular está esperando!
+        
+        return ResponseEntity.ok(response);
     }
 }
