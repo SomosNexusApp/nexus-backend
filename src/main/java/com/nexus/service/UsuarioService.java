@@ -179,4 +179,31 @@ public class UsuarioService implements UserDetailsService {
     }
 
     private record VerifEntry(String cod, String email, LocalDateTime expira) {}
+    
+    @Transactional
+    public void convertirAEmpresa(Usuario u, Map<String, String> datosEmpresa) {
+        // Creamos la nueva instancia de Empresa
+        Empresa e = new Empresa();
+        
+        // Copiamos sus credenciales y datos base
+        e.setUser(u.getUser());
+        e.setEmail(u.getEmail());
+        e.setPassword(u.getPassword());
+        e.setNombre(u.getNombre());
+        e.setApellidos(u.getApellidos());
+        e.setAvatar(u.getAvatar());
+        e.setCuentaVerificada(u.isCuentaVerificada());
+        e.setTwoFactorEnabled(u.isTwoFactorEnabled());
+        e.setTwoFactorMethod(u.getTwoFactorMethod());
+        e.setFechaRegistro(u.getFechaRegistro());
+        
+        // Añadimos los datos específicos que vienen del frontend
+        if (datosEmpresa.containsKey("cif")) e.setCif(datosEmpresa.get("cif"));
+        if (datosEmpresa.containsKey("web")) e.setWeb(datosEmpresa.get("web"));
+        // if (datosEmpresa.containsKey("nombreComercial")) e.setNombreComercial(datosEmpresa.get("nombreComercial"));
+
+        // Eliminamos el usuario y guardamos la empresa de forma atómica
+        actorRepository.delete(u);
+        actorRepository.save(e);
+    }
 }

@@ -198,6 +198,31 @@ public class UsuarioController {
         }
     }
     
+    @PatchMapping("/me/tipo-cuenta")
+    @Operation(summary = "Configurar el tipo de cuenta (Personal o Empresa) tras el registro")
+    public ResponseEntity<?> actualizarTipoCuenta(@RequestBody Map<String, String> payload) {
+        try {
+            Actor actorLogueado = jwtUtils.userLogin();
+            if (actorLogueado == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            String tipoCuenta = payload.get("tipoCuenta");
+
+            // Si elige Empresa, delegamos TODA la lógica de negocio y base de datos al Servicio
+            if ("EMPRESA".equals(tipoCuenta) && actorLogueado instanceof Usuario) {
+                usuarioService.convertirAEmpresa((Usuario) actorLogueado, payload);
+            }
+
+            return ResponseEntity.ok(Map.of("mensaje", "Tipo de cuenta configurado correctamente"));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Error al procesar el tipo de cuenta: " + e.getMessage()
+            ));
+        }
+    }
+    
     @GetMapping("/{id}/perfil")
     @Operation(summary = "Ver perfil público de un usuario")
     public ResponseEntity<?> getPerfilPublico(@PathVariable Integer id) {
