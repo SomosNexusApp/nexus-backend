@@ -24,19 +24,19 @@ public class Oferta extends DomainEntity {
     private String tienda;
     @Column(name = "url_oferta", columnDefinition = "TEXT") private String urlOferta;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
+    @JsonIgnoreProperties({"hijos", "parent"})
     private Categoria categoria;
 
     @Column(columnDefinition = "TEXT") private String imagenPrincipal;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "oferta_imagenes", joinColumns = @JoinColumn(name = "oferta_id"))
     @Column(name = "url", columnDefinition = "TEXT")
     private List<String> galeriaImagenes = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "actor_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
         "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",

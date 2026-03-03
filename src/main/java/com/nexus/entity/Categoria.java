@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -31,11 +32,11 @@ public class Categoria extends DomainEntity {
     // Sin @JsonIgnoreProperties aquí causaría recursión infinita: parent -> hijos -> parent -> ...
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
+    @JsonIgnore
     private Categoria parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties({"hijos", "parent"})
     private List<Categoria> hijos = new ArrayList<>();
 
     public Categoria() {}
