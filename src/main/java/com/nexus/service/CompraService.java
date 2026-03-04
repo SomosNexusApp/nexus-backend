@@ -16,7 +16,6 @@ public class CompraService {
 
     @Autowired private CompraRepository compraRepository;
     @Autowired private ProductoRepository productoRepository;
-    @Autowired private UsuarioService usuarioService;
     @Autowired private EnvioService envioService;
 
     public List<Compra> findAll() {

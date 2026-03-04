@@ -22,37 +22,6 @@ import com.nexus.service.UsuarioService;
 
 import java.util.List;
 
-/**
- * ══════════════════════════════════════════════════════════════════
- *  Nexus Marketplace – SecurityConfiguration v2
- *  Spring Security 6 + JWT stateless
- * ══════════════════════════════════════════════════════════════════
- *
- *  CAUSA RAÍZ DEL 403 EN RUTAS PÚBLICAS:
- *  ──────────────────────────────────────
- *  JWTUtils.validateToken() lanzaba AuthenticationCredentialsNotFoundException
- *  cuando el token era inválido o no existía. Esa excepción se propagaba
- *  a través de JWTAuthenticationFilter antes de que Spring Security pudiera
- *  evaluar las reglas de authorizeHttpRequests, causando 403 en TODAS las
- *  rutas, incluyendo las marcadas como permitAll().
- *
- *  FIX aplicado en JWTUtils.validateToken(): ahora captura la excepción
- *  y retorna false. El filtro simplemente no autentica y sigue la cadena.
- *
- *  RUTAS REALES DE LOS CONTROLLERS:
- *  ──────────────────────────────────
- *  /producto/**         /oferta/**          /vehiculo/**
- *  /categorias/**       /comentario/**      /usuario/**
- *  /compra/**           /devolucion/**      /valoracion/**
- *  /favorito/**         /bloqueo/**         /mensaje/**
- *  /chat/**             /reporte/**         /envio/**
- *  /newsletter/**       /contrato/**        /empresa/**
- *  /ajustes/**          /admin/**           /votos/**
- *  /auth/**             → ActorController (login, 2FA, OAuth, forgot-password)
- *  /api/auth/**         → AuthController   (register, check-email, check-username)
- *  /api/notificaciones/**                  /api/moderation/**
- * ══════════════════════════════════════════════════════════════════
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -64,11 +33,8 @@ public class SecurityConfiguration {
     @Autowired
     private UsuarioService usuarioService;
 
-    /** Viene de PasswordConfig.java — NO definir aquí para evitar ciclo circular */
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-    // ── CORS ──────────────────────────────────────────────────────────────
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -92,8 +58,6 @@ public class SecurityConfiguration {
         return source;
     }
 
-    // ── DaoAuthenticationProvider ─────────────────────────────────────────
-
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -102,15 +66,11 @@ public class SecurityConfiguration {
         return provider;
     }
 
-    // ── AuthenticationManager ─────────────────────────────────────────────
-
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
             throws Exception {
         return config.getAuthenticationManager();
     }
-
-    // ── Security Filter Chain ─────────────────────────────────────────────
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -124,171 +84,93 @@ public class SecurityConfiguration {
 
             .authorizeHttpRequests(auth -> auth
             		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    
-                    // NUEVO: Permite que Spring devuelva los 404 reales en lugar de transformarlos en 403
                     .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll() 
-
-                    // 1. PRIMERO LAS RUTAS DE AUTH QUE REQUIEREN TOKEN
                     .requestMatchers("/auth/me").authenticated()
-
-                    // 2. DESPUÉS LAS RUTAS DE AUTH PÚBLICAS (Bloque general)
                     .requestMatchers("/auth/**", "/api/auth/**").permitAll()
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 1 – INFRAESTRUCTURA PÚBLICA
-                // ══════════════════════════════════════════════════════════
+
+                // BLOQUE 1 – INFRAESTRUCTURA
                 .requestMatchers(
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/v3/api-docs/**",
-                    "/actuator/health",
-                    "/error"
+                    "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                    "/actuator/health", "/error"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 2 – WEBSOCKET (handshake público; auth en STOMP)
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 2 – WEBSOCKET
                 .requestMatchers("/ws/**").permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 3 – AUTENTICACIÓN
-                //  /auth/**     → ActorController (login, 2FA, OAuth, reset…)
-                //  /api/auth/** → AuthController  (register, check-email…)
-                // ══════════════════════════════════════════════════════════
-    
-
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 4 – PRODUCTOS: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 4 – PRODUCTOS (Arreglado para permitir raíz y subrutas)
                 .requestMatchers(HttpMethod.GET,
-                    "/producto/**",
-                    "/api/productos/**"
+                    "/producto", "/producto/**",
+                    "/productos", "/productos/**",
+                    "/api/productos", "/api/productos/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 5 – VEHÍCULOS: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 5 – VEHÍCULOS (Arreglado)
                 .requestMatchers(HttpMethod.GET,
-                    "/vehiculo/**",
-                    "/api/vehiculos/**"
+                    "/vehiculo", "/vehiculo/**",
+                    "/vehiculos", "/vehiculos/**",
+                    "/api/vehiculos", "/api/vehiculos/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 6 – OFERTAS / CHOLLOS: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 6 – OFERTAS (Arreglado)
                 .requestMatchers(HttpMethod.GET,
-                    "/oferta/**",
-                    "/api/ofertas/**"
+                    "/oferta", "/oferta/**",
+                    "/ofertas", "/ofertas/**",
+                    "/api/ofertas", "/api/ofertas/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 7 – CATEGORÍAS: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 7 – CATEGORÍAS (Arreglado - ESTO CAUSABA EL 403 ACTUAL)
                 .requestMatchers(HttpMethod.GET,
-                    "/categorias/**",
-                    "/api/categorias/**"
+                    "/categorias", "/categorias/**",
+                    "/api/categorias", "/api/categorias/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 8 – COMENTARIOS: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 8 – COMENTARIOS
                 .requestMatchers(HttpMethod.GET,
-                    "/comentario/**",
-                    "/api/comentarios/**"
+                    "/comentario", "/comentario/**",
+                    "/api/comentarios", "/api/comentarios/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 9 – VALORACIONES: lectura pública
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 9 – VALORACIONES
                 .requestMatchers(HttpMethod.GET,
-                    "/valoracion/**",
-                    "/api/valoraciones/**"
+                    "/valoracion", "/valoracion/**",
+                    "/api/valoraciones", "/api/valoraciones/**"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 10 – PERFIL PÚBLICO DE USUARIOS
-                //  Solo sub-endpoints informativos. El resto de /usuario/**
-                //  requiere auth (bloque más abajo).
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 10 – PERFIL PÚBLICO
                 .requestMatchers(HttpMethod.GET,
-                    "/usuario/*/perfil",
-                    "/usuario/*/valoraciones",
-                    "/usuario/*/productos",
-                    "/api/usuarios/*/perfil",
-                    "/api/usuarios/*/valoraciones",
-                    "/api/usuarios/*/productos"
+                    "/usuario/*/perfil", "/usuario/*/valoraciones", "/usuario/*/productos",
+                    "/api/usuarios/*/perfil", "/api/usuarios/*/valoraciones", "/api/usuarios/*/productos"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 11 – NEWSLETTER (suscripción y baja son públicas)
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 11 – NEWSLETTER
                 .requestMatchers(HttpMethod.POST,
-                    "/newsletter/suscribir",
-                    "/api/newsletter/suscribir"
+                    "/newsletter/suscribir", "/api/newsletter/suscribir"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET,
-                    "/newsletter/confirmar",
-                    "/newsletter/cancelar",
-                    "/newsletter/baja",
-                    "/newsletter/estado",
-                    "/api/newsletter/confirmar",
-                    "/api/newsletter/cancelar"
+                    "/newsletter/confirmar", "/newsletter/cancelar", "/newsletter/baja", "/newsletter/estado",
+                    "/api/newsletter/confirmar", "/api/newsletter/cancelar"
                 ).permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 12 – LEGAL
-                // ══════════════════════════════════════════════════════════
-                .requestMatchers(HttpMethod.GET,
-                    "/legal/**",
-                    "/api/legal/**"
-                ).permitAll()
+                // BLOQUE 12 – LEGAL
+                .requestMatchers(HttpMethod.GET, "/legal/**", "/api/legal/**").permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 13 – VOTOS: score público (GET libre, POST requiere auth)
-                // ══════════════════════════════════════════════════════════
-                .requestMatchers(HttpMethod.GET,
-                    "/votos/**",
-                    "/api/spark-votos/**"
-                ).permitAll()
+                // BLOQUE 13 – VOTOS
+                .requestMatchers(HttpMethod.GET, "/votos/**", "/api/spark-votos/**").permitAll()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 14 – SOLO ADMIN  (ROLE_ADMIN)
-                //  ⚠ Debe ir ANTES de los bloques .authenticated()
-                // ══════════════════════════════════════════════════════════
-
-                .requestMatchers("/admin/**", "/api/admin/**")
-                    .hasAuthority("ROLE_ADMIN")
-
-                .requestMatchers("/api/moderation/**")
-                    .hasAuthority("ROLE_ADMIN")
-
-                .requestMatchers("/api/newsletter/admin/**", "/newsletter/admin/**")
-                    .hasAuthority("ROLE_ADMIN")
-
-                .requestMatchers("/contrato/**", "/api/contratos/**")
-                    .hasAuthority("ROLE_ADMIN")
-
-                .requestMatchers("/empresa/admin/**", "/api/empresas/admin/**")
-                    .hasAuthority("ROLE_ADMIN")
-
+                // BLOQUE 14 – SOLO ADMIN
+                .requestMatchers("/admin/**", "/api/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/api/moderation/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/api/newsletter/admin/**", "/newsletter/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/contrato/**", "/api/contratos/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/empresa/admin/**", "/api/empresas/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.PATCH,
-                    "/usuario/*/banear",
-                    "/usuario/*/verificar",
-                    "/api/usuarios/*/banear",
-                    "/api/usuarios/*/verificar"
+                    "/usuario/*/banear", "/usuario/*/verificar",
+                    "/api/usuarios/*/banear", "/api/usuarios/*/verificar"
                 ).hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/reporte/admin/**", "/api/reportes/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/usuario/*", "/api/usuarios/*").hasAuthority("ROLE_ADMIN")
 
-                .requestMatchers("/reporte/admin/**", "/api/reportes/admin/**")
-                    .hasAuthority("ROLE_ADMIN")
-
-                .requestMatchers(HttpMethod.DELETE,
-                    "/usuario/*",
-                    "/api/usuarios/*"
-                ).hasAuthority("ROLE_ADMIN")
-
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 15 – AUTENTICADOS (JWT válido requerido)
-                // ══════════════════════════════════════════════════════════
-
+                // BLOQUE 15 – AUTENTICADOS
                 .requestMatchers(HttpMethod.POST,   "/producto/**", "/api/productos/**").authenticated()
                 .requestMatchers(HttpMethod.PUT,    "/producto/**", "/api/productos/**").authenticated()
                 .requestMatchers(HttpMethod.PATCH,  "/producto/**", "/api/productos/**").authenticated()
@@ -308,24 +190,15 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.PUT,    "/comentario/**", "/api/comentarios/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/comentario/**", "/api/comentarios/**").authenticated()
 
-                // Valoraciones: escribir requiere auth (leer es público — bloque 9)
                 .requestMatchers(HttpMethod.POST, "/valoracion/**", "/api/valoraciones/**").authenticated()
                 .requestMatchers(HttpMethod.PUT,  "/valoracion/**", "/api/valoraciones/**").authenticated()
 
-                // Votos: POST requiere auth (GET es público — bloque 13)
-                .requestMatchers(HttpMethod.POST,
-                    "/votos/**",
-                    "/api/spark-votos/**",
-                    "/api/drip-votos/**"
-                ).authenticated()
+                .requestMatchers(HttpMethod.POST, "/votos/**", "/api/spark-votos/**", "/api/drip-votos/**").authenticated()
 
                 .requestMatchers("/compra/**", "/api/compras/**").authenticated()
                 .requestMatchers("/devolucion/**", "/api/devoluciones/**").authenticated()
 
-                .requestMatchers(
-                    "/mensaje/**", "/chat/**",
-                    "/api/mensajes/**", "/api/chat-mensajes/**", "/api/conversaciones/**"
-                ).authenticated()
+                .requestMatchers("/mensaje/**", "/chat/**", "/api/mensajes/**", "/api/chat-mensajes/**", "/api/conversaciones/**").authenticated()
 
                 .requestMatchers("/favorito/**", "/api/favoritos/**").authenticated()
                 .requestMatchers("/bloqueo/**", "/api/bloqueos/**").authenticated()
@@ -333,25 +206,14 @@ public class SecurityConfiguration {
                 .requestMatchers("/envio/**", "/api/envios/**").authenticated()
                 .requestMatchers("/ajustes/**", "/api/usuarios/me/**").authenticated()
 
-                // Resto de /usuario/** (editar perfil, cambiar pass, etc.)
-                // Los sub-endpoints públicos (/usuario/*/perfil…) ya tienen permitAll
                 .requestMatchers("/usuario/**", "/api/usuarios/**").authenticated()
-
                 .requestMatchers("/reporte/**", "/api/reportes/**").authenticated()
-
-                .requestMatchers(HttpMethod.POST,
-                    "/newsletter/preferencias",
-                    "/newsletter/baja"
-                ).authenticated()
-
+                .requestMatchers(HttpMethod.POST, "/newsletter/preferencias", "/newsletter/baja").authenticated()
                 .requestMatchers("/empresa/**", "/api/empresas/**").authenticated()
 
-                // ══════════════════════════════════════════════════════════
-                //  BLOQUE 16 – DENY BY DEFAULT
-                // ══════════════════════════════════════════════════════════
+                // BLOQUE 16 – DENY BY DEFAULT
                 .anyRequest().authenticated()
             )
-
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

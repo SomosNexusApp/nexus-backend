@@ -44,7 +44,11 @@ public class Vehiculo extends DomainEntity {
     private String  modelo;
     private Integer anio;
     private Integer kilometros;
-    private String  combustible;
+    
+    // --- SOLUCIÓN: Cambiado a ENUM ---
+    @Enumerated(EnumType.STRING)
+    private TipoCombustible combustible;
+    
     private String  cambio;
     private Integer potencia;
     private Integer cilindrada;
@@ -107,8 +111,11 @@ public class Vehiculo extends DomainEntity {
     public void         setAnio(Integer a)                    { this.anio = a; }
     public Integer      getKilometros()                       { return kilometros; }
     public void         setKilometros(Integer k)              { this.kilometros = k; }
-    public String       getCombustible()                      { return combustible; }
-    public void         setCombustible(String c)              { this.combustible = c; }
+    
+    // --- SOLUCIÓN: Getters y Setters del Enum ---
+    public TipoCombustible getCombustible()                   { return combustible; }
+    public void         setCombustible(TipoCombustible c)     { this.combustible = c; }
+    
     public String       getCambio()                           { return cambio; }
     public void         setCambio(String c)                   { this.cambio = c; }
     public Integer      getPotencia()                         { return potencia; }

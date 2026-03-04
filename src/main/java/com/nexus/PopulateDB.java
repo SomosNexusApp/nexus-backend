@@ -51,7 +51,6 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
     @Autowired private ValoracionRepository       valoracionRepository;
     @Autowired private ReporteRepository          reporteRepository;
     @Autowired private ContratoRepository         contratoRepository;
-    @Autowired private EmpresaRepository          empresaRepository;
     @Autowired private NewsletterRepository       newsletterRepository;
     @Autowired private NotificacionRepository     notificacionRepository;
     @Autowired private PasswordEncoder            passwordEncoder;
@@ -859,6 +858,36 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         envio9.setFechaConfirmacionEntrega(LocalDateTime.now().minusDays(6));
         envio9.setStripePaymentIntentId("pi_3Qxyz1234ENTREGADO009");
         envioRepository.save(envio9);
+        
+     // --- GUARDAR FAVORITOS (Se crearon pero no se persistieron en el bloque 11) ---
+        favoritoRepository.save(favoritoOferta(maria, ofertaAirpods));
+        favoritoRepository.save(favoritoOferta(pedro, ofertaWindows));
+        favoritoRepository.save(favoritoOferta(sofia, ofertaRoombaIRobot));
+        favoritoRepository.save(favoritoOferta(andres, ofertaNetflixTrial));
+        favoritoRepository.save(favoritoOferta(lucia, ofertaNike));
+        favoritoRepository.save(favoritoOferta(elena, ofertaPS5));
+        favoritoRepository.save(favoritoOferta(miguel, ofertaRTX4060));
+
+        favoritoRepository.save(favoritoProducto(maria, iphone14));
+        favoritoRepository.save(favoritoProducto(pedro, macbookPro));
+        favoritoRepository.save(favoritoProducto(sofia, sonyWH));
+        favoritoRepository.save(favoritoProducto(lucia, nikeSneakers));
+        favoritoRepository.save(favoritoProducto(andres, ps5Console));
+        favoritoRepository.save(favoritoProducto(elena, bicicletaCarretera));
+        favoritoRepository.save(favoritoProducto(carlos, sonyA7IV));
+
+        // --- GUARDAR CHAT MENSAJES (Sistema WebSocket - Bloque 13) ---
+        chatMensajeRepository.save(chatTexto(iphone14, maria, carlos, "Hola Carlos, ¿sigues teniendo el iPhone 14 Pro?", -120));
+        chatMensajeRepository.save(chatTexto(iphone14, carlos, maria, "Sí, aquí lo tengo. Está prácticamente nuevo.", -115));
+        chatMensajeRepository.save(chatPropuesta(iphone14, maria, carlos, 700.0, -110));
+        chatMensajeRepository.save(chatTexto(iphone14, carlos, maria, "La mínima que acepto es 720€.", -105));
+        chatMensajeRepository.save(chatTexto(iphone14, maria, carlos, "Ok, trato hecho.", -100));
+
+        chatMensajeRepository.save(chatTexto(ps5Console, andres, carlos, "Buenas! ¿La PS5 tiene problemas de ventilación?", -200));
+        chatMensajeRepository.save(chatTexto(ps5Console, carlos, andres, "Ninguno. Siempre en vertical.", -195));
+
+        chatMensajeRepository.save(chatTexto(macbookPro, sofia, pedro, "¿El MacBook tiene alguna mancha en la pantalla?", -50));
+        chatMensajeRepository.save(chatTexto(macbookPro, pedro, sofia, "Ninguna. Perfecto.", -45));
 
         // ── 16. VALORACIONES ──────────────────────────────────────────────────
         // Valoración de compra1 (maria → carlos, 5 estrellas)
@@ -1168,6 +1197,65 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         System.out.println("  - Contratos:     " + contratoRepository.count());
         System.out.println("  - Newsletter:    " + newsletterRepository.count());
         System.out.println("  - Notificaciones:" + notificacionRepository.count());
+        
+// --- PERSISTENCIA FINAL PARA LIMPIAR WARNINGS Y ASEGURAR GUARDADO ---
+        
+        // Productos
+        productoRepository.save(iphone14);
+        productoRepository.save(samsungS23);
+        productoRepository.save(pixelPhone);
+        productoRepository.save(sonyWH);
+        productoRepository.save(airpodsMax);
+        productoRepository.save(lgOled);
+        productoRepository.save(macbookPro);
+        productoRepository.save(lenovoThinkpad);
+        productoRepository.save(rtx4070);
+        productoRepository.save(procesadorRyzen);
+        productoRepository.save(ps5Console);
+        productoRepository.save(nintendoSwitch);
+        productoRepository.save(zelda);
+        productoRepository.save(nikeSneakers);
+        productoRepository.save(converseClassic);
+        productoRepository.save(canadaGoose);
+        productoRepository.save(zaraVestido);
+        productoRepository.save(roomba);
+        productoRepository.save(ikeaEscritorio);
+        productoRepository.save(bicicletaCarretera);
+        productoRepository.save(raquetaTenis);
+        productoRepository.save(libroCleanCode);
+        productoRepository.save(libroDune);
+        productoRepository.save(sonyA7IV);
+        productoRepository.save(legoBatman);
+
+        // Vehículos
+        vehiculoRepository.save(bmw320d);
+        vehiculoRepository.save(hondaCBR);
+        vehiculoRepository.save(teslaModel3);
+        vehiculoRepository.save(fordTransit);
+        vehiculoRepository.save(vespa);
+
+        // Ofertas y Chats
+        ofertaRepository.save(ofertaLego);
+        
+        chatMensajeRepository.save(chat1);
+        chatMensajeRepository.save(chat2);
+        chatMensajeRepository.save(chat3);
+        chatMensajeRepository.save(chat4);
+        chatMensajeRepository.save(chat5);
+        chatMensajeRepository.save(chat6);
+        chatMensajeRepository.save(chat7);
+        chatMensajeRepository.save(chat8);
+        chatMensajeRepository.save(chat9);
+        chatMensajeRepository.save(chat10);
+        chatMensajeRepository.save(chat11);
+        chatMensajeRepository.save(chat12);
+
+        // Categorías que daban warning
+        categoriaRepository.save(catCoches);
+        categoriaRepository.save(catMotos);
+        categoriaRepository.save(catInmuebles);
+
+        // --- FIN DEL BLOQUE DE GUARDADO ---
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1247,7 +1335,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         v.setModelo(modelo);
         v.setAnio(anio);
         v.setKilometros(km);
-        v.setCombustible(combustible);
+        v.setCombustible(TipoCombustible.GASOLINA);
         v.setCambio(cambio);
         v.setPotencia(potencia);
         v.setCilindrada(cilindrada);
@@ -1383,6 +1471,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         n.setFecha(LocalDateTime.now().plusHours(horasAtras));
         
         notificacionRepository.save(n);
+        
     }
+    
+    
 
 }

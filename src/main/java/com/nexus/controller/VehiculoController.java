@@ -45,8 +45,8 @@ public class VehiculoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+ // Reemplaza solo el método filtrar en VehiculoController.java
     @GetMapping("/filtrar")
-    @Operation(summary = "Búsqueda paginada de vehículos")
     public ResponseEntity<?> filtrar(
             @RequestParam(required = false) TipoVehiculo tipo,
             @RequestParam(required = false) String marca,
@@ -54,14 +54,31 @@ public class VehiculoController {
             @RequestParam(required = false) Double precioMin,
             @RequestParam(required = false) Double precioMax,
             @RequestParam(required = false) Integer anioMin,
+            @RequestParam(required = false) Integer anioMax,
             @RequestParam(required = false) Integer kmMax,
             @RequestParam(required = false) TipoCombustible combustible,
+            @RequestParam(required = false) String cambio,
+            @RequestParam(required = false) String busqueda, // <-- AÑADIDO
+            @RequestParam(required = false) Integer potenciaMin,
+            @RequestParam(required = false) Integer cilindradaMin,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) Integer numeroPuertas,
+            @RequestParam(required = false) Integer plazas,
+            @RequestParam(required = false) Boolean garantia,
+            @RequestParam(required = false) Boolean itv,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamano) {
+            
         Page<Vehiculo> r = vehiculoService.buscarPaginado(tipo, marca, modelo,
-                precioMin, precioMax, anioMin, kmMax, combustible, PageRequest.of(pagina, tamano));
-        return ResponseEntity.ok(Map.of("contenido", r.getContent(), "paginaActual", r.getNumber(),
-                "totalPaginas", r.getTotalPages(), "totalElementos", r.getTotalElements()));
+                precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
+                cambio, busqueda, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
+                garantia, itv, PageRequest.of(pagina, tamano));
+                
+        return ResponseEntity.ok(Map.of(
+                "contenido", r.getContent(), 
+                "paginaActual", r.getNumber(),
+                "totalPaginas", r.getTotalPages(), 
+                "totalElementos", r.getTotalElements()));
     }
 
     @PostMapping(value = "/publicar/{usuarioId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -53,28 +53,31 @@ public class ProductoController {
      * GET /producto/filtrar?busqueda=iphone&precioMax=500&pagina=0&tamano=20
      */
     @GetMapping("/filtrar")
-    @Operation(summary = "Búsqueda paginada con filtros")
     public ResponseEntity<?> filtrar(
-            @RequestParam(required = false) String busqueda,
-            @RequestParam(required = false) TipoOferta tipoOferta,
+            @RequestParam(required = false) String categoria,
             @RequestParam(required = false) Double precioMin,
             @RequestParam(required = false) Double precioMax,
-            @RequestParam(required = false) Integer publicadorId,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String ubicacion,
+            // Añadimos estos para evitar el 500 cuando el frontend manda filtros de motor
+            @RequestParam(required = false) Boolean conEnvio,
+            @RequestParam(required = false) String orden,
+            @RequestParam(required = false) Boolean garantia,
+            @RequestParam(required = false) Boolean itv,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamano) {
-        try {
-            Page<Producto> resultado = productoService.buscarConFiltrosPaginado(
-                busqueda, tipoOferta, precioMin, precioMax, publicadorId, PageRequest.of(pagina, tamano));
-            return ResponseEntity.ok(Map.of(
-                "contenido",      resultado.getContent(),
-                "paginaActual",   resultado.getNumber(),
-                "totalPaginas",   resultado.getTotalPages(),
-                "totalElementos", resultado.getTotalElements(),
-                "tamano",         resultado.getSize()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
+
+        // Solo pasamos al service los que realmente usa el buscador de productos
+        Page<Producto> r = productoService.buscarConFiltrosPaginado(
+            categoria, null, precioMin, precioMax, null, busqueda, ubicacion, PageRequest.of(pagina, tamano)
+        );
+
+        return ResponseEntity.ok(Map.of(
+            "contenido", r.getContent(),
+            "totalElementos", r.getTotalElements(),
+            "totalPaginas", r.getTotalPages(),
+            "paginaActual", r.getNumber()
+        ));
     }
 
     /**

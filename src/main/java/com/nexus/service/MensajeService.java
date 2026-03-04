@@ -11,7 +11,6 @@ import com.nexus.entity.Mensaje;
 import com.nexus.entity.Producto;
 import com.nexus.entity.Usuario;
 import com.nexus.repository.MensajeRepository;
-import org.springframework.data.domain.Sort;
 
 @Service
 public class MensajeService {

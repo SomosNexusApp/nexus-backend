@@ -14,20 +14,13 @@ import org.springframework.web.multipart.MultipartFile;
 import com.nexus.entity.*;
 import com.nexus.repository.*;
 
-/**
- * VehiculoService -- todos los metodos que usa VehiculoController:
- *   findDisponibles(), findByTipo(), getMarcasDisponibles(),
- *   getVehiculosDeUsuario(), publicar(), update(), delete()
- */
 @Service
 public class VehiculoService {
 
-    @Autowired private VehiculoRepository  vehiculoRepository;
-    @Autowired private ActorRepository     actorRepository;
+	@Autowired private VehiculoRepository vehiculoRepository;
+    @Autowired private ActorRepository actorRepository;
     @Autowired private CategoriaRepository categoriaRepository;
-    @Autowired private StorageService      storageService;
-
-    // ---- CRUD basico ---------------------------------------------------
+    @Autowired private StorageService storageService;
 
     public List<Vehiculo>    findAll()                   { return vehiculoRepository.findAll(); }
     public Optional<Vehiculo> findById(Integer id)       { return vehiculoRepository.findById(id); }
@@ -38,43 +31,47 @@ public class VehiculoService {
         return vehiculoRepository.save(v);
     }
 
-    // ---- Listados especificos (VehiculoController) ----------------------
-
-    /** findDisponibles() -- VehiculoController line 33 */
     public List<Vehiculo> findDisponibles() {
         return vehiculoRepository.findByEstadoVehiculo(EstadoVehiculo.DISPONIBLE);
     }
 
-    
- // En VehiculoService.java
+    // MÉTODO ANTIGUO RESTAURADO
+    public Page<Vehiculo> buscarConFiltros(String tipo, String marca,
+            Integer anioMin, Integer anioMax,
+            Integer kmMax, Double precioMin,
+            Double precioMax, String combustible,
+            String cambio, String busqueda, Pageable pageable) {
+return vehiculoRepository.buscarConFiltros(
+tipo, marca, anioMin, anioMax, kmMax,
+precioMin, precioMax, combustible, cambio, busqueda, pageable);
+}
+
+    // NUEVO MÉTODO MASIVO PARA EL FRONTEND
+ // Reemplaza solo el método buscarPaginado en VehiculoService.java
     public Page<Vehiculo> buscarPaginado(TipoVehiculo tipo, String marca, String modelo,
-                                         Double precioMin, Double precioMax, Integer anioMin,
-                                         Integer kmMax, TipoCombustible combustible, Pageable pageable) {
-        // Asumiendo que crearás o ya tienes este método en tu VehiculoRepository
-        return vehiculoRepository.buscarPaginado(tipo, marca, modelo, precioMin, precioMax, anioMin, kmMax, combustible, pageable);
+            Double precioMin, Double precioMax, Integer anioMin,
+            Integer anioMax, Integer kmMax, TipoCombustible combustible,
+            String cambio, String busqueda, Integer potenciaMin, Integer cilindradaMin,
+            String color, Integer numeroPuertas, Integer plazas,
+            Boolean garantia, Boolean itv, Pageable pageable) {
+
+        return vehiculoRepository.buscarPaginado(tipo, marca, modelo, precioMin, precioMax, 
+            anioMin, anioMax, kmMax, combustible, cambio, busqueda, potenciaMin, cilindradaMin, 
+            color, numeroPuertas, plazas, garantia, itv, pageable);
     }
     
-    /** findByTipo(TipoVehiculo) -- VehiculoController line 35 */
     public List<Vehiculo> findByTipo(TipoVehiculo tipo) {
         return vehiculoRepository.findByTipoVehiculoAndEstadoVehiculo(tipo, EstadoVehiculo.DISPONIBLE);
     }
 
-    /** getMarcasDisponibles() -- VehiculoController line 37 */
     public List<String> getMarcasDisponibles() {
         return vehiculoRepository.findMarcasDistintas();
     }
 
-    /** getVehiculosDeUsuario(Integer) -- VehiculoController line 39 */
     public List<Vehiculo> getVehiculosDeUsuario(Integer publicadorId) {
         return vehiculoRepository.findByPublicadorIdOrderByFechaPublicacionDesc(publicadorId);
     }
 
-    // ---- Crear / Publicar ----------------------------------------------
-
-    /**
-     * publicar(Vehiculo, Integer publicadorId) -- VehiculoController line 80.
-     * Asigna publicador, fecha y categoria automatica.
-     */
     @Transactional
     public Vehiculo publicar(Vehiculo vehiculo, Integer publicadorId) {
         Actor publicador = actorRepository.findById(publicadorId)
@@ -86,7 +83,6 @@ public class VehiculoService {
         return vehiculoRepository.save(vehiculo);
     }
 
-    /** Crear con imagenes adjuntas en multipart. */
     @Transactional
     public Vehiculo crear(Vehiculo vehiculo, Integer publicadorId, List<MultipartFile> imagenes) {
         Actor publicador = actorRepository.findById(publicadorId)
@@ -108,11 +104,6 @@ public class VehiculoService {
         return vehiculoRepository.save(vehiculo);
     }
 
-    // ---- Actualizar ---------------------------------------------------
-
-    /**
-     * update(Integer id, Vehiculo datos) -- VehiculoController line 101 (PATCH).
-     */
     @Transactional
     public Vehiculo update(Integer id, Vehiculo datos) {
         Vehiculo v = vehiculoRepository.findById(id)
@@ -143,11 +134,6 @@ public class VehiculoService {
         return vehiculoRepository.save(v);
     }
 
-    // ---- Eliminar (soft-delete) ----------------------------------------
-
-    /**
-     * delete(Integer id) -- VehiculoController line 110.
-     */
     @Transactional
     public void delete(Integer id) {
         vehiculoRepository.findById(id).ifPresent(v -> {
@@ -156,23 +142,8 @@ public class VehiculoService {
         });
     }
 
-    /** Alias para deleteById */
     @Transactional
     public void deleteById(Integer id) { delete(id); }
-
-    // ---- Busqueda con filtros -----------------------------------------
-
-    public Page<Vehiculo> buscarConFiltros(String tipo, String marca,
-                                            Integer anioMin, Integer anioMax,
-                                            Integer kmMax, Double precioMin,
-                                            Double precioMax, String combustible,
-                                            String cambio, Pageable pageable) {
-        return vehiculoRepository.buscarConFiltros(
-            tipo, marca, anioMin, anioMax, kmMax,
-            precioMin, precioMax, combustible, cambio, pageable);
-    }
-
-    // ---- Helper ---------------------------------------------------------
 
     private void asegurarCategoria(Vehiculo v) {
         if (v.getCategoria() != null) return;

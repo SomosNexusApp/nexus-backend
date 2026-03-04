@@ -35,7 +35,6 @@ public class ActorController {
     @Autowired private PasswordResetService  passwordResetService;
     @Autowired private TwoFactorService      twoFactorService;
     @Autowired private CaptchaService        captchaService;
-    @Autowired private ActorService          actorService;
 
     // ── LOGIN ─────────────────────────────────────────────────────────────
 

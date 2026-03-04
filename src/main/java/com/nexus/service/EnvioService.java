@@ -19,7 +19,6 @@ public class EnvioService {
     @Autowired private CompraRepository compraRepository;
     @Autowired private StripeService stripeService;
     @Autowired private ChatWebSocketController chatWebSocketController;
-    @Autowired private NotificacionService notificacionService;
 
     /**
      * Crea el envío justo después de confirmar el pago.

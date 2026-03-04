@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
@@ -17,18 +18,17 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
 	List<Producto> findByEstado(EstadoProducto estado);
 
 	@Query("SELECT p FROM Producto p WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE " +
-	           "AND (?1 IS NULL OR p.categoria.nombre = ?1) " +
-	           "AND (?2 IS NULL OR p.precio >= ?2) " +
-	           "AND (?3 IS NULL OR p.precio <= ?3) " +
-	           "AND (?4 IS NULL OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', ?4, '%'))) " +
-	           "AND (?5 IS NULL OR p.ubicacion LIKE CONCAT('%', ?5, '%'))")
-	    Page<Producto> buscarConFiltros(
-	            String categoria, 
-	            Double precioMin, 
-	            Double precioMax, 
-	            String busqueda, 
-	            String ubicacion, 
-	            Pageable pageable);
+		       "AND (:busqueda IS NULL OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) " +
+		       "OR LOWER(p.descripcion) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%'))) " +
+		       "AND (:categoria IS NULL OR p.categoria.nombre = :categoria) " +
+		       "AND (:precioMin IS NULL OR p.precio >= :precioMin) " +
+		       "AND (:precioMax IS NULL OR p.precio <= :precioMax)")
+		Page<Producto> buscarConFiltros(
+		        @Param("categoria") String categoria, 
+		        @Param("precioMin") Double precioMin, 
+		        @Param("precioMax") Double precioMax, 
+		        @Param("busqueda") String busqueda, 
+		        Pageable pageable);
 
 	@Query("SELECT DISTINCT p.categoria.nombre FROM Producto p WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE AND p.categoria IS NOT NULL ORDER BY p.categoria.nombre")
     List<String> findCategoriasDistintas();

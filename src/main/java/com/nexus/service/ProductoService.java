@@ -2,11 +2,9 @@ package com.nexus.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
 import com.nexus.entity.TipoOferta;
-import com.nexus.entity.Usuario;
 import com.nexus.repository.ProductoRepository;
 
 
@@ -32,26 +29,13 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public List<Producto> findDisponibles()            { return productoRepository.findByEstado(EstadoProducto.DISPONIBLE); }
 
-    public Page<Producto> buscarConFiltrosPaginado(String busqueda, TipoOferta tipoOferta,
-            Double precioMin, Double precioMax, Integer publicadorId, Pageable pageable) {
-
-        List<Producto> filtrados = productoRepository
-            .findByEstado(EstadoProducto.DISPONIBLE).stream()
-            .filter(p -> busqueda == null || busqueda.isBlank()
-                || p.getTitulo().toLowerCase().contains(busqueda.toLowerCase())
-                || p.getDescripcion().toLowerCase().contains(busqueda.toLowerCase()))
-            .filter(p -> tipoOferta  == null || tipoOferta.equals(p.getTipoOferta()))
-            .filter(p -> precioMin   == null || p.getPrecio() >= precioMin)
-            .filter(p -> precioMax   == null || p.getPrecio() <= precioMax)
-            .filter(p -> publicadorId == null
-                || (p.getPublicador() != null && p.getPublicador().getId() == publicadorId))
-            .collect(Collectors.toList());
-
-        int inicio = (int) pageable.getOffset();
-        int fin    = Math.min(inicio + pageable.getPageSize(), filtrados.size());
-        if (inicio > filtrados.size()) return new PageImpl<>(List.of(), pageable, filtrados.size());
-        return new PageImpl<>(filtrados.subList(inicio, fin), pageable, filtrados.size());
-    }
+ // Reemplaza el método buscarConFiltrosPaginado en ProductoService.java
+ // En ProductoService.java
+    public Page<Producto> buscarConFiltrosPaginado(String categoria, TipoOferta tipoOferta, Double precioMin, 
+            Double precioMax, Integer publicadorId, String busqueda, 
+            String ubicacion, Pageable pageable) {
+return productoRepository.buscarConFiltros(categoria, precioMin, precioMax, busqueda, ubicacion, pageable);
+}
 
     public Producto cambiarEstado(Integer id, EstadoProducto nuevo) {
         Producto p = productoRepository.findById(id)

@@ -7,54 +7,51 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import com.nexus.entity.EstadoVehiculo;
-import com.nexus.entity.TipoCombustible;
-import com.nexus.entity.TipoVehiculo;
-import com.nexus.entity.Vehiculo;
+import com.nexus.entity.*;
 
 @Repository
 public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
 
     List<Vehiculo> findByPublicadorIdOrderByFechaPublicacionDesc(Integer publicadorId);
-
     List<Vehiculo> findByEstadoVehiculo(EstadoVehiculo estado);
-
     List<Vehiculo> findByTipoVehiculoAndEstadoVehiculo(TipoVehiculo tipo, EstadoVehiculo estado);
 
-    @Query("SELECT v FROM Vehiculo v WHERE v.estadoVehiculo = 'DISPONIBLE' AND " +
-           "(?1 IS NULL OR CAST(v.tipoVehiculo AS string) = ?1) AND " +
-           "(?2 IS NULL OR LOWER(v.marca) LIKE LOWER(CONCAT('%', ?2, '%'))) AND " +
-           "(?3 IS NULL OR v.anio >= ?3) AND (?4 IS NULL OR v.anio <= ?4) AND " +
-           "(?5 IS NULL OR v.kilometros <= ?5) AND " +
-           "(?6 IS NULL OR v.precio >= ?6) AND (?7 IS NULL OR v.precio <= ?7) AND " +
-           "(?8 IS NULL OR LOWER(v.combustible) = LOWER(?8)) AND " +
-           "(?9 IS NULL OR LOWER(v.cambio) = LOWER(?9))")
-    Page<Vehiculo> buscarConFiltros(String tipo, String marca,
-                                     Integer anioMin, Integer anioMax, Integer kmMax,
-                                     Double precioMin, Double precioMax,
-                                     String combustible, String cambio, Pageable pageable);
-
-    @Query("SELECT DISTINCT v.marca FROM Vehiculo v " +
-           "WHERE v.estadoVehiculo = 'DISPONIBLE' AND v.marca IS NOT NULL ORDER BY v.marca")
+    @Query("SELECT DISTINCT v.marca FROM Vehiculo v WHERE v.estadoVehiculo = 'DISPONIBLE' AND v.marca IS NOT NULL ORDER BY v.marca")
     List<String> findMarcasDistintas();
-    
-    @Query("SELECT v FROM Vehiculo v WHERE " +
+
+    @Query("SELECT v FROM Vehiculo v WHERE v.estadoVehiculo = 'DISPONIBLE' AND " +
             "(:tipo IS NULL OR v.tipoVehiculo = :tipo) AND " +
-            "(:marca IS NULL OR v.marca = :marca) AND " +
-            "(:modelo IS NULL OR v.modelo = :modelo) AND " +
+            "(:marca IS NULL OR LOWER(v.marca) = LOWER(CAST(:marca AS string))) AND " +
+            "(:modelo IS NULL OR LOWER(v.modelo) = LOWER(CAST(:modelo AS string))) AND " +
             "(:precioMin IS NULL OR v.precio >= :precioMin) AND " +
             "(:precioMax IS NULL OR v.precio <= :precioMax) AND " +
-            "(:anioMin IS NULL OR v.anio >= :anioMin) AND " + // <-- AQUÍ
-            "(:anioMax IS NULL OR v.anio <= :anioMax) AND " + // <-- Y AQUÍ
-            "(:combustible IS NULL OR v.combustible = :combustible)")
+            "(:anioMin IS NULL OR v.anio >= :anioMin) AND " +
+            "(:anioMax IS NULL OR v.anio <= :anioMax) AND " +
+            "(:kmMax IS NULL OR v.kilometros <= :kmMax) AND " +
+            "(:combustible IS NULL OR v.combustible = :combustible) AND " +
+            "(:cambio IS NULL OR LOWER(v.cambio) = LOWER(CAST(:cambio AS string))) AND " +
+            "(:busqueda IS NULL OR LOWER(v.titulo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) OR " +
+            "LOWER(v.marca) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) OR " +
+            "LOWER(v.modelo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%'))) AND " +
+            "(:potenciaMin IS NULL OR v.potencia >= :potenciaMin) AND " +
+            "(:cilindradaMin IS NULL OR v.cilindrada >= :cilindradaMin) AND " +
+            "(:color IS NULL OR LOWER(v.color) LIKE LOWER(CONCAT('%', CAST(:color AS string), '%'))) AND " +
+            "(:numeroPuertas IS NULL OR v.numeroPuertas = :numeroPuertas) AND " +
+            "(:plazas IS NULL OR v.plazas = :plazas) AND " +
+            "(:garantia IS NULL OR v.garantia = :garantia) AND " +
+            "(:itv IS NULL OR v.itv = :itv)")
      Page<Vehiculo> buscarPaginado(
-             @Param("tipo") TipoVehiculo tipo,
-             @Param("marca") String marca,
-             @Param("modelo") String modelo,
-             @Param("precioMin") Double precioMin,
-             @Param("precioMax") Double precioMax,
-             @Param("anioMin") Integer anioMin,
-             @Param("anioMax") Integer anioMax,
-             @Param("combustible") TipoCombustible combustible,
-             Pageable pageable);
+             @Param("tipo") TipoVehiculo tipo, @Param("marca") String marca, @Param("modelo") String modelo,
+             @Param("precioMin") Double precioMin, @Param("precioMax") Double precioMax,
+             @Param("anioMin") Integer anioMin, @Param("anioMax") Integer anioMax, @Param("kmMax") Integer kmMax,
+             @Param("combustible") TipoCombustible combustible, @Param("cambio") String cambio,
+             @Param("busqueda") String busqueda, @Param("potenciaMin") Integer potenciaMin,
+             @Param("cilindradaMin") Integer cilindradaMin, @Param("color") String color,
+             @Param("numeroPuertas") Integer numeroPuertas, @Param("plazas") Integer plazas,
+             @Param("garantia") Boolean garantia, @Param("itv") Boolean itv, Pageable pageable);
+
+    @Query("SELECT v FROM Vehiculo v WHERE v.estadoVehiculo = 'DISPONIBLE' AND " +
+           "(:marca IS NULL OR LOWER(v.marca) LIKE LOWER(CONCAT('%', CAST(:marca AS string), '%'))) AND " +
+           "(:combustible IS NULL OR CAST(v.combustible AS string) = :combustible)")
+    Page<Vehiculo> buscarConFiltros(@Param("marca") String marca, @Param("combustible") String combustible, Pageable pageable);
 }
