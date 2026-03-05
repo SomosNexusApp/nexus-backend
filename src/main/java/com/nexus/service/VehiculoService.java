@@ -17,53 +17,37 @@ import com.nexus.repository.*;
 @Service
 public class VehiculoService {
 
-	@Autowired private VehiculoRepository vehiculoRepository;
-    @Autowired private ActorRepository actorRepository;
+    @Autowired private VehiculoRepository  vehiculoRepository;
+    @Autowired private ActorRepository     actorRepository;
     @Autowired private CategoriaRepository categoriaRepository;
-    @Autowired private StorageService storageService;
+    @Autowired private StorageService      storageService;
 
-    public List<Vehiculo>    findAll()                   { return vehiculoRepository.findAll(); }
-    public Optional<Vehiculo> findById(Integer id)       { return vehiculoRepository.findById(id); }
+    // ── CRUD básico ──────────────────────────────────────────────────────────
 
-    @Transactional
-    public Vehiculo save(Vehiculo v) {
-        asegurarCategoria(v);
-        return vehiculoRepository.save(v);
+    @Transactional(readOnly = true)
+    public List<Vehiculo> findAll() {
+        return vehiculoRepository.findAll();
+    }
+    @Transactional(readOnly = true)
+    public Optional<Vehiculo> findById(Integer id) {
+        return vehiculoRepository.findById(id);
     }
 
+
+    
     public List<Vehiculo> findDisponibles() {
         return vehiculoRepository.findByEstadoVehiculo(EstadoVehiculo.DISPONIBLE);
     }
 
-    // MÉTODO ANTIGUO RESTAURADO
-    public Page<Vehiculo> buscarConFiltros(String tipo, String marca,
-            Integer anioMin, Integer anioMax,
-            Integer kmMax, Double precioMin,
-            Double precioMax, String combustible,
-            String cambio, String busqueda, Pageable pageable) {
-return vehiculoRepository.buscarConFiltros(
-tipo, marca, anioMin, anioMax, kmMax,
-precioMin, precioMax, combustible, cambio, busqueda, pageable);
-}
-
-    // NUEVO MÉTODO MASIVO PARA EL FRONTEND
- // Reemplaza solo el método buscarPaginado en VehiculoService.java
-    public Page<Vehiculo> buscarPaginado(TipoVehiculo tipo, String marca, String modelo,
-            Double precioMin, Double precioMax, Integer anioMin,
-            Integer anioMax, Integer kmMax, TipoCombustible combustible,
-            String cambio, String busqueda, Integer potenciaMin, Integer cilindradaMin,
-            String color, Integer numeroPuertas, Integer plazas,
-            Boolean garantia, Boolean itv, Pageable pageable) {
-
-        return vehiculoRepository.buscarPaginado(tipo, marca, modelo, precioMin, precioMax, 
-            anioMin, anioMax, kmMax, combustible, cambio, busqueda, potenciaMin, cilindradaMin, 
-            color, numeroPuertas, plazas, garantia, itv, pageable);
-    }
-    
     public List<Vehiculo> findByTipo(TipoVehiculo tipo) {
         return vehiculoRepository.findByTipoVehiculoAndEstadoVehiculo(tipo, EstadoVehiculo.DISPONIBLE);
     }
 
+    @Transactional(readOnly = true)
+    public List<Vehiculo> findByPublicador(Integer publicadorId) {
+        return vehiculoRepository.findByPublicadorId(publicadorId);
+    }
+    
     public List<String> getMarcasDisponibles() {
         return vehiculoRepository.findMarcasDistintas();
     }
@@ -71,6 +55,33 @@ precioMin, precioMax, combustible, cambio, busqueda, pageable);
     public List<Vehiculo> getVehiculosDeUsuario(Integer publicadorId) {
         return vehiculoRepository.findByPublicadorIdOrderByFechaPublicacionDesc(publicadorId);
     }
+
+    // ── Búsqueda paginada COMPLETA (usada por VehiculoController.filtrar) ────
+
+    /**
+     * Delega directamente en el método JPQL completo del repositorio.
+     * El antiguo "buscarConFiltros" de la firma corta ya NO existe aquí
+     * para evitar la ambigüedad que causaba el error de compilación.
+     */
+    @Transactional(readOnly = true)
+    public Page<Vehiculo> buscarPaginado(
+            TipoVehiculo tipo, String marca, String modelo,
+            Double precioMin, Double precioMax,
+            Integer anioMin, Integer anioMax, Integer kmMax,
+            TipoCombustible combustible, String cambio, String busqueda,
+            Integer potenciaMin, Integer cilindradaMin, String color,
+            Integer numeroPuertas, Integer plazas, Boolean garantia, Boolean itv,
+            Pageable pageable) {
+
+        return vehiculoRepository.buscarPaginado(
+            tipo, marca, modelo, precioMin, precioMax,
+            anioMin, anioMax, kmMax, combustible, cambio,
+            busqueda, potenciaMin, cilindradaMin, color,
+            numeroPuertas, plazas, garantia, itv, pageable
+        );
+    }
+
+    // ── Publicar / Crear ─────────────────────────────────────────────────────
 
     @Transactional
     public Vehiculo publicar(Vehiculo vehiculo, Integer publicadorId) {
@@ -104,6 +115,8 @@ precioMin, precioMax, combustible, cambio, busqueda, pageable);
         return vehiculoRepository.save(vehiculo);
     }
 
+    // ── Actualizar ───────────────────────────────────────────────────────────
+
     @Transactional
     public Vehiculo update(Integer id, Vehiculo datos) {
         Vehiculo v = vehiculoRepository.findById(id)
@@ -130,9 +143,12 @@ precioMin, precioMax, combustible, cambio, busqueda, pageable);
         if (datos.getCondicion()      != null) v.setCondicion(datos.getCondicion());
         if (datos.getItv()            != null) v.setItv(datos.getItv());
         if (datos.getGarantia()       != null) v.setGarantia(datos.getGarantia());
+        if (datos.getImagenPrincipal()!= null) v.setImagenPrincipal(datos.getImagenPrincipal());
 
         return vehiculoRepository.save(v);
     }
+
+    // ── Eliminar ─────────────────────────────────────────────────────────────
 
     @Transactional
     public void delete(Integer id) {
@@ -144,6 +160,8 @@ precioMin, precioMax, combustible, cambio, busqueda, pageable);
 
     @Transactional
     public void deleteById(Integer id) { delete(id); }
+
+    // ── Helpers privados ─────────────────────────────────────────────────────
 
     private void asegurarCategoria(Vehiculo v) {
         if (v.getCategoria() != null) return;

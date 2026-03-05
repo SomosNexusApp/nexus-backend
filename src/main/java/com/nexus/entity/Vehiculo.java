@@ -35,10 +35,15 @@ public class Vehiculo extends DomainEntity {
     @Enumerated(EnumType.STRING)
     private CondicionProducto condicion;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "hijos", "parent", "productos"})
     private Categoria categoria;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "vehiculo_extras", joinColumns = @JoinColumn(name = "vehiculo_id"))
+    @Column(name = "extra")
+    private List<String> extras = new ArrayList<>();
 
     private String  marca;
     private String  modelo;
@@ -64,16 +69,19 @@ public class Vehiculo extends DomainEntity {
     @Column(columnDefinition = "TEXT")
     private String imagenPrincipal;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "vehiculo_imagenes", joinColumns = @JoinColumn(name = "vehiculo_id"))
     @Column(name = "url", columnDefinition = "TEXT")
     private List<String> galeriaImagenes = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "publicador_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
-        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
-        "cuentaEliminada", "cuentaVerificada"})
+    @JsonIgnoreProperties({
+        "hibernateLazyInitializer", "handler",
+        "password", "twoFactorSecret", "jwtVersion",
+        "notificacionConfig", "cuentaEliminada", "cuentaVerificada"
+    })
     private Actor publicador;
 
     private LocalDateTime fechaPublicacion;
