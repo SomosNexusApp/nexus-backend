@@ -64,14 +64,13 @@ public class OfertaController {
             @RequestParam(required = false) Double precioMax,
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false, defaultValue = "true") Boolean soloActivas,
-            // FIX: "fecha" no existe en la entidad → usar "fechaPublicacion"
             @RequestParam(required = false, defaultValue = "fechaPublicacion") String ordenarPor,
             @RequestParam(required = false, defaultValue = "desc") String direccion,
-            @RequestParam(required = false, defaultValue = "0") Integer pagina,
-            @RequestParam(required = false, defaultValue = "20") Integer tamañoPagina) {
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
 
         try {
-            Pageable pageable = PageRequest.of(pagina, tamañoPagina);
+            Pageable pageable = PageRequest.of(page, size);
 
             Page<Oferta> paginaOfertas = ofertaService.buscarConFiltros(
                 categoria, tienda, precioMin, precioMax, busqueda,

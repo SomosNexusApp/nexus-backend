@@ -54,10 +54,17 @@ public class Producto extends DomainEntity {
 
     private String  marca;
     private String  modelo;
+    private Double  peso;
     private Boolean admiteEnvio    = false;
     private Double  precioEnvio    = 0.0;
     private Boolean precioNegociable = false;
     private String  ubicacion;
+
+    @Column(name = "numero_vistas", nullable = false)
+    private int numeroVistas = 0;
+
+    @Column(name = "numero_favoritos", nullable = false)
+    private int numeroFavoritos = 0;
 
     // ── Imágenes ─────────────────────────────────────────────────────────────
 
@@ -153,6 +160,9 @@ public class Producto extends DomainEntity {
 
     public String           getModelo()                         { return modelo; }
     public void             setModelo(String m)                 { this.modelo = m; }
+
+    public Double           getPeso()                           { return peso; }
+    public void             setPeso(Double p)                   { this.peso = p; }
 
     public Boolean          getAdmiteEnvio()                    { return admiteEnvio; }
     public void             setAdmiteEnvio(Boolean a)           { this.admiteEnvio = a; }

@@ -64,12 +64,12 @@ public class ProductoController {
             @RequestParam(required = false) String orden,
             @RequestParam(required = false) Boolean garantia,
             @RequestParam(required = false) Boolean itv,
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "20") int tamano) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         // Solo pasamos al service los que realmente usa el buscador de productos
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
-            categoria, null, precioMin, precioMax, null, busqueda, ubicacion, PageRequest.of(pagina, tamano)
+            categoria, null, precioMin, precioMax, null, busqueda, ubicacion, PageRequest.of(page, size)
         );
 
         return ResponseEntity.ok(Map.of(
