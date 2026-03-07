@@ -11,81 +11,75 @@ import org.springframework.web.bind.annotation.*;
 import com.nexus.entity.Actor;
 import com.nexus.entity.Comentario;
 import com.nexus.entity.Oferta;
+import com.nexus.entity.Vehiculo;
 import com.nexus.repository.ActorRepository;
 import com.nexus.repository.ComentarioRepository;
 import com.nexus.repository.OfertaRepository;
+import com.nexus.repository.VehiculoRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/comentario")
-@Tag(name = "Comentarios", description = "Opiniones en ofertas")
+@Tag(name = "Comentarios", description = "Opiniones en ofertas y vehículos")
 public class ComentarioController {
 
     @Autowired private ComentarioRepository comentarioRepository;
     @Autowired private OfertaRepository ofertaRepository;
+    @Autowired private VehiculoRepository vehiculoRepository;
     @Autowired private ActorRepository actorRepository;
 
-    // --- VER COMENTARIOS DE UNA OFERTA ---
     @GetMapping("/oferta/{ofertaId}")
-    @Operation(summary = "Ver comentarios de una oferta")
     public List<Comentario> porOferta(@PathVariable Integer ofertaId) {
-        return comentarioRepository.findAll().stream()
-                // BUG FIX: Integer.equals() en lugar de == para evitar fallo con IDs > 127
-                .filter(c -> c.getOferta().getId() == ofertaId)
-                .toList();
+        return comentarioRepository.findByOfertaIdOrderByFechaDesc(ofertaId);
     }
 
-    // --- PUBLICAR COMENTARIO ---
+    @GetMapping("/vehiculo/{vehiculoId}")
+    public List<Comentario> porVehiculo(@PathVariable Integer vehiculoId) {
+        return comentarioRepository.findByVehiculoIdOrderByFechaDesc(vehiculoId);
+    }
+
     @PostMapping
-    @Operation(summary = "Publicar un comentario")
     public ResponseEntity<?> comentar(
-            @RequestParam Integer ofertaId,
+            @RequestParam(required = false) Integer ofertaId,
+            @RequestParam(required = false) Integer vehiculoId,
             @RequestParam Integer actorId,
             @RequestBody Map<String, String> body) {
 
-        Optional<Oferta> oferta = ofertaRepository.findById(ofertaId);
         Optional<Actor> actor = actorRepository.findById(actorId);
-
-        if (oferta.isEmpty() || actor.isEmpty()) {
-            return ResponseEntity.badRequest().body("Oferta o Actor no encontrados");
-        }
+        if (actor.isEmpty()) return ResponseEntity.badRequest().body("Actor no encontrado");
 
         String texto = body.get("texto");
-        if (texto == null || texto.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("El comentario no puede estar vacío");
-        }
+        if (texto == null || texto.trim().isEmpty()) return ResponseEntity.badRequest().body("Texto vacío");
 
-        Comentario comentario = new Comentario(texto, oferta.get(), actor.get());
-        Comentario guardado = comentarioRepository.save(comentario);
+        Comentario comentario = new Comentario();
+        comentario.setTexto(texto);
+        comentario.setActor(actor.get());
 
-        return ResponseEntity.ok(guardado);
+        if (ofertaId != null) ofertaRepository.findById(ofertaId).ifPresent(comentario::setOferta);
+        else if (vehiculoId != null) vehiculoRepository.findById(vehiculoId).ifPresent(comentario::setVehiculo);
+        
+        if (body.containsKey("pollJson")) comentario.setPollJson(body.get("pollJson"));
+
+        return ResponseEntity.ok(comentarioRepository.save(comentario));
     }
 
-    // --- ACTUALIZAR COMENTARIO ---
-    @PutMapping("/{id}")
-    @Operation(summary = "Editar texto de un comentario")
-    public ResponseEntity<?> actualizar(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        return comentarioRepository.findById(id).map(comentario -> {
-            String nuevoTexto = body.get("texto");
-            if (nuevoTexto != null && !nuevoTexto.trim().isEmpty()) {
-                comentario.setTexto(nuevoTexto);
-                comentarioRepository.save(comentario);
-                return ResponseEntity.ok(comentario);
-            }
-            return ResponseEntity.badRequest().body("El texto no puede estar vacío");
-        }).orElse(ResponseEntity.notFound().build());
-    }
-
-    // --- BORRAR COMENTARIO ---
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar comentario")
     public ResponseEntity<?> eliminar(@PathVariable Integer id) {
         if (comentarioRepository.existsById(id)) {
             comentarioRepository.deleteById(id);
-            return ResponseEntity.ok("Comentario eliminado");
+            return ResponseEntity.ok(Map.of("mensaje", "Borrado"));
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizar(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        return comentarioRepository.findById(id).map(c -> {
+            if (body.containsKey("texto")) c.setTexto(body.get("texto"));
+            if (body.containsKey("pollJson")) c.setPollJson(body.get("pollJson"));
+            return ResponseEntity.ok(comentarioRepository.save(c));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

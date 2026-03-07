@@ -68,7 +68,33 @@ public class OfertaService {
 
     public List<Oferta>     findAll()            { return ofertaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaPublicacion")); }
     public Optional<Oferta> findById(Integer id) { return ofertaRepository.findById(id); }
-    public Oferta findByIdOrThrow(Integer id)    {
+    
+    public Optional<Oferta> findByIdWithVoto(Integer id, Integer usuarioId) {
+        return findById(id).map(o -> {
+            if (usuarioId != null) {
+                sparkVotoRepository.findByActorIdAndOfertaId(usuarioId, id)
+                    .ifPresent(v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"));
+            }
+            if (o.getMiVoto() == null) o.setMiVoto("NONE");
+            return o;
+        });
+    }
+
+    public void poblarVotos(List<Oferta> ofertas, Integer usuarioId) {
+        if (usuarioId == null) {
+            ofertas.forEach(o -> o.setMiVoto("NONE"));
+            return;
+        }
+        ofertas.forEach(o -> {
+            sparkVotoRepository.findByActorIdAndOfertaId(usuarioId, o.getId())
+                .ifPresentOrElse(
+                    v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"),
+                    () -> o.setMiVoto("NONE")
+                );
+        });
+    }
+
+    public Oferta findByIdOrThrow(Integer id) {
         return ofertaRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Oferta no encontrada: " + id));
     }
@@ -182,32 +208,52 @@ public class OfertaService {
     // ── Votos ────────────────────────────────────────────────────────────
 
     @Transactional
-    public int votarOferta(Integer actorId, Integer ofertaId, Boolean isUpvote) {
+    public java.util.Map<String, Object> votarOferta(Integer actorId, Integer ofertaId, Boolean isUpvote) {
         int valor = Boolean.TRUE.equals(isUpvote) ? 1 : -1;
         Oferta oferta = findByIdOrThrow(ofertaId);
-        Actor  actor  = actorRepository.findById(actorId)
-            .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
+        com.nexus.entity.Actor actor = actorRepository.findById(actorId)
+            .orElseThrow(() -> new java.util.NoSuchElementException("Actor no encontrado"));
 
-        Optional<SparkVoto> prev = sparkVotoRepository.findByActorIdAndOfertaId(actorId, ofertaId);
+        String nuevoMiVoto;
+        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndOfertaId(actorId, ofertaId);
+        
         if (prev.isPresent()) {
-            SparkVoto v = prev.get();
+            com.nexus.entity.SparkVoto v = prev.get();
             if (v.getValor() == valor) {
+                // Quitar voto si es el mismo
                 if (valor == 1) oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1));
                 else            oferta.setDripCount(Math.max(0,  oferta.getDripCount()  - 1));
                 sparkVotoRepository.deleteByActorAndOferta(actorId, ofertaId);
+                nuevoMiVoto = "NONE";
             } else {
-                if (valor == 1) { oferta.setSparkCount(oferta.getSparkCount() + 1); oferta.setDripCount(Math.max(0, oferta.getDripCount() - 1)); }
-                else            { oferta.setDripCount(oferta.getDripCount() + 1);   oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1)); }
+                // Cambiar voto (de spark a drip o viceversa)
+                if (valor == 1) { 
+                    oferta.setSparkCount(oferta.getSparkCount() + 1); 
+                    oferta.setDripCount(Math.max(0, oferta.getDripCount() - 1)); 
+                } else { 
+                    oferta.setDripCount(oferta.getDripCount() + 1);   
+                    oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1)); 
+                }
                 v.setValor(valor);
                 sparkVotoRepository.save(v);
+                nuevoMiVoto = isUpvote ? "SPARK" : "DRIP";
             }
         } else {
-            sparkVotoRepository.save(new SparkVoto(actor, oferta, Boolean.TRUE.equals(isUpvote)));
+            // Nuevo voto
+            sparkVotoRepository.save(new com.nexus.entity.SparkVoto(actor, oferta, Boolean.TRUE.equals(isUpvote)));
             if (valor == 1) oferta.setSparkCount(oferta.getSparkCount() + 1);
             else            oferta.setDripCount(oferta.getDripCount() + 1);
+            nuevoMiVoto = isUpvote ? "SPARK" : "DRIP";
         }
-        ofertaRepository.save(oferta);
-        return oferta.getSparkScore();
+        
+        Oferta saved = ofertaRepository.save(oferta);
+        saved.actualizarBadge();
+        
+        return java.util.Map.of(
+            "sparkScore", saved.getSparkScore(),
+            "badge", saved.getBadge() != null ? saved.getBadge().toString() : "NUEVA",
+            "miVoto", nuevoMiVoto
+        );
     }
 
     // ── Meta-datos ───────────────────────────────────────────────────────

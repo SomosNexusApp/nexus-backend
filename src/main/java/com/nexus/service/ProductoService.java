@@ -108,6 +108,37 @@ public class ProductoService {
         });
     }
 
+    @Autowired private com.nexus.repository.SparkVotoRepository sparkVotoRepository;
+
+    @Transactional
+    public java.util.Map<String, Object> votarProducto(Integer actorId, Integer productoId, Boolean isUpvote) {
+        int valor = Boolean.TRUE.equals(isUpvote) ? 1 : -1;
+        Producto producto = productoRepository.findById(productoId)
+            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        com.nexus.entity.Actor actor = actorRepository.findById(actorId)
+            .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
+
+        Boolean nuevoMiVoto = isUpvote;
+        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndProductoId(actorId, productoId);
+
+        if (prev.isPresent()) {
+            com.nexus.entity.SparkVoto v = prev.get();
+            if (v.getValor() == valor) {
+                sparkVotoRepository.deleteByActorAndProducto(actorId, productoId);
+                nuevoMiVoto = null;
+            } else {
+                v.setValor(valor);
+                sparkVotoRepository.save(v);
+            }
+        } else {
+            sparkVotoRepository.save(new com.nexus.entity.SparkVoto(actor, producto, Boolean.TRUE.equals(isUpvote)));
+        }
+
+        return java.util.Map.of(
+            "miVoto", nuevoMiVoto == null ? "NONE" : (nuevoMiVoto ? "SPARK" : "DRIP")
+        );
+    }
+
     @Transactional
     public Producto cambiarEstado(Integer id, EstadoProducto nuevo) {
         Producto p = productoRepository.findById(id)

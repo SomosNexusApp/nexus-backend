@@ -12,6 +12,9 @@ public class Comentario extends DomainEntity {
     @NotBlank
     private String texto;
 
+    @Column(columnDefinition = "TEXT")
+    private String pollJson; // Almacenará la configuración de la encuesta y votos
+
     private LocalDateTime fecha;
     private Boolean esReportado;
 
@@ -27,6 +30,11 @@ public class Comentario extends DomainEntity {
         "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
         "cuentaEliminada", "cuentaVerificada"})
     private Actor actor;
+
+    @ManyToOne
+    @JoinColumn(name = "vehiculo_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "actor"})
+    private Vehiculo vehiculo;
 
     public Comentario() {
         super();
@@ -45,6 +53,8 @@ public class Comentario extends DomainEntity {
 
     public String getTexto()                               { return texto; }
     public void setTexto(String texto)                     { this.texto = texto; }
+    public String getPollJson()                            { return pollJson; }
+    public void setPollJson(String pollJson)               { this.pollJson = pollJson; }
     public LocalDateTime getFecha()                        { return fecha; }
     public void setFecha(LocalDateTime fecha)              { this.fecha = fecha; }
     public Boolean getEsReportado()                        { return esReportado; }
@@ -53,4 +63,6 @@ public class Comentario extends DomainEntity {
     public void setOferta(Oferta oferta)                   { this.oferta = oferta; }
     public Actor getActor()                                { return actor; }
     public void setActor(Actor actor)                      { this.actor = actor; }
+    public Vehiculo getVehiculo()                          { return vehiculo; }
+    public void setVehiculo(Vehiculo vehiculo)             { this.vehiculo = vehiculo; }
 }

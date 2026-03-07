@@ -6,6 +6,7 @@ import java.util.List;
 @Repository
 public interface ComentarioRepository extends JpaRepository<Comentario, Integer> {
 	List<Comentario> findByOfertaIdOrderByFechaDesc(Integer ofertaId);
+    List<Comentario> findByVehiculoIdOrderByFechaDesc(Integer vehiculoId);
     List<Comentario> findByActorIdOrderByFechaDesc(Integer actorId);
     long countByOfertaId(Integer id);
 }

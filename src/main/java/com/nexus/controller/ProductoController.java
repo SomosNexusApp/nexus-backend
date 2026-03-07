@@ -201,4 +201,17 @@ public class ProductoController {
             return ResponseEntity.ok(Map.of("mensaje", "Producto eliminado"));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/{id}/votar")
+    @Operation(summary = "Dar Spark o Drip a un producto")
+    public ResponseEntity<?> votar(
+            @PathVariable Integer id,
+            @RequestParam Integer usuarioId,
+            @RequestParam Boolean esSpark) {
+        try {
+            return ResponseEntity.ok(productoService.votarProducto(usuarioId, id, esSpark));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

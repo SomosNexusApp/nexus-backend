@@ -67,6 +67,9 @@ public class Oferta extends DomainEntity {
     @Schema(description = "Gastos de envío de la oferta. Null = no indicado, 0.0 = gratis", example = "3.99")
     private Double gastosEnvio;
 
+    @Transient
+    private String miVoto; // 'SPARK', 'DRIP' o 'NONE'
+
     @PrePersist @PreUpdate
     protected void onSave() {
         if (fechaPublicacion  == null) fechaPublicacion  = LocalDateTime.now();
@@ -136,6 +139,9 @@ public class Oferta extends DomainEntity {
     public void     setGastosEnvio(Double g)                 { this.gastosEnvio = g; }
     public Integer  getNumeroComentarios()                   { return numeroComentarios; }
     public void     setNumeroComentarios(Integer c)          { this.numeroComentarios = c; }
+
+    public String   getMiVoto()                              { return miVoto; }
+    public void     setMiVoto(String v)                      { this.miVoto = v; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

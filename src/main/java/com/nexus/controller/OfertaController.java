@@ -38,15 +38,19 @@ public class OfertaController {
     // --- LISTAR TODAS ---
     @GetMapping
     @Operation(summary = "Listar todas las ofertas activas")
-    public ResponseEntity<List<Oferta>> listar() {
-        return ResponseEntity.ok(ofertaService.findAll());
+    public ResponseEntity<List<Oferta>> listar(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.findAll();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
     }
 
     // --- VER DETALLE (Incrementa vistas) ---
     @GetMapping("/{id}")
     @Operation(summary = "Ver detalle de oferta")
-    public ResponseEntity<Oferta> verOferta(@PathVariable Integer id) {
-        Optional<Oferta> oferta = ofertaService.findById(id);
+    public ResponseEntity<Oferta> verOferta(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer usuarioId) {
+        Optional<Oferta> oferta = ofertaService.findByIdWithVoto(id, usuarioId);
         if (oferta.isPresent()) {
             ofertaService.incrementarVistas(id);
             return ResponseEntity.ok(oferta.get());
@@ -67,7 +71,8 @@ public class OfertaController {
             @RequestParam(required = false, defaultValue = "fechaPublicacion") String ordenarPor,
             @RequestParam(required = false, defaultValue = "desc") String direccion,
             @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "20") Integer size) {
+            @RequestParam(required = false, defaultValue = "20") Integer size,
+            @RequestParam(required = false) Integer usuarioId) {
 
         try {
             Pageable pageable = PageRequest.of(page, size);
@@ -76,6 +81,8 @@ public class OfertaController {
                 categoria, tienda, precioMin, precioMax, busqueda,
                 soloActivas, ordenarPor, direccion, pageable
             );
+            
+            ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);
 
             return ResponseEntity.ok(Map.of(
                 "ofertas",        paginaOfertas.getContent(),
@@ -92,29 +99,37 @@ public class OfertaController {
     // --- OFERTAS DESTACADAS ---
     @GetMapping("/destacadas")
     @Operation(summary = "Ofertas destacadas (Spark + Descuento + Reciente)")
-    public ResponseEntity<List<Oferta>> destacadas() {
-        return ResponseEntity.ok(ofertaService.obtenerDestacadas());
+    public ResponseEntity<List<Oferta>> destacadas(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.obtenerDestacadas();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
     }
 
     // --- TRENDING ---
     @GetMapping("/trending")
     @Operation(summary = "Trending en las últimas 24 horas")
-    public ResponseEntity<List<Oferta>> trending() {
-        return ResponseEntity.ok(ofertaService.obtenerTrending());
+    public ResponseEntity<List<Oferta>> trending(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.obtenerTrending();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
     }
 
     // --- TOP SPARK ---
     @GetMapping("/top-spark")
     @Operation(summary = "Ofertas con mejor Spark Score")
-    public ResponseEntity<List<Oferta>> topSpark() {
-        return ResponseEntity.ok(ofertaService.obtenerTopSpark());
+    public ResponseEntity<List<Oferta>> topSpark(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.obtenerTopSpark();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
     }
 
     // --- EXPIRAN PRONTO ---
     @GetMapping("/expiran-pronto")
     @Operation(summary = "Ofertas que expiran en 24 horas")
-    public ResponseEntity<List<Oferta>> expiranProx() {
-        return ResponseEntity.ok(ofertaService.obtenerProximasExpirar());
+    public ResponseEntity<List<Oferta>> expiranProx(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.obtenerProximasExpirar();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
     }
 
     // --- VOTAR (SPARK / DRIP) ---
@@ -126,15 +141,8 @@ public class OfertaController {
             @RequestParam Boolean esSpark) {
 
         try {
-            ofertaService.votarOferta(id, usuarioId, esSpark);
-            Optional<Oferta> oferta = ofertaService.findById(id);
-            if (oferta.isPresent()) {
-                return ResponseEntity.ok(Map.of(
-                    "sparkScore", oferta.get().getSparkScore(),
-                    "badge",      oferta.get().getBadge()
-                ));
-            }
-            return ResponseEntity.ok(Map.of("mensaje", "Voto registrado"));
+            Map<String, Object> resultado = ofertaService.votarOferta(usuarioId, id, esSpark);
+            return ResponseEntity.ok(resultado);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
