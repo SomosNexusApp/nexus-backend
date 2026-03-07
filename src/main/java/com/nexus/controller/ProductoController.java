@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
-import com.nexus.entity.TipoOferta;
 import com.nexus.service.ModerationService;
 import com.nexus.service.ProductoService;
 import com.nexus.service.StorageService;

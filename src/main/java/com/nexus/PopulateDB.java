@@ -66,31 +66,32 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         System.out.println("=== PopulateDB: iniciando inserción de datos ===");
 
         // ── 1. CATEGORÍAS ─────────────────────────────────────────────────────
-        Categoria catElectronica  = cat("Electrónica",     "electronica",     "devices",          "#1565C0", null, 1);
-        Categoria catRopa         = cat("Ropa",             "ropa",            "checkroom",         "#6A1B9A", null, 2);
+        Categoria catElectronica  = cat("Electrónica",     "electronica",     "cpu",              "#1565C0", null, 1);
+        Categoria catRopa         = cat("Ropa",             "ropa",            "shirt",            "#6A1B9A", null, 2);
         Categoria catHogar        = cat("Hogar",            "hogar",           "home",              "#2E7D32", null, 3);
-        Categoria catVehiculos    = cat("Vehículos",        "vehiculos",       "directions_car",    "#1976D2", null, 4);
+        Categoria catVehiculos    = cat("Vehículos",        "vehiculos",       "car",               "#1976D2", null, 4);
         Categoria catInformatica  = cat("Informática",      "informatica",     "laptop",            "#00838F", null, 5);
-        Categoria catVideojuegos  = cat("Videojuegos",      "videojuegos",     "sports_esports",    "#7B1FA2", null, 6);
-        Categoria catDeportes     = cat("Deportes",         "deportes",        "sports",            "#E65100", null, 7);
-        Categoria catLibros       = cat("Libros",           "libros",          "menu_book",         "#4E342E", null, 8);
-        Categoria catJuguetes     = cat("Juguetes",         "juguetes",        "toys",              "#F57F17", null, 9);
-        Categoria catInmuebles    = cat("Inmuebles",        "inmuebles",       "apartment",         "#37474F", null, 10);
+        Categoria catVideojuegos  = cat("Videojuegos",      "videojuegos",     "gamepad",           "#7B1FA2", null, 6);
+        Categoria catDeportes     = cat("Deportes",         "deportes",        "bicycle",           "#E65100", null, 7);
+        Categoria catLibros       = cat("Libros",           "libros",          "book",              "#4E342E", null, 8);
+        Categoria catJuguetes     = cat("Juguetes",         "juguetes",        "toy-brick",         "#F57F17", null, 9);
+        Categoria catInmuebles    = cat("Inmuebles",        "inmuebles",       "building",          "#37474F", null, 10);
+        Categoria catOtros        = cat("Otros",            "otros",           "archive",           "#78909C", null, 11);
 
         // Sub-categorías
         Categoria catMoviles      = cat("Móviles",          "moviles",         "smartphone",        "#1565C0", catElectronica, 1);
         Categoria catAudio        = cat("Audio",            "audio",           "headphones",        "#1565C0", catElectronica, 2);
         Categoria catTV           = cat("TV y Vídeo",       "tv-video",        "tv",                "#1565C0", catElectronica, 3);
-        Categoria catCamaras      = cat("Cámaras",          "camaras",         "camera_alt",        "#1565C0", catElectronica, 4);
-        Categoria catPCs          = cat("PCs y Portátiles", "pcs",             "computer",          "#00838F", catInformatica, 1);
+        Categoria catCamaras      = cat("Cámaras",          "camaras",         "camera",            "#1565C0", catElectronica, 4);
+        Categoria catPCs          = cat("PCs y Portátiles", "pcs",             "laptop",            "#00838F", catInformatica, 1);
         Categoria catSoftware     = cat("Software",         "software",        "code",              "#00838F", catInformatica, 2);
         Categoria catComponentes  = cat("Componentes",      "componentes-pc",  "memory",            "#00838F", catInformatica, 3);
-        Categoria catCoches       = cat("Coches",           "coches",          "directions_car",    "#1976D2", catVehiculos, 1);
-        Categoria catMotos        = cat("Motos",            "motos",           "two_wheeler",       "#1976D2", catVehiculos, 2);
-        Categoria catRopaHombre   = cat("Ropa Hombre",      "ropa-hombre",     "man",               "#6A1B9A", catRopa, 1);
-        Categoria catRopaMujer    = cat("Ropa Mujer",       "ropa-mujer",      "woman",             "#6A1B9A", catRopa, 2);
-        Categoria catZapatillas   = cat("Zapatillas",       "zapatillas",      "directions_run",    "#6A1B9A", catRopa, 3);
-        Categoria catConsolaJuego = cat("Consolas",         "consolas",        "videogame_asset",   "#7B1FA2", catVideojuegos, 1);
+        Categoria catCoches       = cat("Coches",           "coches",          "car",               "#1976D2", catVehiculos, 1);
+        Categoria catMotos        = cat("Motos",            "motos",           "bike",              "#1976D2", catVehiculos, 2);
+        Categoria catRopaHombre   = cat("Ropa Hombre",      "ropa-hombre",     "user",              "#6A1B9A", catRopa, 1);
+        Categoria catRopaMujer    = cat("Ropa Mujer",       "ropa-mujer",      "user",              "#6A1B9A", catRopa, 2);
+        Categoria catZapatillas   = cat("Zapatillas",       "zapatillas",      "footsteps",         "#6A1B9A", catRopa, 3);
+        Categoria catConsolaJuego = cat("Consolas",         "consolas",        "gamepad",           "#7B1FA2", catVideojuegos, 1);
         Categoria catMuebles      = cat("Muebles",          "muebles",         "chair",             "#2E7D32", catHogar, 1);
         Categoria catElectrodomest= cat("Electrodomésticos","electrodomesticos","kitchen",           "#2E7D32", catHogar, 2);
 
@@ -1262,17 +1263,17 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
     // HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
-    /** Categoría idempotente por slug. */
+    /** Categoría idempotente por slug con actualización de icono/color. */
     private Categoria cat(String nombre, String slug, String icono, String color,
                            Categoria parent, int orden) {
-        return categoriaRepository.findBySlug(slug).orElseGet(() -> {
-            Categoria c = new Categoria(nombre, slug, icono);
-            c.setColor(color);
-            c.setOrden(orden);
-            c.setActiva(true);
-            if (parent != null) c.setParent(parent);
-            return categoriaRepository.save(c);
-        });
+        Categoria c = categoriaRepository.findBySlug(slug).orElse(new Categoria(nombre, slug, icono));
+        c.setNombre(nombre);
+        c.setIcono(icono);
+        c.setColor(color);
+        c.setOrden(orden);
+        c.setActiva(true);
+        if (parent != null) c.setParent(parent);
+        return categoriaRepository.save(c);
     }
 
     /** Crea y persiste un Usuario completo. */

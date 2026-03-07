@@ -3,7 +3,7 @@ package com.nexus.dto;
 import java.util.Date;
 import java.util.List;
 
-import com.nexus.entity.EstadoProducto;
+
 import com.nexus.entity.TipoVehiculo;
 
 public class MarketplaceItemDTO {

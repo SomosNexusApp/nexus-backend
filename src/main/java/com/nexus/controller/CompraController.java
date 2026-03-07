@@ -90,8 +90,11 @@ public class CompraController {
             // Total que pagará el comprador en Stripe
             double totalCobrar = precioProducto + costoEnvio + comisionNexus;
 
+            // Idempotency Key para evitar cobros dobles si hay reintentos en red
+            String idempotencyKey = "intent_" + compradorId + "_" + productoId + "_" + System.currentTimeMillis();
+
             PaymentIntent intent = stripeService.crearIntentoPago(
-                totalCobrar, "Nexus: " + p.get().getTitulo());
+                totalCobrar, "Nexus: " + p.get().getTitulo(), idempotencyKey);
 
             // Crear compra PENDIENTE
             Compra compra = new Compra();

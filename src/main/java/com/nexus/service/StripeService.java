@@ -31,7 +31,7 @@ public class StripeService {
      * Crea un PaymentIntent en Stripe.
      * Los fondos quedan retenidos (escrow) hasta captura o cancelación.
      */
-    public PaymentIntent crearIntentoPago(Double cantidad, String descripcion) throws Exception {
+    public PaymentIntent crearIntentoPago(Double cantidad, String descripcion, String idempotencyKey) throws Exception {
         validarConfig();
 
         long centimos = (long) (cantidad * 100);
@@ -47,6 +47,13 @@ public class StripeService {
                                 .build()
                 )
                 .build();
+
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            com.stripe.net.RequestOptions requestOptions = com.stripe.net.RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+            return PaymentIntent.create(params, requestOptions);
+        }
 
         return PaymentIntent.create(params);
     }
