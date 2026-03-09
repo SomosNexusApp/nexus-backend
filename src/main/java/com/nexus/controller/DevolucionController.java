@@ -21,7 +21,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Devoluciones", description = "Sistema completo de devoluciones y reembolsos")
 public class DevolucionController {
 
-    @Autowired private DevolucionService devolucionService;
+    @Autowired
+    private DevolucionService devolucionService;
 
     @GetMapping("/comprador/{id}")
     public ResponseEntity<List<Devolucion>> porComprador(@PathVariable Integer id) {
@@ -33,15 +34,23 @@ public class DevolucionController {
         return ResponseEntity.ok(devolucionService.getDevolucionesComoVendedor(id));
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Ver detalle de una devolución")
+    public ResponseEntity<?> findById(@PathVariable Integer id) {
+        return devolucionService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     /**
      * El comprador solicita una devolución con fotos del problema.
      *
      * Angular (FormData):
-     *   formData.append('compraId', '42');
-     *   formData.append('motivo', 'DEFECTUOSO');
-     *   formData.append('descripcion', 'La pantalla tiene una línea rota...');
-     *   fotos.forEach(f => formData.append('fotos', f));
-     *   http.post('/devolucion/solicitar', formData)
+     * formData.append('compraId', '42');
+     * formData.append('motivo', 'DEFECTUOSO');
+     * formData.append('descripcion', 'La pantalla tiene una línea rota...');
+     * fotos.forEach(f => formData.append('fotos', f));
+     * http.post('/devolucion/solicitar', formData)
      */
     @PostMapping(value = "/solicitar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Solicitar devolución (con fotos del defecto)")
@@ -67,10 +76,10 @@ public class DevolucionController {
     @PostMapping("/{id}/responder")
     @Operation(summary = "Vendedor acepta o rechaza la devolución")
     public ResponseEntity<?> responder(@PathVariable Integer id,
-                                        @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body) {
         try {
             boolean aceptada = Boolean.parseBoolean(body.get("aceptada").toString());
-            String  nota     = (String) body.getOrDefault("nota", "");
+            String nota = (String) body.getOrDefault("nota", "");
             return ResponseEntity.ok(devolucionService.responder(id, aceptada, nota));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -84,10 +93,10 @@ public class DevolucionController {
     @PostMapping("/{id}/enviada")
     @Operation(summary = "Comprador confirma el envío del producto de vuelta")
     public ResponseEntity<?> marcarEnviada(@PathVariable Integer id,
-                                            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
         try {
             return ResponseEntity.ok(devolucionService.marcarDevolucionEnviada(
-                id, body.get("transportista"), body.get("tracking")));
+                    id, body.get("transportista"), body.get("tracking")));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -102,9 +111,8 @@ public class DevolucionController {
         try {
             Devolucion d = devolucionService.confirmarRecepcionDevolucion(id);
             return ResponseEntity.ok(Map.of(
-                "mensaje", "💸 Reembolso procesado. El comprador recibirá el dinero en 3-5 días.",
-                "devolucion", d
-            ));
+                    "mensaje", "💸 Reembolso procesado. El comprador recibirá el dinero en 3-5 días.",
+                    "devolucion", d));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

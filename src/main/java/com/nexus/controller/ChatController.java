@@ -22,12 +22,45 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Chat", description = "Chat en tiempo real con texto, imágenes, vídeos y mensajes de voz")
 public class ChatController {
 
-    @Autowired private ChatService           chatService;
-    @Autowired private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private ChatService chatService;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/historial/{productoId}")
     public ResponseEntity<List<ChatMensaje>> historial(@PathVariable Integer productoId) {
         return ResponseEntity.ok(chatService.getHistorial(productoId));
+    }
+
+    /**
+     * Enviar un mensaje de texto por REST (fallback cuando WebSocket no está
+     * conectado).
+     */
+    @PostMapping("/texto")
+    @Operation(summary = "Enviar mensaje de texto por REST")
+    public ResponseEntity<?> enviarTexto(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer productoId = (Integer) payload.get("productoId");
+            Integer remitenteId = (Integer) payload.get("remitenteId");
+            Integer receptorId = (Integer) payload.get("receptorId");
+            String texto = (String) payload.get("texto");
+
+            ChatMensaje guardado = chatService.guardarMensajeTexto(
+                    productoId, remitenteId, receptorId, texto);
+
+            // Publicar en WebSocket para que el receptor lo reciba en tiempo real
+            messagingTemplate.convertAndSend("/topic/chat/" + productoId, guardado);
+            if (receptorId != null) {
+                messagingTemplate.convertAndSendToUser(
+                        receptorId.toString(), "/queue/notificaciones",
+                        Map.of("tipo", "NUEVO_MENSAJE", "productoId", productoId));
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Error al enviar texto: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/conversacion/{productoId}")
@@ -49,11 +82,11 @@ public class ChatController {
 
     @PutMapping("/leer/{productoId}")
     public ResponseEntity<?> marcarLeidos(@PathVariable Integer productoId,
-                                           @RequestParam Integer receptorId) {
+            @RequestParam Integer receptorId) {
         chatService.marcarLeidos(productoId, receptorId);
         messagingTemplate.convertAndSend(
-            "/topic/chat/" + productoId + "/leidos",
-            Map.of("receptorId", receptorId, "leido", true));
+                "/topic/chat/" + productoId + "/leidos",
+                Map.of("receptorId", receptorId, "leido", true));
         return ResponseEntity.ok(Map.of("mensaje", "Marcados como leídos"));
     }
 
@@ -61,18 +94,18 @@ public class ChatController {
      * Subir imagen, vídeo o mensaje de voz al chat.
      *
      * ┌─────────────────────────────────────────────────────────────────┐
-     * │  Angular (chat.component.ts)                                    │
-     * │                                                                 │
-     * │  // IMAGEN o VÍDEO:                                             │
-     * │  const fd = new FormData();                                     │
-     * │  fd.append('archivo', file);                                    │
-     * │  fd.append('tipo', file.type.startsWith('video') ? 'VIDEO':'IMAGEN'); │
-     * │  http.post(`/chat/media?productoId=42&remitenteId=5&receptorId=7`, fd) │
-     * │                                                                 │
-     * │  // AUDIO (MediaRecorder → Blob):                               │
-     * │  fd.append('tipo', 'AUDIO');                                    │
-     * │  fd.append('duracion', segundos.toString());                    │
-     * │  fd.append('archivo', audioBlob, 'voz.webm');                   │
+     * │ Angular (chat.component.ts) │
+     * │ │
+     * │ // IMAGEN o VÍDEO: │
+     * │ const fd = new FormData(); │
+     * │ fd.append('archivo', file); │
+     * │ fd.append('tipo', file.type.startsWith('video') ? 'VIDEO':'IMAGEN'); │
+     * │ http.post(`/chat/media?productoId=42&remitenteId=5&receptorId=7`, fd) │
+     * │ │
+     * │ // AUDIO (MediaRecorder → Blob): │
+     * │ fd.append('tipo', 'AUDIO'); │
+     * │ fd.append('duracion', segundos.toString()); │
+     * │ fd.append('archivo', audioBlob, 'voz.webm'); │
      * └─────────────────────────────────────────────────────────────────┘
      *
      * El servidor sube a Cloudinary, guarda en BD y publica el mensaje
@@ -84,27 +117,29 @@ public class ChatController {
             @RequestParam Integer productoId,
             @RequestParam Integer remitenteId,
             @RequestParam Integer receptorId,
-            @RequestParam String  tipo,
+            @RequestParam String tipo,
             @RequestParam(required = false, defaultValue = "0") Integer duracion,
             @RequestPart("archivo") MultipartFile archivo) {
         try {
             ChatMensaje guardado;
             switch (tipo.toUpperCase()) {
-                case "VIDEO" -> guardado = chatService.guardarMensajeVideo(productoId, remitenteId, receptorId, archivo);
-                case "AUDIO" -> guardado = chatService.guardarMensajeAudio(productoId, remitenteId, receptorId, archivo, duracion);
-                default      -> guardado = chatService.guardarMensajeImagen(productoId, remitenteId, receptorId, archivo);
+                case "VIDEO" ->
+                    guardado = chatService.guardarMensajeVideo(productoId, remitenteId, receptorId, archivo);
+                case "AUDIO" ->
+                    guardado = chatService.guardarMensajeAudio(productoId, remitenteId, receptorId, archivo, duracion);
+                default -> guardado = chatService.guardarMensajeImagen(productoId, remitenteId, receptorId, archivo);
             }
 
             // Publicar en WebSocket
             messagingTemplate.convertAndSend("/topic/chat/" + productoId, guardado);
             messagingTemplate.convertAndSendToUser(
-                receptorId.toString(), "/queue/notificaciones",
-                Map.of("tipo", "NUEVO_MENSAJE", "productoId", productoId));
+                    receptorId.toString(), "/queue/notificaciones",
+                    Map.of("tipo", "NUEVO_MENSAJE", "productoId", productoId));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Error al subir media: " + e.getMessage()));
+                    .body(Map.of("error", "Error al subir media: " + e.getMessage()));
         }
     }
 
@@ -114,7 +149,7 @@ public class ChatController {
             @RequestParam Double precioPropuesto) {
         try {
             ChatMensaje msg = chatService.guardarPropuestaPrecio(
-                productoId, remitenteId, receptorId, precioPropuesto);
+                    productoId, remitenteId, receptorId, precioPropuesto);
             messagingTemplate.convertAndSend("/topic/chat/" + productoId, msg);
             return ResponseEntity.status(HttpStatus.CREATED).body(msg);
         } catch (Exception e) {
@@ -124,7 +159,7 @@ public class ChatController {
 
     @PatchMapping("/propuesta/{mensajeId}/responder")
     public ResponseEntity<?> responderPropuesta(@PathVariable Integer mensajeId,
-                                                  @RequestParam Boolean aceptada) {
+            @RequestParam Boolean aceptada) {
         try {
             ChatMensaje msg = chatService.responderPropuesta(mensajeId, aceptada);
             messagingTemplate.convertAndSend("/topic/chat/" + msg.getProducto().getId(), msg);

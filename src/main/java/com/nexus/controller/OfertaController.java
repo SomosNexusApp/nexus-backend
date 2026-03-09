@@ -31,9 +31,12 @@ public class OfertaController {
 
     @Autowired
     private ModerationService moderationService;
-    @Autowired private OfertaService ofertaService;
-    @Autowired private ActorRepository actorRepository;
-    @Autowired private StorageService storageService;
+    @Autowired
+    private OfertaService ofertaService;
+    @Autowired
+    private ActorRepository actorRepository;
+    @Autowired
+    private StorageService storageService;
 
     // --- LISTAR TODAS ---
     @GetMapping
@@ -72,27 +75,26 @@ public class OfertaController {
             @RequestParam(required = false, defaultValue = "desc") String direccion,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer size,
-            @RequestParam(required = false) Integer usuarioId) {
+            @RequestParam(required = false) Integer usuarioId,
+            @RequestParam(required = false) Integer vendedorId) {
 
         try {
             Pageable pageable = PageRequest.of(page, size);
 
             Page<Oferta> paginaOfertas = ofertaService.buscarConFiltros(
-                categoria, tienda, precioMin, precioMax, busqueda,
-                soloActivas, ordenarPor, direccion, pageable
-            );
-            
+                    categoria, tienda, precioMin, precioMax, busqueda,
+                    soloActivas, ordenarPor, direccion, vendedorId, pageable);
+
             ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);
 
             return ResponseEntity.ok(Map.of(
-                "ofertas",        paginaOfertas.getContent(),
-                "paginaActual",   paginaOfertas.getNumber(),
-                "totalPaginas",   paginaOfertas.getTotalPages(),
-                "totalElementos", paginaOfertas.getTotalElements()
-            ));
+                    "ofertas", paginaOfertas.getContent(),
+                    "paginaActual", paginaOfertas.getNumber(),
+                    "totalPaginas", paginaOfertas.getTotalPages(),
+                    "totalElementos", paginaOfertas.getTotalElements()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -169,28 +171,29 @@ public class OfertaController {
             Optional<Actor> actor = actorRepository.findById(actorId);
             if (actor.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Actor no encontrado"));
+                        .body(Map.of("error", "Actor no encontrado"));
             }
 
             String textoCompleto = (oferta.getTitulo() != null ? oferta.getTitulo() : "") + " "
-                                 + (oferta.getDescripcion() != null ? oferta.getDescripcion() : "");
+                    + (oferta.getDescripcion() != null ? oferta.getDescripcion() : "");
             if (!moderationService.esContenidoApropiado(textoCompleto)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
+                        .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
             }
 
             oferta.setActor(actor.get());
             String urlPrincipal = storageService.subirImagen(imagenPrincipal);
             if (urlPrincipal == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error al subir imagen principal"));
+                        .body(Map.of("error", "Error al subir imagen principal"));
             }
             oferta.setImagenPrincipal(urlPrincipal);
 
             if (galeria != null && !galeria.isEmpty()) {
                 for (int i = 0; i < Math.min(galeria.size(), 5); i++) {
                     String urlGaleria = storageService.subirImagen(galeria.get(i));
-                    if (urlGaleria != null) oferta.addImagenGaleria(urlGaleria);
+                    if (urlGaleria != null)
+                        oferta.addImagenGaleria(urlGaleria);
                 }
             }
 
@@ -199,7 +202,7 @@ public class OfertaController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -214,25 +217,37 @@ public class OfertaController {
 
         try {
             String textoCompleto = (nuevosDatos.getTitulo() != null ? nuevosDatos.getTitulo() : "") + " "
-                                 + (nuevosDatos.getDescripcion() != null ? nuevosDatos.getDescripcion() : "");
+                    + (nuevosDatos.getDescripcion() != null ? nuevosDatos.getDescripcion() : "");
             if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
+                        .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
             }
 
             return ofertaService.findById(id).map(oferta -> {
-                if (nuevosDatos.getTitulo() != null)          oferta.setTitulo(nuevosDatos.getTitulo());
-                if (nuevosDatos.getDescripcion() != null)     oferta.setDescripcion(nuevosDatos.getDescripcion());
-                if (nuevosDatos.getTienda() != null)          oferta.setTienda(nuevosDatos.getTienda());
-                if (nuevosDatos.getPrecioOriginal() != null)  oferta.setPrecioOriginal(nuevosDatos.getPrecioOriginal());
-                if (nuevosDatos.getPrecioOferta() != null)    oferta.setPrecioOferta(nuevosDatos.getPrecioOferta());
-                if (nuevosDatos.getUrlOferta() != null)       oferta.setUrlOferta(nuevosDatos.getUrlOferta());
-                if (nuevosDatos.getFechaExpiracion() != null) oferta.setFechaExpiracion(nuevosDatos.getFechaExpiracion());
-                if (nuevosDatos.getCategoria() != null)       oferta.setCategoria(nuevosDatos.getCategoria());
-                if (nuevosDatos.getCodigoDescuento() != null) oferta.setCodigoDescuento(nuevosDatos.getCodigoDescuento());
-                if (nuevosDatos.getEsOnline() != null)        oferta.setEsOnline(nuevosDatos.getEsOnline());
-                if (nuevosDatos.getCiudadOferta() != null)    oferta.setCiudadOferta(nuevosDatos.getCiudadOferta());
-                if (nuevosDatos.getGastosEnvio() != null)     oferta.setGastosEnvio(nuevosDatos.getGastosEnvio());
+                if (nuevosDatos.getTitulo() != null)
+                    oferta.setTitulo(nuevosDatos.getTitulo());
+                if (nuevosDatos.getDescripcion() != null)
+                    oferta.setDescripcion(nuevosDatos.getDescripcion());
+                if (nuevosDatos.getTienda() != null)
+                    oferta.setTienda(nuevosDatos.getTienda());
+                if (nuevosDatos.getPrecioOriginal() != null)
+                    oferta.setPrecioOriginal(nuevosDatos.getPrecioOriginal());
+                if (nuevosDatos.getPrecioOferta() != null)
+                    oferta.setPrecioOferta(nuevosDatos.getPrecioOferta());
+                if (nuevosDatos.getUrlOferta() != null)
+                    oferta.setUrlOferta(nuevosDatos.getUrlOferta());
+                if (nuevosDatos.getFechaExpiracion() != null)
+                    oferta.setFechaExpiracion(nuevosDatos.getFechaExpiracion());
+                if (nuevosDatos.getCategoria() != null)
+                    oferta.setCategoria(nuevosDatos.getCategoria());
+                if (nuevosDatos.getCodigoDescuento() != null)
+                    oferta.setCodigoDescuento(nuevosDatos.getCodigoDescuento());
+                if (nuevosDatos.getEsOnline() != null)
+                    oferta.setEsOnline(nuevosDatos.getEsOnline());
+                if (nuevosDatos.getCiudadOferta() != null)
+                    oferta.setCiudadOferta(nuevosDatos.getCiudadOferta());
+                if (nuevosDatos.getGastosEnvio() != null)
+                    oferta.setGastosEnvio(nuevosDatos.getGastosEnvio());
 
                 if (imagenPrincipal != null && !imagenPrincipal.isEmpty()) {
                     String urlNueva = storageService.subirImagen(imagenPrincipal);
@@ -245,7 +260,8 @@ public class OfertaController {
                     for (MultipartFile file : galeria) {
                         if (oferta.getGaleriaImagenes().size() < 5) {
                             String urlGaleria = storageService.subirImagen(file);
-                            if (urlGaleria != null) oferta.addImagenGaleria(urlGaleria);
+                            if (urlGaleria != null)
+                                oferta.addImagenGaleria(urlGaleria);
                         }
                     }
                 }
@@ -254,7 +270,7 @@ public class OfertaController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 

@@ -15,11 +15,14 @@ public interface EnvioRepository extends JpaRepository<Envio, Integer> {
 
     Optional<Envio> findByCompraId(Integer compraId);
 
+    Optional<Envio> findByCodigoEnvio(String codigoEnvio);
+
     List<Envio> findByEstado(EstadoEnvio estado);
 
-    // Envíos pendientes de confirmación por el comprador (para la tarea automática de 7 días)
+    // Envíos pendientes de confirmación por el comprador (para la tarea automática
+    // de 7 días)
     @Query("SELECT e FROM Envio e WHERE e.estado = 'ENVIADO' AND " +
-           "e.fechaEnvio < CURRENT_TIMESTAMP - 7 DAY")
+            "e.fechaEnvio < CURRENT_TIMESTAMP - 7 DAY")
     List<Envio> findPendientesAutoConfirmacion();
 
     // Todos los envíos donde el comprador es el usuario

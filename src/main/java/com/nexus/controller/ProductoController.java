@@ -27,10 +27,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Productos", description = "Mercado de segunda mano")
 public class ProductoController {
 
-    @Autowired private ProductoService productoService;
-    @Autowired private StorageService storageService;
-    @Autowired private ModerationService moderationService;
-    
+    @Autowired
+    private ProductoService productoService;
+    @Autowired
+    private StorageService storageService;
+    @Autowired
+    private ModerationService moderationService;
+
     @GetMapping
     public ResponseEntity<List<Producto>> findAll() {
         return ResponseEntity.ok(productoService.findAll());
@@ -58,6 +61,7 @@ public class ProductoController {
             @RequestParam(required = false) Double precioMax,
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) String ubicacion,
+            @RequestParam(required = false) Integer vendedorId,
             // Añadimos estos para evitar el 500 cuando el frontend manda filtros de motor
             @RequestParam(required = false) Boolean conEnvio,
             @RequestParam(required = false) String orden,
@@ -68,15 +72,14 @@ public class ProductoController {
 
         // Solo pasamos al service los que realmente usa el buscador de productos
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
-            categoria, null, precioMin, precioMax, null, busqueda, ubicacion, PageRequest.of(page, size)
-        );
+                categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
+                PageRequest.of(page, size));
 
         return ResponseEntity.ok(Map.of(
-            "contenido", r.getContent(),
-            "totalElementos", r.getTotalElements(),
-            "totalPaginas", r.getTotalPages(),
-            "paginaActual", r.getNumber()
-        ));
+                "contenido", r.getContent(),
+                "totalElementos", r.getTotalElements(),
+                "totalPaginas", r.getTotalPages(),
+                "paginaActual", r.getNumber()));
     }
 
     /**
@@ -85,7 +88,7 @@ public class ProductoController {
     @PatchMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado (DISPONIBLE, RESERVADO, VENDIDO)")
     public ResponseEntity<?> cambiarEstado(@PathVariable Integer id,
-                                           @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
         String estadoStr = body.get("estado");
         if (estadoStr == null || estadoStr.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Campo 'estado' requerido"));
@@ -95,10 +98,11 @@ public class ProductoController {
             EstadoProducto anterior = productoService.findById(id)
                     .map(Producto::getEstadoProducto).orElse(null);
             Producto actualizado = productoService.cambiarEstado(id, nuevo);
-            return ResponseEntity.ok(Map.of("estadoAnterior", anterior, "estadoNuevo", actualizado.getEstadoProducto()));
+            return ResponseEntity
+                    .ok(Map.of("estadoAnterior", anterior, "estadoNuevo", actualizado.getEstadoProducto()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                .body(Map.of("error", "Estado inválido. Valores: DISPONIBLE, RESERVADO, VENDIDO"));
+                    .body(Map.of("error", "Estado inválido. Valores: DISPONIBLE, RESERVADO, VENDIDO"));
         }
     }
 
@@ -117,24 +121,27 @@ public class ProductoController {
 
             if (!moderationService.esContenidoApropiado(textoCompleto)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+                        .body(Map.of("error",
+                                "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
             }
             // ----------------------------------------
 
             String url = storageService.subirImagen(imagenPrincipal);
-            if (url == null) return ResponseEntity.internalServerError().body(Map.of("error", "Error al subir imagen principal"));
+            if (url == null)
+                return ResponseEntity.internalServerError().body(Map.of("error", "Error al subir imagen principal"));
             producto.setImagenPrincipal(url);
-            
+
             if (galeria != null) {
                 for (int i = 0; i < Math.min(galeria.size(), 5); i++) {
                     String g = storageService.subirImagen(galeria.get(i));
-                    if (g != null) producto.addImagenGaleria(g);
+                    if (g != null)
+                        producto.addImagenGaleria(g);
                 }
             }
-            
+
             Producto nuevo = productoService.publicar(producto, usuarioId);
             return nuevo != null ? ResponseEntity.status(HttpStatus.CREATED).body(nuevo)
-                                 : ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
+                    : ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
@@ -155,36 +162,43 @@ public class ProductoController {
 
             if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
+                        .body(Map.of("error",
+                                "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
             }
             // ---------------------------------------------
 
             Optional<Producto> op = productoService.findById(id);
-            if (op.isEmpty()) return ResponseEntity.notFound().build();
-            
+            if (op.isEmpty())
+                return ResponseEntity.notFound().build();
+
             Producto p = op.get();
-            if (detalles.getTitulo() != null) p.setTitulo(detalles.getTitulo());
-            if (detalles.getDescripcion() != null) p.setDescripcion(detalles.getDescripcion());
-            if (detalles.getPrecio() != null) p.setPrecio(detalles.getPrecio());
-            if (detalles.getTipoOferta() != null) p.setTipoOferta(detalles.getTipoOferta());
-            
+            if (detalles.getTitulo() != null)
+                p.setTitulo(detalles.getTitulo());
+            if (detalles.getDescripcion() != null)
+                p.setDescripcion(detalles.getDescripcion());
+            if (detalles.getPrecio() != null)
+                p.setPrecio(detalles.getPrecio());
+            if (detalles.getTipoOferta() != null)
+                p.setTipoOferta(detalles.getTipoOferta());
+
             if (imagenPrincipal != null && !imagenPrincipal.isEmpty()) {
                 String url = storageService.subirImagen(imagenPrincipal);
-                if (url != null) { 
-                    storageService.eliminarImagen(p.getImagenPrincipal()); 
-                    p.setImagenPrincipal(url); 
+                if (url != null) {
+                    storageService.eliminarImagen(p.getImagenPrincipal());
+                    p.setImagenPrincipal(url);
                 }
             }
-            
+
             if (galeria != null) {
                 for (MultipartFile f : galeria) {
                     if (p.getGaleriaImagenes().size() < 5) {
-                        String g = storageService.subirImagen(f); 
-                        if (g != null) p.addImagenGaleria(g);
+                        String g = storageService.subirImagen(f);
+                        if (g != null)
+                            p.addImagenGaleria(g);
                     }
                 }
             }
-            
+
             return ResponseEntity.ok(productoService.update(id, p));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));

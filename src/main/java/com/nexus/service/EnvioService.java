@@ -15,10 +15,16 @@ import com.nexus.controller.ChatWebSocketController;
 @Service
 public class EnvioService {
 
-    @Autowired private EnvioRepository envioRepository;
-    @Autowired private CompraRepository compraRepository;
-    @Autowired private StripeService stripeService;
-    @Autowired private ChatWebSocketController chatWebSocketController;
+    @Autowired
+    private EnvioRepository envioRepository;
+    @Autowired
+    private CompraRepository compraRepository;
+    @Autowired
+    private StripeService stripeService;
+    @Autowired
+    private ShippingPriceService shippingPriceService;
+    @Autowired
+    private ChatWebSocketController chatWebSocketController;
 
     /**
      * Crea el envío justo después de confirmar el pago.
@@ -26,14 +32,29 @@ public class EnvioService {
      */
     @Transactional
     public Envio crearEnvio(Compra compra, MetodoEntrega metodo,
-                             String nombreDestinatario, String direccion,
-                             String ciudad, String cp, String pais,
-                             String telefono, Double precioEnvio) {
+            String nombreDestinatario, String direccion,
+            String ciudad, String cp, String pais,
+            String telefono, Double precioEnvio,
+            Double pesoKg, Transportista transportista) {
         Envio envio = new Envio();
         envio.setCompra(compra);
         envio.setMetodoEntrega(metodo);
         envio.setEstado(EstadoEnvio.PENDIENTE_ENVIO);
         envio.setStripePaymentIntentId(compra.getStripePaymentIntentId());
+        envio.setPesoKg(pesoKg);
+        envio.setTransportistaEnum(transportista);
+        if (transportista != null) {
+            envio.setTransportista(transportista.name()); // legado / compatibilidad
+        }
+
+        // Generar código único y QR
+        String codigo = shippingPriceService.generateShippingCode();
+        // Asegurar unicidad (reintentar en caso de colisión muy improbable)
+        while (envioRepository.findByCodigoEnvio(codigo).isPresent()) {
+            codigo = shippingPriceService.generateShippingCode();
+        }
+        envio.setCodigoEnvio(codigo);
+        envio.setQrBase64(shippingPriceService.generateQrBase64(codigo));
 
         if (MetodoEntrega.ENVIO_PAQUETERIA.equals(metodo)) {
             envio.setNombreDestinatario(nombreDestinatario);
@@ -54,12 +75,13 @@ public class EnvioService {
     }
 
     /**
-     * El vendedor marca el producto como enviado e introduce el número de seguimiento.
+     * El vendedor marca el producto como enviado e introduce el número de
+     * seguimiento.
      */
     @Transactional
     public Envio marcarComoEnviado(Integer envioId, String transportista,
-                                    String numeroSeguimiento, String urlSeguimiento,
-                                    LocalDateTime fechaEstimadaEntrega) {
+            String numeroSeguimiento, String urlSeguimiento,
+            LocalDateTime fechaEstimadaEntrega) {
         Envio envio = findByIdOrThrow(envioId);
 
         if (envio.getEstado() != EstadoEnvio.PENDIENTE_ENVIO) {
@@ -146,7 +168,8 @@ public class EnvioService {
     }
 
     /**
-     * El comprador abre una disputa (producto no llegó, no corresponde a lo anunciado).
+     * El comprador abre una disputa (producto no llegó, no corresponde a lo
+     * anunciado).
      * Los fondos permanecen en escrow hasta resolver.
      */
     @Transactional
@@ -219,9 +242,9 @@ public class EnvioService {
 
     private void notificarEnChat(Compra compra, String texto) {
         try {
-            Integer productoId   = compra.getProducto().getId();
-            Integer compradorId  = compra.getComprador().getId();
-            Integer vendedorId   = compra.getProducto().getPublicador().getId();
+            Integer productoId = compra.getProducto().getId();
+            Integer compradorId = compra.getComprador().getId();
+            Integer vendedorId = compra.getProducto().getPublicador().getId();
             chatWebSocketController.publicarMensajeSistema(productoId, vendedorId, compradorId, texto);
         } catch (Exception e) {
             // No interrumpir la operación principal si el chat falla

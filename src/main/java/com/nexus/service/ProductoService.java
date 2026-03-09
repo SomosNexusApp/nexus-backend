@@ -19,9 +19,12 @@ import com.nexus.repository.ProductoSpecification;
 @Service
 public class ProductoService {
 
-    @Autowired private ProductoRepository productoRepository;
-    @Autowired private ActorRepository    actorRepository;
-    @Autowired private SynonymService     synonymService;
+    @Autowired
+    private ProductoRepository productoRepository;
+    @Autowired
+    private ActorRepository actorRepository;
+    @Autowired
+    private SynonymService synonymService;
 
     // ── Lecturas ─────────────────────────────────────────────────────────────
 
@@ -53,20 +56,22 @@ public class ProductoService {
             String condicion,
             String busqueda,
             String ubicacion,
+            Integer vendedorId,
             Pageable pageable) {
 
         // Expandir el término con sinónimos
         List<String> terms = synonymService.expand(busqueda);
 
-        // Si no hay términos de búsqueda ni filtros de texto, terms queda vacío → trae todo
+        // Si no hay términos de búsqueda ni filtros de texto, terms queda vacío → trae
+        // todo
         String categoriaNorm = (categoria != null && !categoria.isBlank()) ? categoria : null;
 
         Specification<Producto> spec = ProductoSpecification.buscarConFiltros(
-            terms.isEmpty() ? null : terms,
-            categoriaNorm,
-            precioMin,
-            precioMax
-        );
+                terms.isEmpty() ? null : terms,
+                categoriaNorm,
+                precioMin,
+                precioMax,
+                vendedorId);
 
         return productoRepository.findAll(spec, pageable);
     }
@@ -81,7 +86,7 @@ public class ProductoService {
             Pageable pageable) {
 
         return buscarConFiltrosPaginado(
-            categoria, null, precioMin, precioMax, null, busqueda, null, pageable);
+                categoria, null, precioMin, precioMax, null, busqueda, null, null, pageable);
     }
 
     // ── Escrituras ────────────────────────────────────────────────────────────
@@ -90,7 +95,8 @@ public class ProductoService {
     public Producto publicar(Producto producto, Integer usuarioId) {
         return actorRepository.findById(usuarioId).map(actor -> {
             producto.setVendedor(actor);
-            if (producto.getEstado() == null) producto.setEstado(EstadoProducto.DISPONIBLE);
+            if (producto.getEstado() == null)
+                producto.setEstado(EstadoProducto.DISPONIBLE);
             return productoRepository.save(producto);
         }).orElse(null);
     }
@@ -108,18 +114,20 @@ public class ProductoService {
         });
     }
 
-    @Autowired private com.nexus.repository.SparkVotoRepository sparkVotoRepository;
+    @Autowired
+    private com.nexus.repository.SparkVotoRepository sparkVotoRepository;
 
     @Transactional
     public java.util.Map<String, Object> votarProducto(Integer actorId, Integer productoId, Boolean isUpvote) {
         int valor = Boolean.TRUE.equals(isUpvote) ? 1 : -1;
         Producto producto = productoRepository.findById(productoId)
-            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         com.nexus.entity.Actor actor = actorRepository.findById(actorId)
-            .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
 
         Boolean nuevoMiVoto = isUpvote;
-        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndProductoId(actorId, productoId);
+        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndProductoId(actorId,
+                productoId);
 
         if (prev.isPresent()) {
             com.nexus.entity.SparkVoto v = prev.get();
@@ -135,14 +143,13 @@ public class ProductoService {
         }
 
         return java.util.Map.of(
-            "miVoto", nuevoMiVoto == null ? "NONE" : (nuevoMiVoto ? "SPARK" : "DRIP")
-        );
+                "miVoto", nuevoMiVoto == null ? "NONE" : (nuevoMiVoto ? "SPARK" : "DRIP"));
     }
 
     @Transactional
     public Producto cambiarEstado(Integer id, EstadoProducto nuevo) {
         Producto p = productoRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + id));
         p.setEstado(nuevo);
         return productoRepository.save(p);
     }

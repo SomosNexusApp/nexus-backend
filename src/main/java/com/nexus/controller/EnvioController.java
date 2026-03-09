@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.nexus.entity.Envio;
 import com.nexus.service.EnvioService;
+import com.nexus.service.ShippingPriceService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,9 +21,44 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Envíos", description = "Gestión del ciclo de envío y entrega con pago seguro")
 public class EnvioController {
 
-    @Autowired private EnvioService envioService;
+    @Autowired
+    private EnvioService envioService;
+    @Autowired
+    private ShippingPriceService shippingPriceService;
+    @Autowired
+    private com.nexus.repository.EnvioRepository envioRepository;
 
-    // ── CONSULTAS ──────────────────────────────────────────────────────────
+    // ── PRECIO DE ENVÍO ─────────────────────────────────────────────────
+
+    /**
+     * Cálculo de precio de envío sin crear compra (para el frontend en tiempo
+     * real).
+     * GET /envio/shipping-price?pesoKg=1.5
+     */
+    @GetMapping("/shipping-price")
+    @Operation(summary = "Calcular precio de envío según peso (sin margen)")
+    public ResponseEntity<?> calcularPrecio(@RequestParam double pesoKg) {
+        try {
+            double precio = shippingPriceService.calculateShippingPrice(pesoKg);
+            return ResponseEntity.ok(Map.of("pesoKg", pesoKg, "precio", precio));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * El vendedor puede buscar un envío por código SHIP-XXXXXXXX.
+     * GET /envio/codigo/SHIP-A7F4K92D
+     */
+    @GetMapping("/codigo/{codigoEnvio}")
+    @Operation(summary = "Buscar envío por código de envío")
+    public ResponseEntity<?> porCodigo(@PathVariable String codigoEnvio) {
+        return envioRepository.findByCodigoEnvio(codigoEnvio)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ── CONSULTAS ─────────────────────────────────────────────────────────
 
     @GetMapping("/compra/{compraId}")
     @Operation(summary = "Ver envío de una compra específica")
@@ -47,14 +83,15 @@ public class EnvioController {
     // ── VENDEDOR: MARCAR COMO ENVIADO ─────────────────────────────────────
 
     /**
-     * El vendedor introduce el número de seguimiento y marca el pedido como enviado.
+     * El vendedor introduce el número de seguimiento y marca el pedido como
+     * enviado.
      *
      * Angular POST /envio/{id}/enviar con body:
      * {
-     *   "transportista": "Correos",
-     *   "numeroSeguimiento": "1Z999AA10123456784",
-     *   "urlSeguimiento": "https://www.correos.es/seguimiento/...",
-     *   "diasEntregaEstimados": 3
+     * "transportista": "Correos",
+     * "numeroSeguimiento": "1Z999AA10123456784",
+     * "urlSeguimiento": "https://www.correos.es/seguimiento/...",
+     * "diasEntregaEstimados": 3
      * }
      */
     @PostMapping("/{envioId}/enviar")
@@ -64,16 +101,17 @@ public class EnvioController {
             @RequestBody Map<String, Object> body) {
 
         try {
-            String transportista    = (String) body.get("transportista");
-            String tracking         = (String) body.get("numeroSeguimiento");
-            String urlTracking      = (String) body.get("urlSeguimiento");
-            Integer diasEstimados   = body.get("diasEntregaEstimados") != null
-                                      ? Integer.valueOf(body.get("diasEntregaEstimados").toString()) : 5;
+            String transportista = (String) body.get("transportista");
+            String tracking = (String) body.get("numeroSeguimiento");
+            String urlTracking = (String) body.get("urlSeguimiento");
+            Integer diasEstimados = body.get("diasEntregaEstimados") != null
+                    ? Integer.valueOf(body.get("diasEntregaEstimados").toString())
+                    : 5;
 
             LocalDateTime fechaEstimada = LocalDateTime.now().plusDays(diasEstimados);
 
             Envio actualizado = envioService.marcarComoEnviado(
-                envioId, transportista, tracking, urlTracking, fechaEstimada);
+                    envioId, transportista, tracking, urlTracking, fechaEstimada);
 
             return ResponseEntity.ok(actualizado);
 
@@ -92,7 +130,8 @@ public class EnvioController {
      * Esto libera los fondos al vendedor → la transacción se completa.
      *
      * Angular POST /envio/{id}/confirmar con body:
-     * { "valoracion": 5, "comentario": "Producto en perfecto estado, envío rápido" }
+     * { "valoracion": 5, "comentario": "Producto en perfecto estado, envío rápido"
+     * }
      */
     @PostMapping("/{envioId}/confirmar")
     @Operation(summary = "Comprador confirma la recepción → fondos liberados al vendedor")
@@ -102,19 +141,19 @@ public class EnvioController {
 
         try {
             Integer valoracion = null;
-            String comentario  = null;
+            String comentario = null;
 
             if (body != null) {
                 valoracion = body.get("valoracion") != null
-                             ? Integer.valueOf(body.get("valoracion").toString()) : null;
+                        ? Integer.valueOf(body.get("valoracion").toString())
+                        : null;
                 comentario = (String) body.get("comentario");
             }
 
             Envio confirmado = envioService.confirmarEntrega(envioId, valoracion, comentario);
             return ResponseEntity.ok(Map.of(
-                "mensaje",  "¡Entrega confirmada! Los fondos han sido liberados al vendedor.",
-                "envio",    confirmado
-            ));
+                    "mensaje", "¡Entrega confirmada! Los fondos han sido liberados al vendedor.",
+                    "envio", confirmado));
 
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -132,9 +171,8 @@ public class EnvioController {
         try {
             Envio confirmado = envioService.confirmarEntregaEnPersona(envioId);
             return ResponseEntity.ok(Map.of(
-                "mensaje", "✅ Entrega en persona confirmada. ¡Transacción completada!",
-                "envio",   confirmado
-            ));
+                    "mensaje", "✅ Entrega en persona confirmada. ¡Transacción completada!",
+                    "envio", confirmado));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -158,9 +196,8 @@ public class EnvioController {
             String motivo = body.getOrDefault("motivo", "Sin motivo especificado");
             Envio actualizado = envioService.abrirDisputa(envioId, motivo);
             return ResponseEntity.ok(Map.of(
-                "mensaje", "Disputa abierta. El equipo de Nexus revisará el caso en 24-48h.",
-                "envio",   actualizado
-            ));
+                    "mensaje", "Disputa abierta. El equipo de Nexus revisará el caso en 24-48h.",
+                    "envio", actualizado));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

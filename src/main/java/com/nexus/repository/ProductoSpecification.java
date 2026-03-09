@@ -13,20 +13,32 @@ public class ProductoSpecification {
             List<String> searchTerms,
             String categoria,
             Double precioMin,
-            Double precioMax) {
+            Double precioMax,
+            Integer vendedorId) {
 
         return (root, query, cb) -> {
 
             boolean isCount = Long.class.equals(query.getResultType())
-                           || long.class.equals(query.getResultType());
+                    || long.class.equals(query.getResultType());
             if (!isCount) {
-                root.fetch("vendedor",  JoinType.INNER);
+                root.fetch("vendedor", JoinType.INNER);
                 root.fetch("categoria", JoinType.LEFT);
                 query.distinct(true);
             }
 
             List<Predicate> where = new ArrayList<>();
-            where.add(cb.equal(root.get("estado"), EstadoProducto.DISPONIBLE));
+
+            // Si se busca por vendedor específico, no filtramos por DISPONIBLE
+            // para que el usuario pueda ver sus propios productos VENDIDOS o RESERVADOS
+            if (vendedorId != null) {
+                Join<Object, Object> vendedorJoin = root.join("vendedor", JoinType.INNER);
+                where.add(cb.equal(vendedorJoin.get("id"), vendedorId));
+                // Opcional: No mostrar ELIMINADO a menos que se quiera explícitamente, pero el
+                // frontend asume VENDIDO / DISPONIBLE / RESERVADO
+                where.add(cb.notEqual(root.get("estado"), EstadoProducto.ELIMINADO));
+            } else {
+                where.add(cb.equal(root.get("estado"), EstadoProducto.DISPONIBLE));
+            }
 
             // ── Sinónimos: OR entre todos los términos expandidos ─────────
             if (searchTerms != null && !searchTerms.isEmpty()) {
@@ -35,9 +47,8 @@ public class ProductoSpecification {
                     String p = "%" + term.toLowerCase() + "%";
                     // Solo titulo y descripcion — Producto NO tiene marca/modelo
                     termOr.add(cb.or(
-                        cb.like(cb.lower(root.get("titulo")),      p),
-                        cb.like(cb.lower(root.get("descripcion")), p)
-                    ));
+                            cb.like(cb.lower(root.get("titulo")), p),
+                            cb.like(cb.lower(root.get("descripcion")), p)));
                 }
                 where.add(cb.or(termOr.toArray(new Predicate[0])));
             }
@@ -46,9 +57,8 @@ public class ProductoSpecification {
             if (categoria != null && !categoria.isBlank()) {
                 Join<Object, Object> catJoin = root.join("categoria", JoinType.LEFT);
                 where.add(cb.or(
-                    cb.equal(catJoin.get("nombre"), categoria),
-                    cb.equal(catJoin.get("slug"),   categoria)
-                ));
+                        cb.equal(catJoin.get("nombre"), categoria),
+                        cb.equal(catJoin.get("slug"), categoria)));
             }
 
             // ── Precio ───────────────────────────────────────────────────

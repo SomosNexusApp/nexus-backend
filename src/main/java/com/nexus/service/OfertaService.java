@@ -20,12 +20,18 @@ import com.nexus.repository.*;
 @Service
 public class OfertaService {
 
-    @Autowired private OfertaRepository    ofertaRepository;
-    @Autowired private ActorRepository     actorRepository;
-    @Autowired private SparkVotoRepository sparkVotoRepository;
-    @Autowired private CategoriaRepository categoriaRepository;
-    @Autowired private StorageService      storageService;
-    @Autowired private NotificacionService notificacionService;
+    @Autowired
+    private OfertaRepository ofertaRepository;
+    @Autowired
+    private ActorRepository actorRepository;
+    @Autowired
+    private SparkVotoRepository sparkVotoRepository;
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+    @Autowired
+    private StorageService storageService;
+    @Autowired
+    private NotificacionService notificacionService;
 
     /**
      * Traduce campo Java (camelCase) → columna SQL (snake_case).
@@ -36,46 +42,52 @@ public class OfertaService {
      * "no existe la columna o.fechapublicacion".
      */
     private static final Map<String, String> JAVA_TO_SQL = Map.ofEntries(
-        Map.entry("fechaPublicacion",  "fecha_publicacion"),
-        Map.entry("fechaExpiracion",   "fecha_expiracion"),
-        Map.entry("precioOferta",      "precio_oferta"),
-        Map.entry("precioOriginal",    "precio_original"),
-        Map.entry("sparkCount",        "spark_count"),
-        Map.entry("dripCount",         "drip_count"),
-        Map.entry("sparkScore",        "spark_score"),
-        Map.entry("numeroVistas",      "numero_vistas"),
-        Map.entry("numeroComentarios", "numero_comentarios"),
-        Map.entry("numeroCompartidos", "numero_compartidos"),
-        Map.entry("titulo",            "titulo"),
-        Map.entry("tienda",            "tienda")
-    );
+            Map.entry("fechaPublicacion", "fecha_publicacion"),
+            Map.entry("fechaExpiracion", "fecha_expiracion"),
+            Map.entry("precioOferta", "precio_oferta"),
+            Map.entry("precioOriginal", "precio_original"),
+            Map.entry("sparkCount", "spark_count"),
+            Map.entry("dripCount", "drip_count"),
+            Map.entry("sparkScore", "spark_score"),
+            Map.entry("numeroVistas", "numero_vistas"),
+            Map.entry("numeroComentarios", "numero_comentarios"),
+            Map.entry("numeroCompartidos", "numero_compartidos"),
+            Map.entry("titulo", "titulo"),
+            Map.entry("tienda", "tienda"));
 
     /** Devuelve siempre un nombre de COLUMNA SQL válido (snake_case). */
     private String sanitizarSort(String campo) {
-        if (campo == null || campo.isBlank()) return "fecha_publicacion";
+        if (campo == null || campo.isBlank())
+            return "fecha_publicacion";
         // Alias del frontend → clave del mapa
         String java = switch (campo) {
-            case "fecha"                    -> "fechaPublicacion";
-            case "precio"                   -> "precioOferta";
-            case "spark", "popularidad"     -> "sparkScore";
-            case "vistas"                   -> "numeroVistas";
-            default                         -> campo;
+            case "fecha" -> "fechaPublicacion";
+            case "precio" -> "precioOferta";
+            case "spark", "popularidad" -> "sparkScore";
+            case "vistas" -> "numeroVistas";
+            default -> campo;
         };
         return JAVA_TO_SQL.getOrDefault(java, "fecha_publicacion");
     }
 
     // ── CRUD ─────────────────────────────────────────────────────────────
 
-    public List<Oferta>     findAll()            { return ofertaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaPublicacion")); }
-    public Optional<Oferta> findById(Integer id) { return ofertaRepository.findById(id); }
-    
+    public List<Oferta> findAll() {
+        return ofertaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaPublicacion"));
+    }
+
+    public Optional<Oferta> findById(Integer id) {
+        return ofertaRepository.findById(id);
+    }
+
     public Optional<Oferta> findByIdWithVoto(Integer id, Integer usuarioId) {
         return findById(id).map(o -> {
             if (usuarioId != null) {
                 sparkVotoRepository.findByActorIdAndOfertaId(usuarioId, id)
-                    .ifPresent(v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"));
+                        .ifPresent(v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"));
             }
-            if (o.getMiVoto() == null) o.setMiVoto("NONE");
+            if (o.getMiVoto() == null)
+                o.setMiVoto("NONE");
             return o;
         });
     }
@@ -87,46 +99,52 @@ public class OfertaService {
         }
         ofertas.forEach(o -> {
             sparkVotoRepository.findByActorIdAndOfertaId(usuarioId, o.getId())
-                .ifPresentOrElse(
-                    v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"),
-                    () -> o.setMiVoto("NONE")
-                );
+                    .ifPresentOrElse(
+                            v -> o.setMiVoto(v.getValor() == 1 ? "SPARK" : "DRIP"),
+                            () -> o.setMiVoto("NONE"));
         });
     }
 
     public Oferta findByIdOrThrow(Integer id) {
         return ofertaRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Oferta no encontrada: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Oferta no encontrada: " + id));
     }
 
     @Transactional
     public Oferta save(Oferta oferta) {
-        if (oferta.getFechaPublicacion() == null) oferta.setFechaPublicacion(LocalDateTime.now());
+        if (oferta.getFechaPublicacion() == null)
+            oferta.setFechaPublicacion(LocalDateTime.now());
         oferta.actualizarBadge();
         return ofertaRepository.save(oferta);
     }
 
     @Transactional
-    public void deleteById(Integer id) { ofertaRepository.deleteById(id); }
+    public void deleteById(Integer id) {
+        ofertaRepository.deleteById(id);
+    }
 
     // ── Crear con imagenes ───────────────────────────────────────────────
 
     @Transactional
     public Oferta crear(Oferta oferta, Integer actorId, List<MultipartFile> imagenes) {
         Actor actor = actorRepository.findById(actorId)
-            .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
         oferta.setActor(actor);
         oferta.setFechaPublicacion(LocalDateTime.now());
         oferta.setEsActiva(true);
-        if (oferta.getSparkCount() == null) oferta.setSparkCount(0);
-        if (oferta.getDripCount()  == null) oferta.setDripCount(0);
+        if (oferta.getSparkCount() == null)
+            oferta.setSparkCount(0);
+        if (oferta.getDripCount() == null)
+            oferta.setDripCount(0);
 
         if (imagenes != null) {
             for (MultipartFile img : imagenes) {
                 String url = storageService.subirImagen(img);
                 if (url != null) {
-                    if (oferta.getImagenPrincipal() == null) oferta.setImagenPrincipal(url);
-                    else oferta.addImagenGaleria(url);
+                    if (oferta.getImagenPrincipal() == null)
+                        oferta.setImagenPrincipal(url);
+                    else
+                        oferta.addImagenGaleria(url);
                 }
             }
         }
@@ -138,53 +156,81 @@ public class OfertaService {
 
     @Transactional
     public void setCategoriaByNombre(Oferta oferta, String nombre) {
-        if (nombre == null || nombre.isBlank()) return;
+        if (nombre == null || nombre.isBlank())
+            return;
         categoriaRepository.findByNombre(nombre)
-            .or(() -> categoriaRepository.findBySlug(
-                nombre.toLowerCase().replaceAll("[^a-z0-9]", "-")))
-            .ifPresent(oferta::setCategoria);
+                .or(() -> categoriaRepository.findBySlug(
+                        nombre.toLowerCase().replaceAll("[^a-z0-9]", "-")))
+                .ifPresent(oferta::setCategoria);
     }
 
     // ── Listados especiales ──────────────────────────────────────────────
 
-    public List<Oferta> obtenerDestacadas()      { return ofertaRepository.findDestacadas(LocalDateTime.now().minusDays(7), PageRequest.of(0, 20)); }
-    public List<Oferta> obtenerTrending()        { return ofertaRepository.findTrending(LocalDateTime.now().minusHours(24), PageRequest.of(0, 20)); }
-    public List<Oferta> obtenerTopSpark()        { return ofertaRepository.findTopBySparkScore(PageRequest.of(0, 20)); }
-    public List<Oferta> obtenerProximasExpirar() { return ofertaRepository.findProximasExpirar(LocalDateTime.now(), LocalDateTime.now().plusHours(24)); }
-    public List<Oferta> getRecientes(int limite) { return ofertaRepository.findRecientes(PageRequest.of(0, limite)); }
-    public List<Oferta> getByCategoria(String c) { return ofertaRepository.findByCategoria(c); }
-    public List<Oferta> getByBadge(BadgeOferta b){ return ofertaRepository.findByBadgeAndEsActivaTrue(b); }
-    public List<Oferta> buscarTexto(String q)    { return ofertaRepository.buscarPorTexto(q); }
-    public List<Oferta> getByActorId(Integer id) { return ofertaRepository.findByActorId(id); }
+    public List<Oferta> obtenerDestacadas() {
+        return ofertaRepository.findDestacadas(LocalDateTime.now().minusDays(7), PageRequest.of(0, 20));
+    }
+
+    public List<Oferta> obtenerTrending() {
+        return ofertaRepository.findTrending(LocalDateTime.now().minusHours(24), PageRequest.of(0, 20));
+    }
+
+    public List<Oferta> obtenerTopSpark() {
+        return ofertaRepository.findTopBySparkScore(PageRequest.of(0, 20));
+    }
+
+    public List<Oferta> obtenerProximasExpirar() {
+        return ofertaRepository.findProximasExpirar(LocalDateTime.now(), LocalDateTime.now().plusHours(24));
+    }
+
+    public List<Oferta> getRecientes(int limite) {
+        return ofertaRepository.findRecientes(PageRequest.of(0, limite));
+    }
+
+    public List<Oferta> getByCategoria(String c) {
+        return ofertaRepository.findByCategoria(c);
+    }
+
+    public List<Oferta> getByBadge(BadgeOferta b) {
+        return ofertaRepository.findByBadgeAndEsActivaTrue(b);
+    }
+
+    public List<Oferta> buscarTexto(String q) {
+        return ofertaRepository.buscarPorTexto(q);
+    }
+
+    public List<Oferta> getByActorId(Integer id) {
+        return ofertaRepository.findByActorId(id);
+    }
 
     // ── Búsqueda con filtros ─────────────────────────────────────────────
 
     public Page<Oferta> buscarConFiltros(String categoria, String tienda,
-                                          Double precioMin, Double precioMax,
-                                          String busqueda, Boolean soloActivas,
-                                          String sortField, String sortDir,
-                                          Pageable pageable) {
+            Double precioMin, Double precioMax,
+            String busqueda, Boolean soloActivas,
+            String sortField, String sortDir,
+            Integer actorId, Pageable pageable) {
         boolean solo = Boolean.TRUE.equals(soloActivas);
 
-        // Convertir campo Java → columna SQL (nativeQuery no hace conversión automática)
+        // Convertir campo Java → columna SQL (nativeQuery no hace conversión
+        // automática)
         String columna = sanitizarSort(sortField);
         Sort sort = "asc".equalsIgnoreCase(sortDir)
-            ? Sort.by(Sort.Direction.ASC,  columna)
-            : Sort.by(Sort.Direction.DESC, columna);
+                ? Sort.by(Sort.Direction.ASC, columna)
+                : Sort.by(Sort.Direction.DESC, columna);
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
         return ofertaRepository.buscarConFiltros(
-            categoria, tienda, precioMin, precioMax, busqueda, solo, pageable);
+                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, pageable);
     }
 
     public Page<Oferta> buscarConFiltros(String categoria, String tienda,
-                                          Double precioMin, Double precioMax,
-                                          String busqueda, boolean soloActivas,
-                                          int page, int size) {
+            Double precioMin, Double precioMax,
+            String busqueda, boolean soloActivas,
+            Integer actorId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size,
-            Sort.by(Sort.Direction.DESC, "fecha_publicacion"));
+                Sort.by(Sort.Direction.DESC, "fecha_publicacion"));
         return ofertaRepository.buscarConFiltros(
-            categoria, tienda, precioMin, precioMax, busqueda, soloActivas, pageable);
+                categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, pageable);
     }
 
     // ── Interacciones ────────────────────────────────────────────────────
@@ -212,27 +258,30 @@ public class OfertaService {
         int valor = Boolean.TRUE.equals(isUpvote) ? 1 : -1;
         Oferta oferta = findByIdOrThrow(ofertaId);
         com.nexus.entity.Actor actor = actorRepository.findById(actorId)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Actor no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Actor no encontrado"));
 
         String nuevoMiVoto;
-        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndOfertaId(actorId, ofertaId);
-        
+        java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndOfertaId(actorId,
+                ofertaId);
+
         if (prev.isPresent()) {
             com.nexus.entity.SparkVoto v = prev.get();
             if (v.getValor() == valor) {
                 // Quitar voto si es el mismo
-                if (valor == 1) oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1));
-                else            oferta.setDripCount(Math.max(0,  oferta.getDripCount()  - 1));
+                if (valor == 1)
+                    oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1));
+                else
+                    oferta.setDripCount(Math.max(0, oferta.getDripCount() - 1));
                 sparkVotoRepository.deleteByActorAndOferta(actorId, ofertaId);
                 nuevoMiVoto = "NONE";
             } else {
                 // Cambiar voto (de spark a drip o viceversa)
-                if (valor == 1) { 
-                    oferta.setSparkCount(oferta.getSparkCount() + 1); 
-                    oferta.setDripCount(Math.max(0, oferta.getDripCount() - 1)); 
-                } else { 
-                    oferta.setDripCount(oferta.getDripCount() + 1);   
-                    oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1)); 
+                if (valor == 1) {
+                    oferta.setSparkCount(oferta.getSparkCount() + 1);
+                    oferta.setDripCount(Math.max(0, oferta.getDripCount() - 1));
+                } else {
+                    oferta.setDripCount(oferta.getDripCount() + 1);
+                    oferta.setSparkCount(Math.max(0, oferta.getSparkCount() - 1));
                 }
                 v.setValor(valor);
                 sparkVotoRepository.save(v);
@@ -241,28 +290,35 @@ public class OfertaService {
         } else {
             // Nuevo voto
             sparkVotoRepository.save(new com.nexus.entity.SparkVoto(actor, oferta, Boolean.TRUE.equals(isUpvote)));
-            if (valor == 1) oferta.setSparkCount(oferta.getSparkCount() + 1);
-            else            oferta.setDripCount(oferta.getDripCount() + 1);
+            if (valor == 1)
+                oferta.setSparkCount(oferta.getSparkCount() + 1);
+            else
+                oferta.setDripCount(oferta.getDripCount() + 1);
             nuevoMiVoto = isUpvote ? "SPARK" : "DRIP";
         }
-        
+
         Oferta saved = ofertaRepository.save(oferta);
         saved.actualizarBadge();
-        
+
         return java.util.Map.of(
-            "sparkScore", saved.getSparkScore(),
-            "badge", saved.getBadge() != null ? saved.getBadge().toString() : "NUEVA",
-            "miVoto", nuevoMiVoto
-        );
+                "sparkScore", saved.getSparkScore(),
+                "badge", saved.getBadge() != null ? saved.getBadge().toString() : "NUEVA",
+                "miVoto", nuevoMiVoto);
     }
 
     // ── Meta-datos ───────────────────────────────────────────────────────
 
-    public List<String>        getCategorias()   { return ofertaRepository.findCategoriasDistintas(); }
-    public List<String>        getTiendas()      { return ofertaRepository.findTiendasDistintas(); }
+    public List<String> getCategorias() {
+        return ofertaRepository.findCategoriasDistintas();
+    }
+
+    public List<String> getTiendas() {
+        return ofertaRepository.findTiendasDistintas();
+    }
+
     public Map<String, Object> getEstadisticas() {
         return Map.of("totalActivas", ofertaRepository.countActivas(),
-                      "categorias",  getCategorias(),
-                      "tiendas",     getTiendas());
+                "categorias", getCategorias(),
+                "tiendas", getTiendas());
     }
 }
