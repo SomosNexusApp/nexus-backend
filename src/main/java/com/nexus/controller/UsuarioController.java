@@ -60,6 +60,44 @@ public class UsuarioController {
         }
     }
 
+    @Autowired
+    private com.nexus.repository.ActorRepository actorRepository;
+
+    @GetMapping("/username/{username}")
+    @Operation(summary = "Obtener perfil público por nombre de usuario")
+    public ResponseEntity<?> getPublicProfileByUsername(@PathVariable String username) {
+        Optional<Actor> actorOpt = actorRepository.findByUsername(username);
+
+        if (actorOpt.isPresent()) {
+            Actor actor = actorOpt.get();
+            // Retornamos un mapa filtrado con datos públicos
+            Map<String, Object> perfilPublico = new java.util.HashMap<>();
+            perfilPublico.put("id", actor.getId());
+            perfilPublico.put("user", actor.getUser());
+            perfilPublico.put("username", actor.getUser()); // por si el frontend espera 'username'
+            perfilPublico.put("nombre", actor.getNombre());
+            perfilPublico.put("apellidos", actor.getApellidos());
+            perfilPublico.put("avatar", actor.getAvatar());
+            if (actor instanceof Usuario) {
+                Usuario u = (Usuario) actor;
+                perfilPublico.put("biografia", u.getBiografia());
+                perfilPublico.put("ubicacion", u.getUbicacion());
+            } else {
+                perfilPublico.put("biografia", "");
+                perfilPublico.put("ubicacion", "");
+            }
+
+            perfilPublico.put("fechaRegistro", actor.getFechaRegistro());
+            perfilPublico.put("tipoCuenta", actor instanceof Empresa ? "EMPRESA" : "USUARIO");
+
+            return ResponseEntity.ok(perfilPublico);
+        } else
+
+        {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
     @Operation(summary = "Crear usuario")
     public ResponseEntity<Usuario> createUsuario(@RequestBody Usuario usuario) {

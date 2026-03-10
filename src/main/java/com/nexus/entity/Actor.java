@@ -31,6 +31,9 @@ public abstract class Actor extends DomainEntity {
     @Column(unique = true)
     private String telefono; // Movido desde Usuario.java
 
+    @Column(columnDefinition = "TEXT")
+    private String avatar; // Movido desde Usuario y Empresa
+
     // ---- 2FA -----------------------------------------------------------
     @Column(nullable = false)
     private boolean twoFactorEnabled = false;
@@ -177,5 +180,21 @@ public abstract class Actor extends DomainEntity {
 
     public void setNotificacionConfig(ActorNotificacionConfig c) {
         this.notificacionConfig = c;
+    }
+
+    public String getAvatar() {
+        if (avatar == null || avatar.trim().isEmpty()) {
+            String baseName = getNombre() != null ? getNombre() : getUser();
+            if (baseName == null || baseName.trim().isEmpty())
+                baseName = "User";
+            return "https://ui-avatars.com/api/?name="
+                    + java.net.URLEncoder.encode(baseName, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&background=random";
+        }
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 }

@@ -1,0 +1,11 @@
+﻿diff --git a/src/main/java/com/nexus/NexusApplication.java b/src/main/java/com/nexus/NexusApplication.java
+index 05240cb..b3bab25 100644
+--- a/src/main/java/com/nexus/NexusApplication.java
++++ b/src/main/java/com/nexus/NexusApplication.java
+@@ -1,5 +1,6 @@
+ package com.nexus;
+ 
++
+ import org.springframework.boot.SpringApplication;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
+ import org.springframework.cache.annotation.EnableCaching;

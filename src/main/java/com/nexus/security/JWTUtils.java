@@ -30,10 +30,18 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class JWTUtils {
 
-    @Autowired private ActorRepository actorRepository;
-    @Autowired @Lazy private AdminService adminService;
-    @Autowired @Lazy private EmpresaService empresaService;
-    @Autowired @Lazy private UsuarioService usuarioService;
+    @Autowired
+    @Lazy
+    private ActorRepository actorRepository;
+    @Autowired
+    @Lazy
+    private AdminService adminService;
+    @Autowired
+    @Lazy
+    private EmpresaService empresaService;
+    @Autowired
+    @Lazy
+    private UsuarioService usuarioService;
 
     @Value("${jwt.secret}")
     private String jwtFirma;
@@ -58,9 +66,9 @@ public class JWTUtils {
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -94,19 +102,25 @@ public class JWTUtils {
     @SuppressWarnings("unchecked")
     public <T> T userLogin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) return null;
+        if (authentication == null || !authentication.isAuthenticated())
+            return null;
 
         String username = authentication.getName();
-        if (!StringUtils.hasText(username) || "anonymousUser".equals(username)) return null;
+        if (!StringUtils.hasText(username) || "anonymousUser".equals(username))
+            return null;
 
         Optional<Actor> actorO = actorRepository.findByUsername(username);
-        if (actorO.isEmpty()) return null;
+        if (actorO.isEmpty())
+            return null;
 
         Actor actor = actorO.get();
 
-        if (actor instanceof Admin)   return (T) adminService.findById(actor.getId()).orElse(null);
-        if (actor instanceof Empresa) return (T) empresaService.findById(actor.getId()).orElse(null);
-        if (actor instanceof Usuario) return (T) usuarioService.findById(actor.getId()).orElse(null);
+        if (actor instanceof Admin)
+            return (T) adminService.findById(actor.getId()).orElse(null);
+        if (actor instanceof Empresa)
+            return (T) empresaService.findById(actor.getId()).orElse(null);
+        if (actor instanceof Usuario)
+            return (T) usuarioService.findById(actor.getId()).orElse(null);
 
         return null;
     }

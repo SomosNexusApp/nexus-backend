@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import com.nexus.entity.Actor;
 
+
 @Repository
 public interface ActorRepository extends JpaRepository<Actor, Integer> {
 

@@ -142,6 +142,12 @@ public class UsuarioService implements UserDetailsService {
         String email = p.getEmail();
         String nombre = (String) p.get("given_name");
         String foto = (String) p.get("picture");
+        if (foto == null || foto.trim().isEmpty()) {
+            String baseName = nombre != null ? nombre : email.split("@")[0];
+            foto = "https://ui-avatars.com/api/?name="
+                    + java.net.URLEncoder.encode(baseName, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&background=random";
+        }
 
         Map<String, Object> resultado = new HashMap<>();
         Optional<Actor> existente = actorRepository.findByEmail(email);

@@ -3,6 +3,7 @@ package com.nexus.security;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,9 +23,9 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * REGLA DE ORO: este filtro NUNCA debe escribir en la respuesta
  * ni lanzar excepciones. Su único trabajo es:
- *   1. Leer el token del header Authorization
- *   2. Si es válido → autenticar en el SecurityContext
- *   3. En cualquier otro caso → continuar la cadena sin autenticar
+ * 1. Leer el token del header Authorization
+ * 2. Si es válido → autenticar en el SecurityContext
+ * 3. En cualquier otro caso → continuar la cadena sin autenticar
  *
  * Las decisiones de acceso (401/403) las toma Spring Security
  * DESPUÉS de este filtro, basándose en las reglas de authorizeHttpRequests.
@@ -34,22 +35,25 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
+    @Lazy
     private JWTUtils jwtUtils;
 
     @Autowired
+    @Lazy
     private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+            HttpServletResponse response,
+            FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Extraer token (null si no hay header Authorization o no empieza por "Bearer ")
+        // 1. Extraer token (null si no hay header Authorization o no empieza por
+        // "Bearer ")
         String token = jwtUtils.getToken(request);
 
         // 2. Si no hay token: continuar SIN autenticar.
-        //    Spring Security permitirá las rutas públicas y bloqueará las privadas.
+        // Spring Security permitirá las rutas públicas y bloqueará las privadas.
         if (!StringUtils.hasText(token)) {
             filterChain.doFilter(request, response);
             return;
@@ -62,21 +66,18 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
                 // Solo autenticar si hay username y el contexto está vacío
                 if (StringUtils.hasText(username) &&
-                    SecurityContextHolder.getContext().getAuthentication() == null) {
+                        SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                    UserDetails userDetails =
-                        userDetailsService.loadUserByUsername(username);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
-                            userDetails.getAuthorities()
-                        );
+                            userDetails.getAuthorities());
 
                     // Adjuntar detalles de la request (IP, session id…)
                     authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
+                            new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }

@@ -27,9 +27,9 @@ public class ChatController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    @GetMapping("/historial/{productoId}")
-    public ResponseEntity<List<ChatMensaje>> historial(@PathVariable Integer productoId) {
-        return ResponseEntity.ok(chatService.getHistorial(productoId));
+    @GetMapping("/historial/{roomId}")
+    public ResponseEntity<List<ChatMensaje>> historial(@PathVariable String roomId) {
+        return ResponseEntity.ok(chatService.getHistorial(roomId));
     }
 
     /**
@@ -49,11 +49,11 @@ public class ChatController {
                     productoId, remitenteId, receptorId, texto);
 
             // Publicar en WebSocket para que el receptor lo reciba en tiempo real
-            messagingTemplate.convertAndSend("/topic/chat/" + productoId, guardado);
+            messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
             if (receptorId != null) {
                 messagingTemplate.convertAndSendToUser(
                         receptorId.toString(), "/queue/notificaciones",
-                        Map.of("tipo", "NUEVO_MENSAJE", "productoId", productoId));
+                        Map.of("tipo", "NUEVO_MENSAJE", "roomId", guardado.getRoomId()));
             }
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
@@ -63,10 +63,10 @@ public class ChatController {
         }
     }
 
-    @GetMapping("/conversacion/{productoId}")
-    public ResponseEntity<List<ChatMensaje>> conversacion(@PathVariable Integer productoId,
+    @GetMapping("/conversacion/{roomId}")
+    public ResponseEntity<List<ChatMensaje>> conversacion(@PathVariable String roomId,
             @RequestParam Integer usuario1Id, @RequestParam Integer usuario2Id) {
-        return ResponseEntity.ok(chatService.getConversacion(productoId, usuario1Id, usuario2Id));
+        return ResponseEntity.ok(chatService.getConversacion(roomId, usuario1Id, usuario2Id));
     }
 
     @GetMapping("/conversaciones/{usuarioId}")
@@ -80,12 +80,12 @@ public class ChatController {
         return ResponseEntity.ok(Map.of("noLeidos", chatService.getNoLeidos(usuarioId)));
     }
 
-    @PutMapping("/leer/{productoId}")
-    public ResponseEntity<?> marcarLeidos(@PathVariable Integer productoId,
+    @PutMapping("/leer/{roomId}")
+    public ResponseEntity<?> marcarLeidos(@PathVariable String roomId,
             @RequestParam Integer receptorId) {
-        chatService.marcarLeidos(productoId, receptorId);
+        chatService.marcarLeidos(roomId, receptorId);
         messagingTemplate.convertAndSend(
-                "/topic/chat/" + productoId + "/leidos",
+                "/topic/chat/" + roomId + "/leidos",
                 Map.of("receptorId", receptorId, "leido", true));
         return ResponseEntity.ok(Map.of("mensaje", "Marcados como leídos"));
     }
@@ -131,10 +131,10 @@ public class ChatController {
             }
 
             // Publicar en WebSocket
-            messagingTemplate.convertAndSend("/topic/chat/" + productoId, guardado);
+            messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
             messagingTemplate.convertAndSendToUser(
                     receptorId.toString(), "/queue/notificaciones",
-                    Map.of("tipo", "NUEVO_MENSAJE", "productoId", productoId));
+                    Map.of("tipo", "NUEVO_MENSAJE", "roomId", guardado.getRoomId()));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
@@ -150,7 +150,7 @@ public class ChatController {
         try {
             ChatMensaje msg = chatService.guardarPropuestaPrecio(
                     productoId, remitenteId, receptorId, precioPropuesto);
-            messagingTemplate.convertAndSend("/topic/chat/" + productoId, msg);
+            messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
             return ResponseEntity.status(HttpStatus.CREATED).body(msg);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -162,7 +162,7 @@ public class ChatController {
             @RequestParam Boolean aceptada) {
         try {
             ChatMensaje msg = chatService.responderPropuesta(mensajeId, aceptada);
-            messagingTemplate.convertAndSend("/topic/chat/" + msg.getProducto().getId(), msg);
+            messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
             return ResponseEntity.ok(msg);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

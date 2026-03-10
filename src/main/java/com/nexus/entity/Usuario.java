@@ -15,9 +15,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class Usuario extends Actor {
 
     @Column(columnDefinition = "TEXT")
-    private String avatar;
-
-    @Column(columnDefinition = "TEXT")
     private String biografia;
 
     private String ubicacion;
@@ -112,14 +109,6 @@ public class Usuario extends Actor {
     }
 
     // ---- Getters / Setters -----------------------------------------------
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String a) {
-        this.avatar = a;
-    }
 
     public String getBiografia() {
         return biografia;

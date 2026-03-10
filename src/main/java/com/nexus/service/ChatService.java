@@ -12,14 +12,18 @@ import com.nexus.repository.ChatMensajeRepository;
 @Service
 public class ChatService {
 
-    @Autowired private ChatMensajeRepository chatMensajeRepository;
-    @Autowired private UsuarioService        usuarioService;
-    @Autowired private ProductoService       productoService;
-    @Autowired private StorageService        storageService;
+    @Autowired
+    private ChatMensajeRepository chatMensajeRepository;
+    @Autowired
+    private UsuarioService usuarioService;
+    @Autowired
+    private ProductoService productoService;
+    @Autowired
+    private StorageService storageService;
 
     @Transactional
     public ChatMensaje guardarMensajeTexto(Integer productoId, Integer remitenteId,
-                                            Integer receptorId, String texto) {
+            Integer receptorId, String texto) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setTexto(texto);
         msg.setTipo(TipoMensaje.TEXTO);
@@ -28,9 +32,10 @@ public class ChatService {
 
     @Transactional
     public ChatMensaje guardarMensajeImagen(Integer productoId, Integer remitenteId,
-                                             Integer receptorId, MultipartFile archivo) {
+            Integer receptorId, MultipartFile archivo) {
         String url = storageService.subirImagen(archivo);
-        if (url == null) throw new RuntimeException("Error al subir imagen al chat");
+        if (url == null)
+            throw new RuntimeException("Error al subir imagen al chat");
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setMediaUrl(url);
         msg.setTipo(TipoMensaje.IMAGEN);
@@ -39,9 +44,10 @@ public class ChatService {
 
     @Transactional
     public ChatMensaje guardarMensajeVideo(Integer productoId, Integer remitenteId,
-                                            Integer receptorId, MultipartFile archivo) {
+            Integer receptorId, MultipartFile archivo) {
         String url = storageService.subirVideo(archivo);
-        if (url == null) throw new RuntimeException("Error al subir vídeo");
+        if (url == null)
+            throw new RuntimeException("Error al subir vídeo");
         String thumb = url.replaceAll("\\.(mp4|mov|avi|webm)$", ".jpg");
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setMediaUrl(url);
@@ -58,29 +64,30 @@ public class ChatService {
      * para mostrar la barra de progreso en Angular.
      *
      * Angular (chat.component.ts):
-     *   // Grabar
-     *   this.recorder = new MediaRecorder(stream);
-     *   this.recorder.ondataavailable = (e) => chunks.push(e.data);
-     *   this.recorder.onstop = async () => {
-     *     const blob = new Blob(chunks, { type: 'audio/webm' });
-     *     const file = new File([blob], 'voice.webm');
-     *     const formData = new FormData();
-     *     formData.append('archivo', file);
-     *     formData.append('tipo', 'AUDIO');
-     *     formData.append('duracion', Math.round(duracionSegundos).toString());
-     *     await this.http.post('/chat/media?productoId=...', formData).toPromise();
-     *   };
+     * // Grabar
+     * this.recorder = new MediaRecorder(stream);
+     * this.recorder.ondataavailable = (e) => chunks.push(e.data);
+     * this.recorder.onstop = async () => {
+     * const blob = new Blob(chunks, { type: 'audio/webm' });
+     * const file = new File([blob], 'voice.webm');
+     * const formData = new FormData();
+     * formData.append('archivo', file);
+     * formData.append('tipo', 'AUDIO');
+     * formData.append('duracion', Math.round(duracionSegundos).toString());
+     * await this.http.post('/chat/media?productoId=...', formData).toPromise();
+     * };
      *
-     *   // Reproducir
-     *   const audio = new Audio(mensaje.mediaUrl);
-     *   audio.play();
+     * // Reproducir
+     * const audio = new Audio(mensaje.mediaUrl);
+     * audio.play();
      */
     @Transactional
     public ChatMensaje guardarMensajeAudio(Integer productoId, Integer remitenteId,
-                                            Integer receptorId, MultipartFile archivo,
-                                            Integer duracionSegundos) {
+            Integer receptorId, MultipartFile archivo,
+            Integer duracionSegundos) {
         String url = storageService.subirAudio(archivo);
-        if (url == null) throw new RuntimeException("Error al subir audio");
+        if (url == null)
+            throw new RuntimeException("Error al subir audio");
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setMediaUrl(url);
         msg.setAudioDuracionSegundos(duracionSegundos);
@@ -90,7 +97,7 @@ public class ChatService {
 
     @Transactional
     public ChatMensaje guardarPropuestaPrecio(Integer productoId, Integer remitenteId,
-                                               Integer receptorId, Double precio) {
+            Integer receptorId, Double precio) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setTexto("💰 Propuesta de precio: " + precio + "€");
         msg.setTipo(TipoMensaje.OFERTA_PRECIO);
@@ -111,19 +118,19 @@ public class ChatService {
 
     @Transactional
     public ChatMensaje mensajeSistema(Integer productoId, Integer remitenteId,
-                                       Integer receptorId, String texto) {
+            Integer receptorId, String texto) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setTexto(texto);
         msg.setTipo(TipoMensaje.SISTEMA);
         return chatMensajeRepository.save(msg);
     }
 
-    public List<ChatMensaje> getHistorial(Integer productoId) {
-        return chatMensajeRepository.findByProductoId(productoId);
+    public List<ChatMensaje> getHistorial(String roomId) {
+        return chatMensajeRepository.findByRoomId(roomId);
     }
 
-    public List<ChatMensaje> getConversacion(Integer productoId, Integer u1, Integer u2) {
-        return chatMensajeRepository.findConversacion(productoId, u1, u2);
+    public List<ChatMensaje> getConversacion(String roomId, Integer u1, Integer u2) {
+        return chatMensajeRepository.findConversacion(roomId, u1, u2);
     }
 
     public List<ChatMensaje> getUltimasConversaciones(Integer usuarioId) {
@@ -135,16 +142,24 @@ public class ChatService {
     }
 
     @Transactional
-    public void marcarLeidos(Integer productoId, Integer receptorId) {
-        chatMensajeRepository.marcarComoLeidosEnProducto(productoId, receptorId);
+    public void marcarLeidos(String roomId, Integer receptorId) {
+        chatMensajeRepository.marcarComoLeidosEnRoom(roomId, receptorId);
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────
     private ChatMensaje buildBase(Integer productoId, Integer remitenteId, Integer receptorId) {
         ChatMensaje msg = new ChatMensaje();
-        productoService.findById(productoId).ifPresent(msg::setProducto);
+        if (productoId != null) {
+            productoService.findById(productoId).ifPresent(msg::setProducto);
+            msg.setRoomId("P_" + productoId);
+        } else if (remitenteId != null && receptorId != null) {
+            int user1 = Math.min(remitenteId, receptorId);
+            int user2 = Math.max(remitenteId, receptorId);
+            msg.setRoomId("D_" + user1 + "_" + user2);
+        }
         usuarioService.findById(remitenteId).ifPresent(msg::setRemitente);
-        if (receptorId != null) usuarioService.findById(receptorId).ifPresent(msg::setReceptor);
+        if (receptorId != null)
+            usuarioService.findById(receptorId).ifPresent(msg::setReceptor);
         return msg;
     }
 }

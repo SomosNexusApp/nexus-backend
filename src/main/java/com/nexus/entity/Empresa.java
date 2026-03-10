@@ -17,7 +17,7 @@ public class Empresa extends Actor {
 
     private String web;
     private String telefono;
-    
+
     @Column(columnDefinition = "TEXT")
     private String avatar;
 
@@ -27,31 +27,63 @@ public class Empresa extends Actor {
     @Column(nullable = false)
     private boolean verificada = false;
 
-    public Empresa() {}
+    public Empresa() {
+    }
 
-    public String  getCif()                    { return cif; }
-    public void    setCif(String c)            { this.cif = c; }
-    public String  getNombreComercial()        { return nombreComercial; }
-    public void    setNombreComercial(String n){ this.nombreComercial = n; }
-    public String  getDescripcion()            { return descripcion; }
-    public void    setDescripcion(String d)    { this.descripcion = d; }
-    public String  getWeb()                    { return web; }
-    public void    setWeb(String w)            { this.web = w; }
-    public String  getTelefono()               { return telefono; }
-    public void    setTelefono(String t)       { this.telefono = t; }
-    public String  getLogo()                   { return logo; }
-    public void    setLogo(String l)           { this.logo = l; }
-    public boolean isVerificada()              { return verificada; }
-    public void    setVerificada(boolean v)    { this.verificada = v; }
+    public String getCif() {
+        return cif;
+    }
 
-	public String getAvatar() {
-		return avatar;
-	}
+    public void setCif(String c) {
+        this.cif = c;
+    }
 
-	public void setAvatar(String avatar) {
-		this.avatar = avatar;
-	}
-    
-    
+    public String getNombreComercial() {
+        return nombreComercial;
+    }
+
+    public void setNombreComercial(String n) {
+        this.nombreComercial = n;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String d) {
+        this.descripcion = d;
+    }
+
+    public String getWeb() {
+        return web;
+    }
+
+    public void setWeb(String w) {
+        this.web = w;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String t) {
+        this.telefono = t;
+    }
+
+    public String getLogo() {
+        return logo;
+    }
+
+    public void setLogo(String l) {
+        this.logo = l;
+    }
+
+    public boolean isVerificada() {
+        return verificada;
+    }
+
+    public void setVerificada(boolean v) {
+        this.verificada = v;
+    }
 
 }
