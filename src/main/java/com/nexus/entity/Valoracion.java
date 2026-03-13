@@ -1,30 +1,43 @@
 package com.nexus.entity;
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "valoracion",
        uniqueConstraints = @UniqueConstraint(name = "uq_valoracion_compra", columnNames = "compra_id"))
 public class Valoracion extends DomainEntity {
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "comprador_id", nullable = false)
+
+	@ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
+    @JoinColumn(name = "comprador_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
     private Usuario comprador;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "vendedor_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
-    "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
-    "cuentaEliminada", "cuentaVerificada"})
+    
+    @ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
+    @JoinColumn(name = "vendedor_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "twoFactorSecret", "jwtVersion", "notificacionConfig", "cuentaEliminada", "cuentaVerificada", "user"}) 
     private Actor vendedor;
-    @OneToOne(fetch = FetchType.LAZY) @JoinColumn(name = "compra_id", nullable = false)
+    
+    @OneToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
+    @JoinColumn(name = "compra_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comprador", "producto"})
     private Compra compra;
-    /** int primitivo -> Stream.mapToInt(Valoracion::getPuntuacion) funciona */
-    @Column(nullable = false) private int puntuacion;
-    @Column(columnDefinition = "TEXT") private String comentario;
-    @Column(columnDefinition = "TEXT") private String respuestaVendedor;
+
+    @Column(nullable = false) 
+    private int puntuacion;
+
+    @Column(columnDefinition = "TEXT") 
+    private String comentario;
+
+    @Column(columnDefinition = "TEXT") 
+    private String respuestaVendedor;
+
     private LocalDateTime fecha;
     private LocalDateTime fechaRespuesta;
-    @PrePersist protected void onCreate() { if (fecha == null) fecha = LocalDateTime.now(); }
+
+    @PrePersist 
+    protected void onCreate() { if (fecha == null) fecha = LocalDateTime.now(); }
     public Usuario    getComprador()                       { return comprador; }
     public void       setComprador(Usuario c)              { this.comprador = c; }
     public Actor      getVendedor()                        { return vendedor; }

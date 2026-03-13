@@ -14,15 +14,20 @@ public class Favorito extends DomainEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Usuario usuario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
     @JoinColumn(name = "oferta_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "votos", "propietario", "categorias", "valoraciones"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({
+        "hibernateLazyInitializer", "handler", "votos", "propietario", "categoria", "valoraciones", "vendedor"
+    })
     private Oferta oferta;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
     @JoinColumn(name = "producto_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "votos", "propietario", "categorias", "valoraciones"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({
+        "hibernateLazyInitializer", "handler", "votos", "propietario", "categoria", "valoraciones", "vendedor"
+    })
     private Producto producto;
+    
 
     private LocalDateTime fechaGuardado;
     

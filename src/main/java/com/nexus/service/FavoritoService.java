@@ -61,4 +61,10 @@ public class FavoritoService {
     public void eliminar(Integer favoritoId) {
         favoritoRepository.deleteById(favoritoId);
     }
+    
+    // En FavoritoService.java añade este método:
+    public void eliminarPorUsuarioYProducto(Integer usuarioId, Integer productoId) {
+        Optional<Favorito> existente = favoritoRepository.findByUsuarioAndProducto(usuarioId, productoId);
+        existente.ifPresent(favorito -> favoritoRepository.delete(favorito));
+    }
 }

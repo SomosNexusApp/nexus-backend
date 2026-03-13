@@ -42,16 +42,17 @@ public class FavoritoController {
     }
     
     @PostMapping("/producto/{usuarioId}/{productoId}")
-    @Operation(summary = "Guardar producto como favorito")
+    @Operation(summary = "Guardar producto en favoritos")
     public ResponseEntity<?> guardarProducto(
             @PathVariable Integer usuarioId,
             @PathVariable Integer productoId) {
-        try {
-            Favorito favorito = favoritoService.guardarProducto(usuarioId, productoId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(favorito);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+            
+        // Tu lógica actual de guardado (seguramente llame a un servicio)
+        favoritoService.guardarProducto(usuarioId, productoId); 
+        
+        // 🔥 EL CAMBIO ESTÁ AQUÍ: Devolvemos un JSON simple, no la Entidad completa
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("mensaje", "Favorito guardado correctamente"));
     }
     
     @DeleteMapping("/{id}")
@@ -59,5 +60,15 @@ public class FavoritoController {
     public ResponseEntity<?> eliminar(@PathVariable Integer id) {
         favoritoService.eliminar(id);
         return ResponseEntity.ok(Map.of("mensaje", "Favorito eliminado"));
+    }
+    
+
+    @DeleteMapping("/producto/{usuarioId}/{productoId}")
+    @Operation(summary = "Eliminar producto de favoritos")
+    public ResponseEntity<?> eliminarPorProducto(
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer productoId) {
+        favoritoService.eliminarPorUsuarioYProducto(usuarioId, productoId);
+        return ResponseEntity.ok(Map.of("mensaje", "Favorito eliminado del producto"));
     }
 }
