@@ -3,7 +3,7 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 
 @Entity
 @Table(name = "favorito")
@@ -11,17 +11,17 @@ public class Favorito extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler","password", "twoFactorSecret", "jwtVersion", "notificacionConfig","cuentaEliminada", "cuentaVerificada"})
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oferta_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "actor", "galeriaImagenes"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "votos", "propietario", "categorias", "valoraciones"})
     private Oferta oferta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "vendedor", "galeriaImagenes"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "votos", "propietario", "categorias", "valoraciones"})
     private Producto producto;
 
     private LocalDateTime fechaGuardado;
@@ -49,4 +49,6 @@ public class Favorito extends DomainEntity {
 
     public String getNota() { return nota; }
     public void setNota(String nota) { this.nota = nota; }
+
+
 }

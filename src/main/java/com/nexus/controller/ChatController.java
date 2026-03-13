@@ -114,7 +114,7 @@ public class ChatController {
     @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Enviar imagen, vídeo o mensaje de voz")
     public ResponseEntity<?> subirMedia(
-            @RequestParam Integer productoId,
+            @RequestParam(required = false) Integer productoId,
             @RequestParam Integer remitenteId,
             @RequestParam Integer receptorId,
             @RequestParam String tipo,

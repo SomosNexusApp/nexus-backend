@@ -96,13 +96,13 @@ public class ChatWebSocketController {
      */
     @MessageMapping("/chat.enviar")
     public void enviarMensaje(@Payload Map<String, Object> payload) {
-        Integer productoId = (Integer) payload.get("productoId");
-        Integer remitenteId = (Integer) payload.get("remitenteId");
-        Integer receptorId = (Integer) payload.get("receptorId");
+        Integer productoId = payload.get("productoId") != null ? ((Number) payload.get("productoId")).intValue() : null;
+        Integer remitenteId = payload.get("remitenteId") != null ? ((Number) payload.get("remitenteId")).intValue() : null;
+        Integer receptorId = payload.get("receptorId") != null ? ((Number) payload.get("receptorId")).intValue() : null;
         String texto = (String) payload.get("texto");
         String tipoStr = (String) payload.getOrDefault("tipo", "TEXTO");
         Double precioProp = payload.get("precioPropuesto") != null
-                ? Double.valueOf(payload.get("precioPropuesto").toString())
+                ? ((Number) payload.get("precioPropuesto")).doubleValue()
                 : null;
 
         ChatMensaje guardado;
@@ -110,6 +110,10 @@ public class ChatWebSocketController {
         if ("OFERTA_PRECIO".equals(tipoStr) && precioProp != null) {
             guardado = chatService.guardarPropuestaPrecio(
                     productoId, remitenteId, receptorId, precioProp);
+        } else if ("GIF".equals(tipoStr)) {
+            String mediaUrl = (String) payload.get("mediaUrl");
+            guardado = chatService.guardarMensajeGif(
+                    productoId, remitenteId, receptorId, mediaUrl);
         } else {
             guardado = chatService.guardarMensajeTexto(
                     productoId, remitenteId, receptorId, texto);

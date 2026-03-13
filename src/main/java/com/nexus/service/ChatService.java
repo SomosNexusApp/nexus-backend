@@ -43,6 +43,15 @@ public class ChatService {
     }
 
     @Transactional
+    public ChatMensaje guardarMensajeGif(Integer productoId, Integer remitenteId,
+            Integer receptorId, String gifUrl) {
+        ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
+        msg.setMediaUrl(gifUrl);
+        msg.setTipo(TipoMensaje.IMAGEN);
+        return chatMensajeRepository.save(msg);
+    }
+
+    @Transactional
     public ChatMensaje guardarMensajeVideo(Integer productoId, Integer remitenteId,
             Integer receptorId, MultipartFile archivo) {
         String url = storageService.subirVideo(archivo);
@@ -99,7 +108,7 @@ public class ChatService {
     public ChatMensaje guardarPropuestaPrecio(Integer productoId, Integer remitenteId,
             Integer receptorId, Double precio) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
-        msg.setTexto("💰 Propuesta de precio: " + precio + "€");
+        msg.setTexto("Propuesta de precio: " + precio + "€");
         msg.setTipo(TipoMensaje.OFERTA_PRECIO);
         msg.setPrecioPropuesto(precio);
         msg.setEstadoPropuesta("PENDIENTE");

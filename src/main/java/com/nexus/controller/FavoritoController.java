@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/favorito")
+@RequestMapping("/api/favoritos")
 @Tag(name = "Favoritos", description = "Gestión de favoritos del usuario")
 public class FavoritoController {
 
@@ -28,11 +28,11 @@ public class FavoritoController {
         return ResponseEntity.ok(favoritoService.obtenerPorUsuario(usuarioId));
     }
     
-    @PostMapping("/oferta")
+    @PostMapping("/oferta/{usuarioId}/{ofertaId}")
     @Operation(summary = "Guardar oferta como favorita")
     public ResponseEntity<?> guardarOferta(
-            @RequestParam Integer usuarioId,
-            @RequestParam Integer ofertaId) {
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer ofertaId) {
         try {
             Favorito favorito = favoritoService.guardarOferta(usuarioId, ofertaId);
             return ResponseEntity.status(HttpStatus.CREATED).body(favorito);
@@ -41,11 +41,11 @@ public class FavoritoController {
         }
     }
     
-    @PostMapping("/producto")
+    @PostMapping("/producto/{usuarioId}/{productoId}")
     @Operation(summary = "Guardar producto como favorito")
     public ResponseEntity<?> guardarProducto(
-            @RequestParam Integer usuarioId,
-            @RequestParam Integer productoId) {
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer productoId) {
         try {
             Favorito favorito = favoritoService.guardarProducto(usuarioId, productoId);
             return ResponseEntity.status(HttpStatus.CREATED).body(favorito);

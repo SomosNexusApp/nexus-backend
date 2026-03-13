@@ -25,7 +25,7 @@ public class FavoritoService {
     public Favorito guardarOferta(Integer usuarioId, Integer ofertaId) {
         Optional<Favorito> existente = favoritoRepository.findByUsuarioAndOferta(usuarioId, ofertaId);
         if (existente.isPresent()) {
-            throw new IllegalStateException("Ya está en favoritos");
+            return existente.get();
         }
         
         Favorito favorito = new Favorito();
@@ -43,7 +43,7 @@ public class FavoritoService {
     public Favorito guardarProducto(Integer usuarioId, Integer productoId) {
         Optional<Favorito> existente = favoritoRepository.findByUsuarioAndProducto(usuarioId, productoId);
         if (existente.isPresent()) {
-            throw new IllegalStateException("Ya está en favoritos");
+            return existente.get();
         }
         
         Favorito favorito = new Favorito();
