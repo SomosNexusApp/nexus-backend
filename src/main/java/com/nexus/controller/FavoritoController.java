@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.nexus.dto.FavoritoDTO;
 import com.nexus.entity.Favorito;
 import com.nexus.service.FavoritoService;
 
@@ -24,9 +25,11 @@ public class FavoritoController {
 
     @GetMapping("/usuario/{usuarioId}")
     @Operation(summary = "Ver favoritos de un usuario")
-    public ResponseEntity<List<Favorito>> listar(@PathVariable Integer usuarioId) {
+    public ResponseEntity<List<FavoritoDTO>> listar(@PathVariable Integer usuarioId) {
+        // Ahora devuelve FavoritoDTO en lugar de la entidad Favorito
         return ResponseEntity.ok(favoritoService.obtenerPorUsuario(usuarioId));
     }
+    
     
     @PostMapping("/oferta/{usuarioId}/{ofertaId}")
     @Operation(summary = "Guardar oferta como favorita")

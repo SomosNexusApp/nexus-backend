@@ -21,10 +21,10 @@ public class Favorito extends DomainEntity {
     })
     private Oferta oferta;
 
-    @ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "producto_id")
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({
-        "hibernateLazyInitializer", "handler", "votos", "propietario", "categoria", "valoraciones", "vendedor"
+        "hibernateLazyInitializer", "handler", "votos", "propietario", "categoria", "valoraciones", "vendedor", "galeriaImagenes" // <-- AÑADE galeriaImagenes AQUÍ
     })
     private Producto producto;
     

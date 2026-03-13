@@ -2,15 +2,20 @@ package com.nexus.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.nexus.dto.FavoritoDTO;
+import com.nexus.dto.ProductoResumenDTO;
 import com.nexus.entity.Favorito;
 import com.nexus.entity.Oferta;
 import com.nexus.entity.Producto;
 import com.nexus.entity.Usuario;
 import com.nexus.repository.FavoritoRepository;
+
 
 @Service
 public class FavoritoService {
@@ -18,8 +23,34 @@ public class FavoritoService {
     @Autowired
     private FavoritoRepository favoritoRepository;
     
-    public List<Favorito> obtenerPorUsuario(Integer usuarioId) {
-        return favoritoRepository.findByUsuarioId(usuarioId);
+    @Transactional(readOnly = true)
+    public List<FavoritoDTO> obtenerPorUsuario(Integer usuarioId) {
+        List<Favorito> favoritos = favoritoRepository.findByUsuarioId(usuarioId);
+        
+        return favoritos.stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+    
+    private FavoritoDTO convertirADTO(Favorito favorito) {
+        FavoritoDTO dto = new FavoritoDTO();
+        dto.setId(favorito.getId());
+        dto.setFechaGuardado(favorito.getFechaGuardado());
+        dto.setNota(favorito.getNota());
+        
+        if (favorito.getProducto() != null) {
+            Producto p = favorito.getProducto();
+            ProductoResumenDTO pDto = new ProductoResumenDTO();
+            pDto.setId(p.getId());
+            pDto.setTitulo(p.getTitulo());
+            pDto.setPrecio(p.getPrecio());
+            pDto.setImagenPrincipal(p.getImagenPrincipal());
+            pDto.setEstado(p.getEstado() != null ? p.getEstado().name() : null);
+            
+            dto.setProducto(pDto);
+        }
+        
+        return dto;
     }
     
     public Favorito guardarOferta(Integer usuarioId, Integer ofertaId) {
