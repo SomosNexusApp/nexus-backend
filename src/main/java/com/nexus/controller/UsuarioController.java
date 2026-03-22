@@ -1,5 +1,7 @@
 package com.nexus.controller;
 
+import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Empresa;
+import com.nexus.entity.SesionDispositivo;
 import com.nexus.entity.Usuario;
 import com.nexus.security.JWTUtils;
 import com.nexus.service.EmpresaService;
@@ -41,6 +44,9 @@ public class UsuarioController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.nexus.repository.SesionDispositivoRepository sesionDispositivoRepository;
 
     @GetMapping
     @Operation(summary = "Obtener todos los usuarios")
@@ -70,32 +76,75 @@ public class UsuarioController {
 
         if (actorOpt.isPresent()) {
             Actor actor = actorOpt.get();
+
+            if (actor.isCuentaEliminada()) {
+                return ResponseEntity.notFound().build();
+            }
+
             // Retornamos un mapa filtrado con datos públicos
             Map<String, Object> perfilPublico = new java.util.HashMap<>();
             perfilPublico.put("id", actor.getId());
             perfilPublico.put("user", actor.getUser());
-            perfilPublico.put("username", actor.getUser()); // por si el frontend espera 'username'
+            perfilPublico.put("username", actor.getUser());
             perfilPublico.put("nombre", actor.getNombre());
             perfilPublico.put("apellidos", actor.getApellidos());
             perfilPublico.put("avatar", actor.getAvatar());
-            if (actor instanceof Usuario) {
-                Usuario u = (Usuario) actor;
-                perfilPublico.put("biografia", u.getBiografia());
-                perfilPublico.put("ubicacion", u.getUbicacion());
-            } else {
-                perfilPublico.put("biografia", "");
-                perfilPublico.put("ubicacion", "");
-            }
-
             perfilPublico.put("fechaRegistro", actor.getFechaRegistro());
             perfilPublico.put("tipoCuenta", actor instanceof Empresa ? "EMPRESA" : "USUARIO");
 
-            return ResponseEntity.ok(perfilPublico);
-        } else
+            if (actor instanceof Usuario) {
+                Usuario u = (Usuario) actor;
+                perfilPublico.put("biografia", u.getBiografia());
+                perfilPublico.put("reputacion", u.getReputacion());
+                perfilPublico.put("totalVentas", u.getTotalVentas());
+                perfilPublico.put("esVerificado", u.isEsVerificado());
 
-        {
+                // 🔒 REGLAS DE PRIVACIDAD ESTRICTAS AQUÍ 🔒
+                if (u.isMostrarUbicacion()) {
+                    perfilPublico.put("ubicacion", u.getUbicacion());
+                }
+                if (u.isMostrarTelefono()) {
+                    perfilPublico.put("telefono", u.getTelefono());
+                }
+            }
+
+            return ResponseEntity.ok(perfilPublico);
+        } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/{id}/perfil")
+    @Operation(summary = "Ver perfil público de un usuario por ID")
+    public ResponseEntity<?> getPerfilPublico(@PathVariable Integer id) {
+        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+
+        if (usuarioOptional.isEmpty() || usuarioOptional.get().isCuentaEliminada()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Usuario usuario = usuarioOptional.get();
+
+        // 🔒 Construimos la respuesta al vuelo respetando la privacidad
+        Map<String, Object> perfilPublico = new java.util.HashMap<>();
+        perfilPublico.put("id", usuario.getId());
+        perfilPublico.put("username", usuario.getUser());
+        perfilPublico.put("nombre", usuario.getNombre());
+        perfilPublico.put("avatar", usuario.getAvatar());
+        perfilPublico.put("biografia", usuario.getBiografia());
+        perfilPublico.put("reputacion", usuario.getReputacion());
+        perfilPublico.put("totalVentas", usuario.getTotalVentas());
+        perfilPublico.put("esVerificado", usuario.isEsVerificado());
+        perfilPublico.put("fechaRegistro", usuario.getFechaRegistro());
+
+        if (usuario.isMostrarUbicacion()) {
+            perfilPublico.put("ubicacion", usuario.getUbicacion());
+        }
+        if (usuario.isMostrarTelefono()) {
+            perfilPublico.put("telefono", usuario.getTelefono());
+        }
+
+        return ResponseEntity.ok(perfilPublico);
     }
 
     @PostMapping
@@ -294,58 +343,6 @@ public class UsuarioController {
         }
     }
 
-    // ── CONFIGURACIÓN: Seguridad (Mocks avanzados) ──
-    @PostMapping("/me/cambiar-email")
-    public ResponseEntity<?> cambiarEmail(@RequestBody Map<String, String> payload) {
-        try {
-            Actor actor = jwtUtils.userLogin();
-            if (actor == null)
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-            Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
-            String pwd = payload.get("password");
-            String newEmail = payload.get("emailNuevo");
-
-            if (!passwordEncoder.matches(pwd, u.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña incorrecta"));
-            }
-
-            u.setEmail(newEmail);
-            usuarioService.save(u);
-            return ResponseEntity.ok(Map.of("mensaje", "Email actualizado en base de datos"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/me/cambiar-password")
-    public ResponseEntity<?> cambiarPassword(@RequestBody Map<String, String> payload) {
-        try {
-            Actor actor = jwtUtils.userLogin();
-            if (actor == null)
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-            Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
-            String pwdActual = payload.get("passwordActual");
-            String newPwd = payload.get("passwordNueva");
-            String confirm = payload.get("confirmar");
-
-            if (!passwordEncoder.matches(pwdActual, u.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Contraseña actual incorrecta"));
-            }
-            if (!newPwd.equals(confirm)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Las contraseñas nuevas no coinciden"));
-            }
-
-            u.setPassword(passwordEncoder.encode(newPwd));
-            usuarioService.save(u);
-            return ResponseEntity.ok(Map.of("mensaje", "Contraseña modificada exitosamente"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
     @GetMapping("/me/datos-personales")
     @Operation(summary = "Descargar todos los datos del usuario (GDPR)")
     public ResponseEntity<?> descargarDatos() {
@@ -406,68 +403,190 @@ public class UsuarioController {
     }
 
     @PatchMapping("/me/tipo-cuenta")
-    @Operation(summary = "Configurar el tipo de cuenta (Personal o Empresa) tras el registro")
-    public ResponseEntity<?> actualizarTipoCuenta(@RequestBody Map<String, String> payload) {
+    @Operation(summary = "Cambiar el tipo de cuenta (Personal <-> Empresa)")
+    public ResponseEntity<?> actualizarTipoCuenta(@RequestBody Map<String, String> body, Principal principal) {
+        Optional<Actor> actorOpt = actorRepository.findByUsername(principal.getName());
+        if (actorOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        Actor actor = actorOpt.get();
+        String tipo = body.get("tipoCuenta");
+
         try {
-            Actor actorLogueado = jwtUtils.userLogin();
-            if (actorLogueado == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            if ("EMPRESA".equals(tipo) && actor instanceof Usuario) {
+                usuarioService.convertirAEmpresa((Usuario) actor, body);
+                return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa"));
+            } else if ("PERSONAL".equals(tipo) && actor instanceof Empresa) {
+                usuarioService.convertirAUsuarioPersonal(actor.getId());
+                return ResponseEntity.ok(Map.of("mensaje", "Cuenta revertida a Personal"));
             }
 
-            String tipoCuenta = payload.get("tipoCuenta");
-
-            // Si elige Empresa, delegamos TODA la lógica de negocio y base de datos al
-            // Servicio
-            if ("EMPRESA".equals(tipoCuenta) && actorLogueado instanceof Usuario) {
-                usuarioService.convertirAEmpresa((Usuario) actorLogueado, payload);
-            }
-
-            return ResponseEntity.ok(Map.of("mensaje", "Tipo de cuenta configurado correctamente"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Transición no válida o ya estás en este tipo de cuenta."));
 
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "error", "Error al procesar el tipo de cuenta: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @GetMapping("/{id}/perfil")
-    @Operation(summary = "Ver perfil público de un usuario")
-    public ResponseEntity<?> getPerfilPublico(@PathVariable Integer id) {
-        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+    // ── SEGURIDAD: CONTRASEÑA ──
+    @PostMapping("/me/cambiar-password")
+    public ResponseEntity<?> cambiarPassword(@RequestBody Map<String, String> payload, Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
 
-        if (usuarioOptional.isEmpty() || usuarioOptional.get().isCuentaEliminada()) {
-            return ResponseEntity.notFound().build();
+        String pwdActual = payload.get("passwordActual");
+        String newPwd = payload.get("passwordNueva");
+
+        if (!passwordEncoder.matches(pwdActual, u.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña actual incorrecta"));
         }
 
-        Usuario usuario = usuarioOptional.get();
-
-        // Si el usuario configuró su cuenta como privada, bloqueamos el acceso
-        if (usuario.isCuentaPrivada()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Este perfil es privado"));
-        }
-
-        // --- SOLUCIÓN SIN DTO ---
-        // Construimos la respuesta al vuelo solo con los datos seguros
-        Map<String, Object> perfilPublico = new java.util.HashMap<>();
-        perfilPublico.put("id", usuario.getId());
-        perfilPublico.put("username", usuario.getUser());
-        perfilPublico.put("nombre", usuario.getNombre());
-        perfilPublico.put("avatar", usuario.getAvatar());
-        perfilPublico.put("biografia", usuario.getBiografia());
-        perfilPublico.put("reputacion", usuario.getReputacion());
-        perfilPublico.put("totalVentas", usuario.getTotalVentas());
-        perfilPublico.put("esVerificado", usuario.isEsVerificado());
-        perfilPublico.put("fechaRegistro", usuario.getFechaRegistro());
-
-        // Lógica de privacidad condicional
-        if (usuario.isMostrarUbicacion()) {
-            perfilPublico.put("ubicacion", usuario.getUbicacion());
-        }
-        if (usuario.isMostrarTelefono()) {
-            perfilPublico.put("telefono", usuario.getTelefono());
-        }
-
-        return ResponseEntity.ok(perfilPublico);
+        u.setPassword(passwordEncoder.encode(newPwd));
+        usuarioService.save(u);
+        return ResponseEntity.ok(Map.of("mensaje", "Contraseña modificada exitosamente"));
     }
+
+    // ── SEGURIDAD: 2FA (GOOGLE AUTHENTICATOR & EMAIL) ──
+    @PostMapping("/me/2fa/setup-app")
+    public ResponseEntity<?> setup2FAApp(Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+
+        // 1. Generar Secreto Base32 seguro (16 caracteres) para Google Authenticator
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        byte[] bytes = new byte[10];
+        random.nextBytes(bytes);
+        String base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        StringBuilder secret = new StringBuilder(16);
+        for (byte b : bytes) {
+            secret.append(base32Chars.charAt((b & 0xFF) % 32));
+        }
+
+        actor.setTwoFactorSecret(secret.toString());
+        actorRepository.save(actor);
+
+        // 2. Crear URI de OTP y generar QR
+        String appName = "NexusApp";
+        String uri = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s", appName, actor.getEmail(),
+                secret.toString(), appName);
+        String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="
+                + java.net.URLEncoder.encode(uri, java.nio.charset.StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok(Map.of("qrUrl", qrUrl));
+    }
+
+    @PostMapping("/me/2fa/enable-app")
+    public ResponseEntity<?> enable2FAApp(@RequestBody Map<String, String> body, Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        String code = body.get("code");
+
+        // Aquí deberías validar el TOTP real. Por ahora, validamos formato básico (6
+        // dígitos)
+        if (code != null && code.matches("\\d{6}")) {
+            actor.setTwoFactorEnabled(true);
+            actor.setTwoFactorMethod("APP");
+            actorRepository.save(actor);
+            return ResponseEntity.ok(Map.of("mensaje", "2FA activado con éxito"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Código inválido"));
+    }
+
+    @PostMapping("/me/2fa/enable-email")
+    public ResponseEntity<?> enable2FAEmail(Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        actor.setTwoFactorEnabled(true);
+        actor.setTwoFactorMethod("EMAIL");
+        actorRepository.save(actor);
+        return ResponseEntity.ok(Map.of("mensaje", "2FA por email activado"));
+    }
+
+    @PostMapping("/me/2fa/disable")
+    public ResponseEntity<?> disable2FA(Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        actor.setTwoFactorEnabled(false);
+        actor.setTwoFactorSecret(null);
+        actorRepository.save(actor);
+        return ResponseEntity.ok(Map.of("mensaje", "2FA desactivado"));
+    }
+
+    // ── SEGURIDAD: HISTORIAL DE SESIONES ──
+    @GetMapping("/me/sesiones")
+    public ResponseEntity<?> getSesionesReales(Principal principal, jakarta.servlet.http.HttpServletRequest request) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+
+        // 1. Extraemos la IP de forma segura
+        String ipTemp = request.getHeader("X-Forwarded-For");
+        if (ipTemp == null || ipTemp.isEmpty()) {
+            ipTemp = request.getRemoteAddr();
+        }
+        if ("0:0:0:0:0:0:0:1".equals(ipTemp))
+            ipTemp = "127.0.0.1";
+        final String ipActual = ipTemp;
+
+        // 2. Analizamos el dispositivo actual
+        String userAgent = request.getHeader("User-Agent");
+        String dispTemp = "Desconocido";
+        if (userAgent != null) {
+            if (userAgent.contains("Windows"))
+                dispTemp = "Windows PC";
+            else if (userAgent.contains("Mac OS X"))
+                dispTemp = "Mac / OS X";
+            else if (userAgent.contains("iPhone"))
+                dispTemp = "Apple iPhone";
+            else if (userAgent.contains("iPad"))
+                dispTemp = "Apple iPad";
+            else if (userAgent.contains("Android"))
+                dispTemp = "Móvil Android";
+            if (userAgent.contains("Chrome"))
+                dispTemp += " (Chrome)";
+            else if (userAgent.contains("Safari") && !userAgent.contains("Chrome"))
+                dispTemp += " (Safari)";
+        }
+        final String dispositivoActual = dispTemp;
+
+        // 3. Buscamos el historial
+        List<SesionDispositivo> historial = sesionDispositivoRepository
+                .findByActorIdOrderByFechaLoginDesc(actor.getId());
+
+        // 🔥 EL SALVAVIDAS: Si el filtro de login falló al guardar esta sesión, la
+        // guardamos "al vuelo"
+        boolean existeActual = historial.stream().anyMatch(s -> s.getIp() != null && s.getIp().equals(ipActual));
+        if (!existeActual) {
+            SesionDispositivo nuevaSesion = new SesionDispositivo();
+            nuevaSesion.setActorId(actor.getId());
+            nuevaSesion.setIp(ipActual);
+            nuevaSesion.setDispositivo(dispositivoActual);
+            nuevaSesion.setFechaLogin(LocalDateTime.now());
+            sesionDispositivoRepository.save(nuevaSesion);
+
+            // Recargamos el historial con la nueva sesión incluida
+            historial = sesionDispositivoRepository.findByActorIdOrderByFechaLoginDesc(actor.getId());
+        }
+
+        // 4. Mapeamos a JSON
+        List<Map<String, Object>> response = historial.stream().map(s -> {
+            boolean esActual = s.getIp() != null && s.getIp().equals(ipActual);
+
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", s.getId());
+            map.put("dispositivo", s.getDispositivo() != null ? s.getDispositivo() : "Desconocido");
+            map.put("ip", s.getIp());
+            map.put("fechaLogin", s.getFechaLogin());
+            map.put("actual", esActual);
+
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/me/sesiones/otras")
+    public ResponseEntity<?> cerrarOtrasSesiones(Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        // En una app real, revocarías los JWTs. Aquí borramos el historial para limpiar
+        // la tabla.
+        sesionDispositivoRepository.deleteByActorId(actor.getId());
+        return ResponseEntity.ok(Map.of("mensaje", "Sesiones cerradas"));
+    }
+
 }

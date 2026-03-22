@@ -21,6 +21,9 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.nexus.entity.*;
 import com.nexus.repository.*;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Service
 public class UsuarioService implements UserDetailsService {
 
@@ -32,6 +35,9 @@ public class UsuarioService implements UserDetailsService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private EmailService emailService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Value("${google.client.id:}")
     private String googleClientId;
@@ -205,31 +211,86 @@ public class UsuarioService implements UserDetailsService {
 
     @Transactional
     public void convertirAEmpresa(Usuario u, Map<String, String> datosEmpresa) {
-        // Creamos la nueva instancia de Empresa
-        Empresa e = new Empresa();
+        Integer actorId = u.getId();
+        String cif = datosEmpresa.getOrDefault("cif", "");
+        String web = datosEmpresa.getOrDefault("web", "");
+        String telefono = datosEmpresa.get("telefonoEmpresa");
 
-        // Copiamos sus credenciales y datos base
-        e.setUser(u.getUser());
-        e.setEmail(u.getEmail());
-        e.setPassword(u.getPassword());
-        e.setNombre(u.getNombre());
-        e.setApellidos(u.getApellidos());
-        e.setAvatar(u.getAvatar());
-        e.setCuentaVerificada(u.isCuentaVerificada());
-        e.setTwoFactorEnabled(u.isTwoFactorEnabled());
-        e.setTwoFactorMethod(u.getTwoFactorMethod());
-        e.setFechaRegistro(u.getFechaRegistro());
+        // 0. VERIFICACIÓN DE CIF ÚNICO
+        if (cif != null && !cif.isEmpty()) {
+            Number count = (Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM empresa WHERE cif = :cif")
+                    .setParameter("cif", cif)
+                    .getSingleResult();
 
-        // Añadimos los datos específicos que vienen del frontend
-        if (datosEmpresa.containsKey("cif"))
-            e.setCif(datosEmpresa.get("cif"));
-        if (datosEmpresa.containsKey("web"))
-            e.setWeb(datosEmpresa.get("web"));
-        // if (datosEmpresa.containsKey("nombreComercial"))
-        // e.setNombreComercial(datosEmpresa.get("nombreComercial"));
+            if (count.intValue() > 0) {
+                throw new IllegalArgumentException(
+                        "El CIF introducido ya está registrado por otra cuenta empresarial.");
+            }
+        }
 
-        // Eliminamos el usuario y guardamos la empresa de forma atómica
-        actorRepository.delete(u);
-        actorRepository.save(e);
+        // 1. Actualizamos el teléfono en la tabla padre (Actor)
+        if (telefono != null && !telefono.isEmpty()) {
+            entityManager.createNativeQuery("UPDATE actor SET telefono = :tel WHERE id = :id")
+                    .setParameter("tel", telefono)
+                    .setParameter("id", actorId)
+                    .executeUpdate();
+        }
+
+        // 2. LIMPIEZA DE DEPENDENCIAS EXCLUSIVAS DE USUARIO
+        entityManager.createNativeQuery("DELETE FROM favorito WHERE usuario_id = :id")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("DELETE FROM usuario_bloqueados WHERE usuario_id = :id")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        // AQUÍ ESTABA EL ERROR: Las columnas correctas son remitente_id y receptor_id
+        entityManager.createNativeQuery("DELETE FROM chat_mensaje WHERE remitente_id = :id OR receptor_id = :id")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        // 3. CAMBIO DE IDENTIDAD (El corazón de la herencia JOINED)
+        // Como hemos limpiado las dependencias, PostgreSQL nos dejará borrar al
+        // usuario.
+        entityManager.createNativeQuery("DELETE FROM usuario WHERE actor_id = :id")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        // Insertamos el registro en la tabla hija 'empresa'
+        entityManager
+                .createNativeQuery(
+                        "INSERT INTO empresa (actor_id, cif, web, verificada) VALUES (:id, :cif, :web, false)")
+                .setParameter("id", actorId)
+                .setParameter("cif", cif)
+                .setParameter("web", web)
+                .executeUpdate();
+
+        // 4. Limpiamos la caché de Hibernate
+        entityManager.clear();
+    }
+
+    @Transactional
+    public void convertirAUsuarioPersonal(Integer actorId) {
+        // 1. Borramos los datos fiscales de la tabla hija 'empresa'
+        entityManager.createNativeQuery("DELETE FROM empresa WHERE actor_id = :id")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        // 2. Insertamos el registro en la tabla hija 'usuario' con los valores por
+        // defecto (Not Null)
+        entityManager.createNativeQuery(
+                "INSERT INTO usuario (actor_id, cuenta_privada, terminos_aceptados, newsletter_suscrito, " +
+                        "reputacion, total_ventas, es_verificado, perfil_publico, mostrar_telefono, mostrar_ubicacion, "
+                        +
+                        "permitir_mensajes_desconocidos, notif_nuevos_mensajes, notif_nueva_compra, notif_valoracion, "
+                        +
+                        "notif_ofertas, notif_envios, notif_novedades, tipo_cuenta) " +
+                        "VALUES (:id, false, true, false, 0.0, 0, false, true, false, true, true, true, true, true, true, true, true, 'PERSONAL')")
+                .setParameter("id", actorId)
+                .executeUpdate();
+
+        // 3. Limpiamos la caché para que Spring Security asimile el cambio
+        entityManager.clear();
     }
 }
