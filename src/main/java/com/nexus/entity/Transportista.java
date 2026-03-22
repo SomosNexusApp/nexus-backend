@@ -7,5 +7,6 @@ package com.nexus.entity;
 public enum Transportista {
     CORREOS,
     SEUR,
-    MRW
+    MRW,
+    ESTANDAR
 }

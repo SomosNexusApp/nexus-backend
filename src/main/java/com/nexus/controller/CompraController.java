@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -99,24 +100,24 @@ public class CompraController {
 
         return productoService.findById(productoId)
                 .map(p -> {
+                    // Check for blocking
+                    Integer compradorId = null;
+                    if (principal != null) {
+                        Optional<Actor> actor = actorRepository.findByUsername(principal.getUsername());
+                        if (actor.isPresent()) compradorId = actor.get().getId();
+                    }
+
+                    Integer vendedorId = p.getPublicador().getId();
+                    if (compradorId != null && (bloqueoService.estaBloqueado(compradorId, vendedorId) || bloqueoService.estaBloqueado(vendedorId, compradorId))) {
+                        return ResponseEntity.status(403).build();
+                    }
+
                     double peso = (p.getPeso() != null && p.getPeso() > 0) ? p.getPeso() : 0.5;
                     boolean necesitaEnvio = Boolean.TRUE.equals(p.getAdmiteEnvio());
                     double costoEnvio = 0.0;
                     if (necesitaEnvio) {
                         Double api = carrierApiService.getBestPrice(peso, esRecogida);
                         costoEnvio = api != null ? api : shippingPriceService.calculateShippingPrice(peso, esRecogida);
-                    }
-
-                    // Check for negotiated price
-                    Integer compradorId = null;
-                    if (principal != null) {
-                        Optional<Actor> actor = actorRepository.findByUsername(principal.getUsername());
-                        // Check for blocking
-                    Integer vendedorId = p.getPublicador().getId();
-                    if (compradorId != null && (bloqueoService.estaBloqueado(compradorId, vendedorId) || bloqueoService.estaBloqueado(vendedorId, compradorId))) {
-                        // We return 0 or error in details? Usually better to return a flag or handle in frontend
-                        // But per requirement "de error forbidden"
-                        return ResponseEntity.status(403).build();
                     }
 
                     Double precioBase = p.getPrecio();
@@ -127,13 +128,18 @@ public class CompraController {
 
                     double comision = compraService.calcularComisionNexus(precioBase);
                     double ahorro = shippingPriceService.ahorroRecogida(peso);
+                    
+                    // Opciones de transportistas
+                    java.util.List<java.util.Map<String, Object>> opcionesEnvio = carrierApiService.getAvailableCarriers(peso, esRecogida, costoEnvio);
+
                     return ResponseEntity.ok(Map.of(
                             "costoEnvio", costoEnvio,
                             "comisionNexus", comision,
                             "pesoKg", peso,
                             "ahorroRecogida", ahorro,
                             "total", precioBase + costoEnvio + comision,
-                            "precioProducto", precioBase));
+                            "precioProducto", precioBase,
+                            "opcionesEnvio", opcionesEnvio));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -148,7 +154,8 @@ public class CompraController {
             @RequestParam TipoEnvio tipoEnvio,
             @RequestParam(defaultValue = "false") boolean esRecogida,
             @RequestParam(required = false) String direccionCompleta,
-            @RequestParam(required = false) String puntoRecogidaId) {
+            @RequestParam(required = false) String puntoRecogidaId,
+            @RequestParam(required = false) String transportista) {
 
         Optional<Producto> p = productoService.findById(productoId);
         Optional<Usuario> u = usuarioService.findById(compradorId);
@@ -191,11 +198,15 @@ public class CompraController {
             double costoEnvio = 0.0;
             boolean necesitaEnvio = tipoEnvio != TipoEnvio.RECOGIDA_PERSONAL
                     && Boolean.TRUE.equals(p.get().getAdmiteEnvio());
+            
             if (necesitaEnvio) {
-                Double precioApi = carrierApiService.getBestPrice(pesoFinal, esRecogida);
-                costoEnvio = (precioApi != null)
-                        ? precioApi
-                        : shippingPriceService.calculateShippingPrice(pesoFinal, esRecogida);
+                double baseFallback = shippingPriceService.calculateShippingPrice(pesoFinal, esRecogida);
+                if (transportista != null && !transportista.isBlank()) {
+                    costoEnvio = carrierApiService.getPriceForCarrier(transportista, pesoFinal, esRecogida, baseFallback);
+                } else {
+                    Double precioApi = carrierApiService.getBestPrice(pesoFinal, esRecogida);
+                    costoEnvio = (precioApi != null) ? precioApi : baseFallback;
+                }
             }
 
             double totalCobrar = precioProducto + costoEnvio + comisionNexus;
@@ -214,6 +225,8 @@ public class CompraController {
             compra.setTipoEnvio(tipoEnvio);
             compra.setCostoEnvio(costoEnvio);
             compra.setComisionNexus(comisionNexus);
+            compra.setTransportista(transportista != null ? transportista : "ESTANDAR");
+
             if (tipoEnvio == TipoEnvio.DOMICILIO)
                 compra.setDireccionCompleta(direccionCompleta);
             else if (tipoEnvio == TipoEnvio.PUNTO_RECOGIDA)

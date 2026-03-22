@@ -130,4 +130,21 @@ public class CompraService {
 
         return compraRepository.save(compra);
     }
+
+    @Transactional
+    public void confirmarPagoPorStripeId(String stripeId) {
+        compraRepository.findByStripePaymentIntentId(stripeId).ifPresent(compra -> {
+            if (compra.getEstado() == EstadoCompra.PENDIENTE) {
+                compra.setEstado(EstadoCompra.PAGADO);
+                compra.setFechaPago(LocalDateTime.now());
+
+                Producto p = compra.getProducto();
+                if (p.getEstadoProducto() == EstadoProducto.DISPONIBLE) {
+                    p.setEstadoProducto(EstadoProducto.RESERVADO);
+                    productoRepository.save(p);
+                }
+                compraRepository.save(compra);
+            }
+        });
+    }
 }

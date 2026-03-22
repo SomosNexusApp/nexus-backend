@@ -57,6 +57,30 @@ public class CarrierApiService {
 
     // ── Precio público ─────────────────────────────────────────────────────────
 
+    public java.util.List<java.util.Map<String, Object>> getAvailableCarriers(double pesoKg, boolean esRecogida, double precioBaseSugerido) {
+        java.util.List<java.util.Map<String, Object>> options = new java.util.ArrayList<>();
+
+        // Solo Correos - La opción más barata
+        java.util.Map<String, Object> correos = new java.util.HashMap<>();
+        correos.put("id", "CORREOS");
+        correos.put("nombre", "Correos (Paq Estándar)");
+        
+        // Precio fijo económico: 4.00€ para recogida, 4.50€ para domicilio
+        double precio = esRecogida ? 4.00 : 4.50;
+        
+        // Si el precio sugerido es menor (p.ej. por una oferta), usamos el sugerido para no cobrar de más
+        if (precioBaseSugerido > 0 && precioBaseSugerido < precio) {
+            precio = precioBaseSugerido;
+        }
+
+        correos.put("precio", precio);
+        correos.put("tiempoEstimado", "2-4 días hábiles");
+        correos.put("logo", "assets/logos/correos.png");
+        options.add(correos);
+
+        return options;
+    }
+
     /**
      * Obtiene el mejor precio disponible entre los tres transportistas
      * para un paquete dado. Si ninguna API está configurada devuelve null
@@ -80,6 +104,19 @@ public class CarrierApiService {
             mejor = mrw;
 
         return mejor;
+    }
+
+    public Double getPriceForCarrier(String carrierId, double pesoKg, boolean esRecogida, double precioBaseSugerido) {
+        if ("CORREOS".equals(carrierId))
+            return getPriceFromCorreos(pesoKg, esRecogida) != null ? getPriceFromCorreos(pesoKg, esRecogida)
+                    : precioBaseSugerido + 0.10;
+        if ("SEUR".equals(carrierId))
+            return getPriceFromSeur(pesoKg, esRecogida) != null ? getPriceFromSeur(pesoKg, esRecogida)
+                    : precioBaseSugerido + 0.50;
+        if ("MRW".equals(carrierId))
+            return getPriceFromMrw(pesoKg, esRecogida) != null ? getPriceFromMrw(pesoKg, esRecogida)
+                    : precioBaseSugerido + 0.35;
+        return precioBaseSugerido;
     }
 
     // ── Correos ────────────────────────────────────────────────────────────────

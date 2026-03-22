@@ -93,7 +93,8 @@ public class SecurityConfiguration {
                                                 // BLOQUE 1 – INFRAESTRUCTURA
                                                 .requestMatchers(
                                                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-                                                                "/actuator/health", "/error", "/favicon.ico")
+                                                                "/actuator/health", "/error", "/favicon.ico",
+                                                                "/api/webhooks/**")
                                                 .permitAll()
 
                                                 // BLOQUE 2 – WEBSOCKET
