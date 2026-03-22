@@ -38,7 +38,7 @@ public class BloqueoController {
 
     @GetMapping("/{usuarioId}")
     public ResponseEntity<List<Integer>> listaBloqueados(@PathVariable Integer usuarioId) {
-        return ResponseEntity.ok(bloqueoService.getIdsBloquedos(usuarioId));
+        return ResponseEntity.ok(bloqueoService.getIdsBloqueados(usuarioId));
     }
 
     @GetMapping("/comprobar")

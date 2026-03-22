@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.ChatMensaje;
 import com.nexus.service.ChatService;
+import com.nexus.service.BloqueoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,8 @@ public class ChatController {
 
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private BloqueoService bloqueoService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
@@ -120,6 +123,11 @@ public class ChatController {
             @RequestParam String tipo,
             @RequestParam(required = false, defaultValue = "0") Integer duracion,
             @RequestPart("archivo") MultipartFile archivo) {
+        
+        if (bloqueoService.estaBloqueado(remitenteId, receptorId) || bloqueoService.estaBloqueado(receptorId, remitenteId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Usuario bloqueado"));
+        }
+
         try {
             ChatMensaje guardado;
             switch (tipo.toUpperCase()) {
@@ -148,6 +156,10 @@ public class ChatController {
             @RequestParam Integer remitenteId, @RequestParam Integer receptorId,
             @RequestParam Double precioPropuesto) {
         try {
+            if (bloqueoService.estaBloqueado(remitenteId, receptorId) || bloqueoService.estaBloqueado(receptorId, remitenteId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Usuario bloqueado"));
+            }
+
             ChatMensaje msg = chatService.guardarPropuestaPrecio(
                     productoId, remitenteId, receptorId, precioPropuesto);
             messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
@@ -167,5 +179,12 @@ public class ChatController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/propuesta/aceptada")
+    public ResponseEntity<?> getOfertaAceptada(@RequestParam Integer productoId,
+            @RequestParam Integer compradorId) {
+        Double precio = chatService.getPrecioNegociado(productoId, compradorId);
+        return ResponseEntity.ok(Map.of("precio", precio != null ? precio : 0));
     }
 }

@@ -32,6 +32,8 @@ public class OfertaService {
     private StorageService storageService;
     @Autowired
     private NotificacionService notificacionService;
+    @Autowired
+    private BloqueoService bloqueoService;
 
     /**
      * Traduce campo Java (camelCase) → columna SQL (snake_case).
@@ -208,7 +210,7 @@ public class OfertaService {
             Double precioMin, Double precioMax,
             String busqueda, Boolean soloActivas,
             String sortField, String sortDir,
-            Integer actorId, Pageable pageable) {
+            Integer actorId, Integer currentUserId, Pageable pageable) {
         boolean solo = Boolean.TRUE.equals(soloActivas);
 
         // Convertir campo Java → columna SQL (nativeQuery no hace conversión
@@ -220,7 +222,8 @@ public class OfertaService {
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
         return ofertaRepository.buscarConFiltros(
-                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, pageable);
+                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
+                bloqueoService.getRelacionesBloqueo(currentUserId), pageable);
     }
 
     public Page<Oferta> buscarConFiltros(String categoria, String tienda,
@@ -230,7 +233,8 @@ public class OfertaService {
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Direction.DESC, "fecha_publicacion"));
         return ofertaRepository.buscarConFiltros(
-                categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, pageable);
+                categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, 
+                bloqueoService.getRelacionesBloqueo(null), pageable);
     }
 
     // ── Interacciones ────────────────────────────────────────────────────

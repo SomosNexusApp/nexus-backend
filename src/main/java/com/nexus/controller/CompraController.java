@@ -40,6 +40,10 @@ public class CompraController {
     private ShippingPriceService shippingPriceService;
     @Autowired
     private CarrierApiService carrierApiService;
+    @Autowired
+    private ChatService chatService;
+    @Autowired
+    private BloqueoService bloqueoService;
 
     // ── HISTORIAL Y LISTADOS ───────────────────────────────────────────────
 
@@ -90,7 +94,8 @@ public class CompraController {
     @Operation(summary = "Calcula el coste de envío de un producto sin crear ningún registro")
     public ResponseEntity<?> consultarPrecio(
             @RequestParam Integer productoId,
-            @RequestParam(defaultValue = "false") boolean esRecogida) {
+            @RequestParam(defaultValue = "false") boolean esRecogida,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetails principal) {
 
         return productoService.findById(productoId)
                 .map(p -> {
@@ -101,14 +106,34 @@ public class CompraController {
                         Double api = carrierApiService.getBestPrice(peso, esRecogida);
                         costoEnvio = api != null ? api : shippingPriceService.calculateShippingPrice(peso, esRecogida);
                     }
-                    double comision = compraService.calcularComisionNexus(p.getPrecio());
+
+                    // Check for negotiated price
+                    Integer compradorId = null;
+                    if (principal != null) {
+                        Optional<Actor> actor = actorRepository.findByUsername(principal.getUsername());
+                        // Check for blocking
+                    Integer vendedorId = p.getPublicador().getId();
+                    if (compradorId != null && (bloqueoService.estaBloqueado(compradorId, vendedorId) || bloqueoService.estaBloqueado(vendedorId, compradorId))) {
+                        // We return 0 or error in details? Usually better to return a flag or handle in frontend
+                        // But per requirement "de error forbidden"
+                        return ResponseEntity.status(403).build();
+                    }
+
+                    Double precioBase = p.getPrecio();
+                    if (compradorId != null) {
+                        Double negociado = chatService.getPrecioNegociado(productoId, compradorId);
+                        if (negociado != null) precioBase = negociado;
+                    }
+
+                    double comision = compraService.calcularComisionNexus(precioBase);
                     double ahorro = shippingPriceService.ahorroRecogida(peso);
                     return ResponseEntity.ok(Map.of(
                             "costoEnvio", costoEnvio,
                             "comisionNexus", comision,
                             "pesoKg", peso,
                             "ahorroRecogida", ahorro,
-                            "total", p.getPrecio() + costoEnvio + comision));
+                            "total", precioBase + costoEnvio + comision,
+                            "precioProducto", precioBase));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -138,8 +163,22 @@ public class CompraController {
             return ResponseEntity.badRequest().body(Map.of("error", "No puedes comprar tu propio producto"));
         }
 
+        // --- BLOQUEO CHECK ---
+        Integer vendedorId = p.get().getPublicador().getId();
+        if (bloqueoService.estaBloqueado(compradorId, vendedorId) || bloqueoService.estaBloqueado(vendedorId, compradorId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Transacción no permitida: Usuario bloqueado"));
+        }
+        // ---------------------
+
         try {
             Double precioProducto = p.get().getPrecio();
+            
+            // Check for negotiated price
+            Double negociado = chatService.getPrecioNegociado(productoId, compradorId);
+            if (negociado != null) {
+                precioProducto = negociado;
+            }
+
             Double comisionNexus = compraService.calcularComisionNexus(precioProducto);
 
             // Peso definido por el VENDEDOR al publicar. Si no lo configuró → 0,5 kg (tier

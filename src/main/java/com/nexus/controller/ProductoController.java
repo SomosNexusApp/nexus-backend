@@ -33,6 +33,8 @@ public class ProductoController {
     private StorageService storageService;
     @Autowired
     private ModerationService moderationService;
+    @Autowired
+    private com.nexus.service.BloqueoService bloqueoService;
 
     @GetMapping
     public ResponseEntity<List<Producto>> findAll() {
@@ -45,9 +47,19 @@ public class ProductoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Producto> findById(@PathVariable Integer id) {
-        return productoService.findById(id).map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<Producto> findById(@PathVariable Integer id, @RequestParam(required = false) Integer usuarioId) {
+        Optional<Producto> op = productoService.findById(id);
+        if (op.isPresent()) {
+            Producto p = op.get();
+            if (usuarioId != null) {
+                Integer vendedorId = p.getVendedor().getId();
+                if (bloqueoService.estaBloqueado(usuarioId, vendedorId) || bloqueoService.estaBloqueado(vendedorId, usuarioId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+            }
+            return ResponseEntity.ok(p);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     /**
@@ -73,6 +85,7 @@ public class ProductoController {
         // Solo pasamos al service los que realmente usa el buscador de productos
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
                 categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
+                vendedorId != null ? null : (int) 0, // Placeholder if we don't have authenticated user easily here
                 PageRequest.of(page, size));
 
         return ResponseEntity.ok(Map.of(

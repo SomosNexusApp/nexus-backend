@@ -155,6 +155,14 @@ public class ChatService {
         chatMensajeRepository.marcarComoLeidosEnRoom(roomId, receptorId);
     }
 
+    public Double getPrecioNegociado(Integer productoId, Integer compradorId) {
+        List<ChatMensaje> offers = chatMensajeRepository.findAcceptedOffers(productoId, compradorId);
+        if (offers != null && !offers.isEmpty()) {
+            return offers.get(0).getPrecioPropuesto();
+        }
+        return null;
+    }
+
     // ── Helper ──────────────────────────────────────────────────────────────
     private ChatMensaje buildBase(Integer productoId, Integer remitenteId, Integer receptorId) {
         ChatMensaje msg = new ChatMensaje();

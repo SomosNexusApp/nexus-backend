@@ -15,6 +15,9 @@ public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
     @Query("SELECT b FROM Bloqueo b WHERE b.bloqueador.id = ?1")
     List<Bloqueo> findByBloqueadorId(Integer bloqueadorId);
 
+    @Query("SELECT b FROM Bloqueo b WHERE b.bloqueado.id = ?1")
+    List<Bloqueo> findByBloqueadoId(Integer bloqueadoId);
+
     boolean existsByBloqueadorIdAndBloqueadoId(Integer bloqueadorId, Integer bloqueadoId);
 
     @Modifying @Transactional

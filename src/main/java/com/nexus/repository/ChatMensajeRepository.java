@@ -61,4 +61,12 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
                      +
                      "ORDER BY m.fechaEnvio DESC")
        List<ChatMensaje> findUltimosMensajesPorUsuario(Integer usuarioId);
+
+       // Buscar ofertas aceptadas entre un comprador y un producto
+       @Query("SELECT m FROM ChatMensaje m WHERE m.producto.id = ?1 " +
+                     "AND (m.remitente.id = ?2 OR m.receptor.id = ?2) " +
+                     "AND m.tipo = com.nexus.entity.TipoMensaje.OFERTA_PRECIO " +
+                     "AND m.estadoPropuesta = 'ACEPTADA' " +
+                     "ORDER BY m.fechaEnvio DESC")
+       List<ChatMensaje> findAcceptedOffers(Integer productoId, Integer usuarioId);
 }

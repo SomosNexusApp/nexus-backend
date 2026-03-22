@@ -46,9 +46,25 @@ public class BloqueoService {
     }
 
     /** IDs de todos los usuarios que el usuario ha bloqueado */
-    public List<Integer> getIdsBloquedos(Integer usuarioId) {
+    public List<Integer> getIdsBloqueados(Integer usuarioId) {
         return bloqueoRepository.findByBloqueadorId(usuarioId).stream()
                 .map(b -> b.getBloqueado().getId())
                 .collect(Collectors.toList());
+    }
+
+    /** IDs de todos los usuarios que han bloqueado al usuario */
+    public List<Integer> getIdsBloqueadores(Integer usuarioId) {
+        return bloqueoRepository.findByBloqueadoId(usuarioId).stream()
+                .map(b -> b.getBloqueador().getId())
+                .collect(Collectors.toList());
+    }
+
+    /** Unión de ambos: usuarios con los que no debe haber interacción */
+    public List<Integer> getRelacionesBloqueo(Integer usuarioId) {
+        if (usuarioId == null) return List.of();
+        List<Integer> bloqueados = getIdsBloqueados(usuarioId);
+        List<Integer> bloqueadores = getIdsBloqueadores(usuarioId);
+        bloqueados.addAll(bloqueadores);
+        return bloqueados.stream().distinct().collect(Collectors.toList());
     }
 }

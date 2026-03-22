@@ -83,7 +83,7 @@ public class OfertaController {
 
             Page<Oferta> paginaOfertas = ofertaService.buscarConFiltros(
                     categoria, tienda, precioMin, precioMax, busqueda,
-                    soloActivas, ordenarPor, direccion, vendedorId, pageable);
+                    soloActivas, ordenarPor, direccion, vendedorId, usuarioId, pageable);
 
             ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);
 

@@ -14,7 +14,8 @@ public class ProductoSpecification {
             String categoria,
             Double precioMin,
             Double precioMax,
-            Integer vendedorId) {
+            Integer vendedorId,
+            List<Integer> excludedVendedorIds) {
 
         return (root, query, cb) -> {
 
@@ -66,6 +67,11 @@ public class ProductoSpecification {
                 where.add(cb.greaterThanOrEqualTo(root.get("precio"), precioMin));
             if (precioMax != null)
                 where.add(cb.lessThanOrEqualTo(root.get("precio"), precioMax));
+
+            // ── Bloqueos ──────────────────────────────────────────────────
+            if (excludedVendedorIds != null && !excludedVendedorIds.isEmpty()) {
+                where.add(cb.not(root.get("vendedor").get("id").in(excludedVendedorIds)));
+            }
 
             return cb.and(where.toArray(new Predicate[0]));
         };

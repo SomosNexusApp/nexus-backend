@@ -24,6 +24,8 @@ public class ProductoService {
     @Autowired
     private ActorRepository actorRepository;
     @Autowired
+    private BloqueoService bloqueoService;
+    @Autowired
     private SynonymService synonymService;
 
     // ── Lecturas ─────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ public class ProductoService {
             String busqueda,
             String ubicacion,
             Integer vendedorId,
+            Integer currentUserId,
             Pageable pageable) {
 
         // Expandir el término con sinónimos
@@ -71,7 +74,8 @@ public class ProductoService {
                 categoriaNorm,
                 precioMin,
                 precioMax,
-                vendedorId);
+                vendedorId,
+                bloqueoService.getRelacionesBloqueo(currentUserId));
 
         return productoRepository.findAll(spec, pageable);
     }
@@ -83,10 +87,11 @@ public class ProductoService {
             Double precioMin,
             Double precioMax,
             String busqueda,
+            Integer currentUserId,
             Pageable pageable) {
 
         return buscarConFiltrosPaginado(
-                categoria, null, precioMin, precioMax, null, busqueda, null, null, pageable);
+                categoria, null, precioMin, precioMax, null, busqueda, null, null, currentUserId, pageable);
     }
 
     // ── Escrituras ────────────────────────────────────────────────────────────

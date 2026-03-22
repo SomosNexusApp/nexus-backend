@@ -21,7 +21,7 @@ public class Valoracion extends DomainEntity {
     
     @OneToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
     @JoinColumn(name = "compra_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comprador", "producto"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comprador", "producto", "vendedor"})
     private Compra compra;
 
     @Column(nullable = false) 

@@ -73,6 +73,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (CAST(:actorId AS NUMERIC) IS NULL
           OR o.actor_id = CAST(:actorId AS NUMERIC))
+        AND
+        (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
       """, countQuery = """
       SELECT COUNT(*) FROM oferta o
       LEFT JOIN categoria c ON c.id = o.categoria_id
@@ -97,6 +99,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (CAST(:actorId AS NUMERIC) IS NULL
           OR o.actor_id = CAST(:actorId AS NUMERIC))
+        AND
+        (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
       """, nativeQuery = true)
   Page<Oferta> buscarConFiltros(
       @Param("categoria") String categoria,
@@ -106,6 +110,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       @Param("busqueda") String busqueda,
       @Param("soloActivas") boolean soloActivas,
       @Param("actorId") Integer actorId,
+      @Param("excludedActorIds") List<Integer> excludedActorIds,
       Pageable pageable);
 
   @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY (o.sparkCount - o.dripCount) DESC")
