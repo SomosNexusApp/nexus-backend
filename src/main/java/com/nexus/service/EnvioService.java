@@ -25,6 +25,8 @@ public class EnvioService {
     private ShippingPriceService shippingPriceService;
     @Autowired
     private ChatWebSocketController chatWebSocketController;
+    @Autowired
+    private ValoracionService valoracionService;
 
     /**
      * Crea el envío justo después de confirmar el pago.
@@ -139,6 +141,16 @@ public class EnvioService {
 
         // Completar la compra y liberar fondos
         completarCompra(compra);
+
+        // Crear valoración pública si se ha proporcionado
+        if (valoracion != null && valoracion >= 1) {
+            try {
+                valoracionService.valorar(compra.getComprador().getId(), compra.getId(), valoracion, comentario);
+            } catch (Exception e) {
+                // No bloquear la confirmación si la valoración falla
+                System.err.println("⚠️ Error creando valoración automática: " + e.getMessage());
+            }
+        }
 
         notificarEnChat(compra, "✅ Entrega confirmada. Fondos liberados al vendedor. ¡Gracias por usar Nexus!");
 

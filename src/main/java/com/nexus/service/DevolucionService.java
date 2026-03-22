@@ -38,7 +38,7 @@ public class DevolucionService {
      */
     @Transactional
     public Devolucion solicitar(Integer compraId, MotivoDevolucion motivo,
-            String descripcion, List<MultipartFile> fotos) {
+            String descripcion, String direccionEnvio, List<MultipartFile> fotos) {
         Compra compra = compraRepository.findById(compraId)
                 .orElseThrow(() -> new IllegalArgumentException("Compra no encontrada"));
 
@@ -52,6 +52,7 @@ public class DevolucionService {
         d.setCompra(compra);
         d.setMotivo(motivo);
         d.setDescripcion(descripcion);
+        d.setDireccionEnvio(direccionEnvio);
 
         // Subir fotos del problema
         if (fotos != null) {

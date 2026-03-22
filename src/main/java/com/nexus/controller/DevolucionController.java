@@ -58,9 +58,10 @@ public class DevolucionController {
             @RequestParam Integer compraId,
             @RequestParam MotivoDevolucion motivo,
             @RequestParam(required = false, defaultValue = "") String descripcion,
+            @RequestParam(required = false) String direccionEnvio,
             @RequestPart(value = "fotos", required = false) List<MultipartFile> fotos) {
         try {
-            Devolucion d = devolucionService.solicitar(compraId, motivo, descripcion, fotos);
+            Devolucion d = devolucionService.solicitar(compraId, motivo, descripcion, direccionEnvio, fotos);
             return ResponseEntity.status(HttpStatus.CREATED).body(d);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

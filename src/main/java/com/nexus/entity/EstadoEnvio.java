@@ -15,5 +15,6 @@ public enum EstadoEnvio {
     ENTREGADO,
     INCIDENCIA,
     DEVUELTO,
+    DEVOLUCION_SOLICITADA,
     CANCELADO
 }
