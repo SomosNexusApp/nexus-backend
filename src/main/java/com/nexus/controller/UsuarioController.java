@@ -416,9 +416,14 @@ public class UsuarioController {
             if ("EMPRESA".equals(tipo) && actor instanceof Usuario) {
                 usuarioService.convertirAEmpresa((Usuario) actor, body);
                 return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa"));
-            } else if ("PERSONAL".equals(tipo) && actor instanceof Empresa) {
-                usuarioService.convertirAUsuarioPersonal(actor.getId());
-                return ResponseEntity.ok(Map.of("mensaje", "Cuenta revertida a Personal"));
+            } else if ("PERSONAL".equals(tipo)) {
+                if (actor instanceof Empresa) {
+                    usuarioService.convertirAUsuarioPersonal(actor.getId());
+                    return ResponseEntity.ok(Map.of("mensaje", "Cuenta revertida a Personal"));
+                } else if (actor instanceof Usuario) {
+                    // Ya es un usuario personal, respondemos OK para no bloquear el flujo del frontend
+                    return ResponseEntity.ok(Map.of("mensaje", "Ya eres una cuenta Personal"));
+                }
             }
 
             return ResponseEntity.badRequest()

@@ -159,8 +159,14 @@ public class UsuarioService implements UserDetailsService {
         Optional<Actor> existente = actorRepository.findByEmail(email);
 
         if (existente.isPresent()) {
-            resultado.put("actor", existente.get());
-            resultado.put("esNuevo", false); // Ya existía, hace login normal
+            Actor a = existente.get();
+            // Siempre sincronizamos la foto de Google si el usuario la tiene
+            if (foto != null && !foto.trim().isEmpty()) {
+                a.setAvatar(foto);
+                actorRepository.save(a);
+            }
+            resultado.put("actor", a);
+            resultado.put("esNuevo", false);
         } else {
             // Generar el nombre de usuario base a partir del correo (ej: pepe@gmail.com ->
             // pepe)
