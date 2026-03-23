@@ -301,6 +301,7 @@ public class OfertaService {
             nuevoMiVoto = isUpvote ? "SPARK" : "DRIP";
         }
 
+        oferta.recalcularScore();
         Oferta saved = ofertaRepository.save(oferta);
         saved.actualizarBadge();
 

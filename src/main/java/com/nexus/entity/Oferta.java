@@ -81,6 +81,10 @@ public class Oferta extends DomainEntity {
         if (esActiva          == null) esActiva          = true;
         if (esOnline          == null) esOnline          = true;
         if (galeriaImagenes   == null) galeriaImagenes   = new ArrayList<>();
+        recalcularScore();
+    }
+
+    public void recalcularScore() {
         this.sparkScore = (sparkCount != null ? sparkCount : 0) - (dripCount != null ? dripCount : 0);
     }
 
