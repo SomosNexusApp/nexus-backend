@@ -164,17 +164,21 @@ public class UsuarioService implements UserDetailsService {
             // Siempre sincronizamos la foto de Google si el usuario la tiene
             if (foto != null && !foto.trim().isEmpty()) {
                 a.setAvatar(foto);
-                actorRepository.save(a);
             }
+            // Sincronizar ID de Google si es un Usuario y no lo tenía
+            if (a instanceof Usuario u && u.getGoogleId() == null) {
+                u.setGoogleId(p.getSubject()); // Subject es el ID único de Google
+            }
+            actorRepository.save(a);
             resultado.put("actor", a);
             resultado.put("esNuevo", false);
         } else {
-            // Generar el nombre de usuario base a partir del correo (ej: pepe@gmail.com ->
-            // pepe)
+            // Generar el nombre de usuario base a partir del correo (ej: pepe@gmail.com -> pepe)
             String baseUser = email.contains("@") ? email.substring(0, email.indexOf("@")) : nombre;
 
             Usuario nu = new Usuario();
             nu.setEmail(email);
+            nu.setGoogleId(p.getSubject());
             nu.setUser(usernameUnico(baseUser));
             nu.setNombre(nombre); // Guardamos su nombre real de Google
             nu.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));

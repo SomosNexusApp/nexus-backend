@@ -335,11 +335,16 @@ public class ActorController {
                 perfil.put("esVerificado", u.isEsVerificado());
                 perfil.put("perfilPublico", u.isPerfilPublico());
                 perfil.put("direccionDefecto", u.getDireccionPorDefecto());
+                perfil.put("googleId", u.getGoogleId());
+                perfil.put("facebookId", u.getFacebookId());
+                perfil.put("isSocial", u.getGoogleId() != null || u.getFacebookId() != null);
             } else if (actor instanceof Empresa e) {
+                perfil.put("isSocial", false);
                 perfil.put("cif", e.getCif());
                 perfil.put("descripcion", e.getDescripcion());
                 perfil.put("web", e.getWeb());
             } else if (actor instanceof Admin a) {
+                perfil.put("isSocial", false);
                 perfil.put("nivelAcceso", a.getNivelAcceso());
             }
 

@@ -74,7 +74,6 @@ public class ProductoController {
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false) Integer vendedorId,
-            // Añadimos estos para evitar el 500 cuando el frontend manda filtros de motor
             @RequestParam(required = false) Boolean conEnvio,
             @RequestParam(required = false) String orden,
             @RequestParam(required = false) Boolean garantia,
@@ -82,18 +81,30 @@ public class ProductoController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        // Solo pasamos al service los que realmente usa el buscador de productos
+        org.springframework.data.domain.Sort sort = getSort(orden);
+
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
                 categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
                 vendedorId != null ? vendedorId : 0, 
                 null, null, null, null,
-                PageRequest.of(page, size));
+                PageRequest.of(page, size, sort));
 
         return ResponseEntity.ok(Map.of(
                 "contenido", r.getContent(),
                 "totalElementos", r.getTotalElements(),
                 "totalPaginas", r.getTotalPages(),
                 "paginaActual", r.getNumber()));
+    }
+
+    private org.springframework.data.domain.Sort getSort(String orden) {
+        if (orden == null) return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+        return switch (orden) {
+            case "precio_asc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "precio");
+            case "precio_desc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "precio");
+            case "fecha_asc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "fechaPublicacion");
+            case "fecha_desc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+        };
     }
 
     /**
@@ -186,19 +197,27 @@ public class ProductoController {
                 return ResponseEntity.notFound().build();
 
             Producto p = op.get();
-            if (detalles.getTitulo() != null)
-                p.setTitulo(detalles.getTitulo());
-            if (detalles.getDescripcion() != null)
-                p.setDescripcion(detalles.getDescripcion());
-            if (detalles.getPrecio() != null)
-                p.setPrecio(detalles.getPrecio());
-            if (detalles.getTipoOferta() != null)
-                p.setTipoOferta(detalles.getTipoOferta());
+            if (detalles.getTitulo() != null) p.setTitulo(detalles.getTitulo());
+            if (detalles.getDescripcion() != null) p.setDescripcion(detalles.getDescripcion());
+            if (detalles.getPrecio() != null) p.setPrecio(detalles.getPrecio());
+            if (detalles.getTipoOferta() != null) p.setTipoOferta(detalles.getTipoOferta());
+            if (detalles.getMarca() != null) p.setMarca(detalles.getMarca());
+            if (detalles.getModelo() != null) p.setModelo(detalles.getModelo());
+            if (detalles.getUbicacion() != null) p.setUbicacion(detalles.getUbicacion());
+            if (detalles.getCondicion() != null) p.setCondicion(detalles.getCondicion());
+            if (detalles.getPeso() != null) p.setPeso(detalles.getPeso());
+            if (detalles.getAdmiteEnvio() != null) p.setAdmiteEnvio(detalles.getAdmiteEnvio());
+            if (detalles.getLatitude() != null) p.setLatitude(detalles.getLatitude());
+            if (detalles.getLongitude() != null) p.setLongitude(detalles.getLongitude());
+            
+            if (detalles.getCategoria() != null && detalles.getCategoria().getId() != null) {
+                p.setCategoria(detalles.getCategoria());
+            }
 
             if (imagenPrincipal != null && !imagenPrincipal.isEmpty()) {
                 String url = storageService.subirImagen(imagenPrincipal);
                 if (url != null) {
-                    storageService.eliminarImagen(p.getImagenPrincipal());
+                    if (p.getImagenPrincipal() != null) storageService.eliminarImagen(p.getImagenPrincipal());
                     p.setImagenPrincipal(url);
                 }
             }

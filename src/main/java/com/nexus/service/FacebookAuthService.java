@@ -73,13 +73,17 @@ public class FacebookAuthService {
             Usuario usuario = (Usuario) actorExistente.get();
             if (pictureUrl != null && !pictureUrl.isEmpty()) {
                 usuario.setAvatar(pictureUrl);
-                usuarioRepository.save(usuario);
             }
+            if (usuario.getFacebookId() == null) {
+                usuario.setFacebookId(facebookId);
+            }
+            usuarioRepository.save(usuario);
             return usuario;
         }
         
         // 4. Crear nuevo usuario
         Usuario nuevoUsuario = new Usuario();
+        nuevoUsuario.setFacebookId(facebookId);
         nuevoUsuario.setUser(name.replaceAll("\\s+", "_").toLowerCase() + "_fb");
         nuevoUsuario.setEmail(email);
         nuevoUsuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));

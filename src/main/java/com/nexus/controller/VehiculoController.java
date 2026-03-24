@@ -45,7 +45,6 @@ public class VehiculoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
- // Reemplaza solo el método filtrar en VehiculoController.java
     @GetMapping("/filtrar")
     public ResponseEntity<?> filtrar(
             @RequestParam(required = false) TipoVehiculo tipo,
@@ -58,7 +57,7 @@ public class VehiculoController {
             @RequestParam(required = false) Integer kmMax,
             @RequestParam(required = false) TipoCombustible combustible,
             @RequestParam(required = false) String cambio,
-            @RequestParam(required = false) String busqueda, // <-- AÑADIDO
+            @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) Integer potenciaMin,
             @RequestParam(required = false) Integer cilindradaMin,
             @RequestParam(required = false) String color,
@@ -66,19 +65,33 @@ public class VehiculoController {
             @RequestParam(required = false) Integer plazas,
             @RequestParam(required = false) Boolean garantia,
             @RequestParam(required = false) Boolean itv,
+            @RequestParam(required = false) String orden,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
             
+        org.springframework.data.domain.Sort sort = getSort(orden);
+
         Page<Vehiculo> r = vehiculoService.buscarPaginado(tipo, marca, modelo,
                 precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
                 cambio, busqueda, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
-                garantia, itv, PageRequest.of(page, size));
+                garantia, itv, PageRequest.of(page, size, sort));
                 
         return ResponseEntity.ok(Map.of(
                 "contenido", r.getContent(), 
                 "paginaActual", r.getNumber(),
                 "totalPaginas", r.getTotalPages(), 
                 "totalElementos", r.getTotalElements()));
+    }
+
+    private org.springframework.data.domain.Sort getSort(String orden) {
+        if (orden == null) return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+        return switch (orden) {
+            case "precio_asc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "precio");
+            case "precio_desc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "precio");
+            case "fecha_asc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "fechaPublicacion");
+            case "fecha_desc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+        };
     }
 
     @PostMapping(value = "/publicar/{usuarioId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
