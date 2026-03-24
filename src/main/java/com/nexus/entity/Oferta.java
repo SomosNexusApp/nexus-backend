@@ -44,6 +44,7 @@ public class Oferta extends DomainEntity {
     private Actor actor;
 
     @Column(nullable = false) private Boolean esActiva = true;
+    @Enumerated(EnumType.STRING) private EstadoOferta estado;
     @Enumerated(EnumType.STRING) private BadgeOferta badge;
     private LocalDateTime fechaPublicacion;
     private LocalDateTime fechaExpiracion;
@@ -80,9 +81,11 @@ public class Oferta extends DomainEntity {
         if (numeroVistas      == null) numeroVistas      = 0;
         if (numeroCompartidos == null) numeroCompartidos = 0;
         if (numeroComentarios == null) numeroComentarios = 0;
-        if (esActiva          == null) esActiva          = true;
         if (esOnline          == null) esOnline          = true;
         if (galeriaImagenes   == null) galeriaImagenes   = new ArrayList<>();
+        if (estado            == null) estado            = (esActiva != null && !esActiva) ? EstadoOferta.PAUSADA : EstadoOferta.ACTIVA;
+        // Sincronizar esActiva con estado
+        this.esActiva = (estado == EstadoOferta.ACTIVA);
         recalcularScore();
     }
 
@@ -115,7 +118,15 @@ public class Oferta extends DomainEntity {
     public Actor    getActor()                               { return actor; }
     public void     setActor(Actor a)                        { this.actor = a; }
     public Boolean  getEsActiva()                            { return esActiva; }
-    public void     setEsActiva(Boolean a)                   { this.esActiva = a; }
+    public void     setEsActiva(Boolean a)                   { 
+        this.esActiva = a; 
+        if (a != null) this.estado = a ? EstadoOferta.ACTIVA : EstadoOferta.PAUSADA;
+    }
+    public EstadoOferta getEstado()                          { return estado; }
+    public void     setEstado(EstadoOferta e)                { 
+        this.estado = e; 
+        this.esActiva = (e == EstadoOferta.ACTIVA);
+    }
     public BadgeOferta getBadge()                            { return badge; }
     public void     setBadge(BadgeOferta b)                  { this.badge = b; }
     public LocalDateTime getFechaPublicacion()               { return fechaPublicacion; }

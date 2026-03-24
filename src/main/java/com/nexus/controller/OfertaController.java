@@ -88,7 +88,7 @@ public class OfertaController {
             ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);
 
             return ResponseEntity.ok(Map.of(
-                    "ofertas", paginaOfertas.getContent(),
+                    "contenido", paginaOfertas.getContent(),
                     "paginaActual", paginaOfertas.getNumber(),
                     "totalPaginas", paginaOfertas.getTotalPages(),
                     "totalElementos", paginaOfertas.getTotalElements()));
@@ -288,4 +288,23 @@ public class OfertaController {
         }
         return ResponseEntity.notFound().build();
     }
-}
+
+    // --- CAMBIAR ESTADO ---
+    @PatchMapping("/{id}/estado")
+    @Operation(summary = "Cambiar el estado de una oferta (ACTIVA, PAUSADA, AGOTADA)")
+    public ResponseEntity<?> cambiarEstado(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        String nuevoEstadoStr = body.get("estado");
+        if (nuevoEstadoStr == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Falta el campo 'estado'"));
+
+        try {
+            EstadoOferta nuevoEstado = EstadoOferta.valueOf(nuevoEstadoStr);
+            return ofertaService.findById(id).map(o -> {
+                o.setEstado(nuevoEstado);
+                return ResponseEntity.ok(ofertaService.save(o));
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Estado no válido"));
+        }
+    }
+}

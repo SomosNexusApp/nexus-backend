@@ -142,4 +142,16 @@ public class VehiculoController {
             return ResponseEntity.ok((Object) Map.of("mensaje", "Vehículo eliminado"));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<Object> actualizarEstado(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        try {
+            com.nexus.entity.EstadoVehiculo nuevoEstado = com.nexus.entity.EstadoVehiculo.valueOf(body.get("estado"));
+            Vehiculo v = vehiculoService.findById(id).orElseThrow(() -> new IllegalArgumentException("Vehículo no encontrado"));
+            v.setEstadoVehiculo(nuevoEstado);
+            return ResponseEntity.ok(vehiculoService.update(id, v));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
