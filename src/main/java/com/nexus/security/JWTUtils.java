@@ -109,7 +109,8 @@ public class JWTUtils {
         if (!StringUtils.hasText(username) || "anonymousUser".equals(username))
             return null;
 
-        Optional<Actor> actorO = actorRepository.findByUsername(username);
+        Optional<Actor> actorO = actorRepository.findByUsername(username)
+                .or(() -> actorRepository.findByEmail(username));
         if (actorO.isEmpty())
             return null;
 

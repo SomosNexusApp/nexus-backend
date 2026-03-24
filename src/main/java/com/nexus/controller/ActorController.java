@@ -204,10 +204,16 @@ public class ActorController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> body) {
-        captchaService.verificarOLanzar(body.get("captchaToken"));
-        passwordResetService.solicitarReset(body.get("email"));
-        return ResponseEntity.ok(Map.of("mensaje",
-                "Si ese email está registrado, recibirás un enlace en breve."));
+        try {
+            captchaService.verificarOLanzar(body.get("captchaToken"));
+            passwordResetService.solicitarReset(body.get("email"));
+            return ResponseEntity.ok(Map.of("mensaje",
+                    "Si ese email está registrado, recibirás un enlace en breve."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al procesar la solicitud"));
+        }
     }
 
     @PostMapping("/reset-password")

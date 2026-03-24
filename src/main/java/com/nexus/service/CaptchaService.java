@@ -61,6 +61,12 @@ public class CaptchaService {
         }
 
         if (captchaToken == null || captchaToken.isBlank()) return false;
+        
+        // Permitir el token de desarrollo proveniente del frontend (AuthService.ts)
+        if ("token-omitido-en-dev".equals(captchaToken)) {
+            System.out.println("✅ [CAPTCHA-DEV] Token de marcador de posición detectado, permitiendo acceso.");
+            return true;
+        }
 
         try {
             String url = verifyUrl + "?secret=" + secretKey + "&response=" + captchaToken;

@@ -48,9 +48,10 @@ public class UsuarioService implements UserDetailsService {
     private final ConcurrentHashMap<Integer, VerifEntry> codes = new ConcurrentHashMap<>();
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Actor actor = actorRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("No encontrado: " + username));
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        Actor actor = actorRepository.findByUsername(usernameOrEmail)
+                .or(() -> actorRepository.findByEmail(usernameOrEmail))
+                .orElseThrow(() -> new UsernameNotFoundException("No encontrado: " + usernameOrEmail));
 
         if (actor.isCuentaEliminada())
             throw new UsernameNotFoundException("Cuenta eliminada");
