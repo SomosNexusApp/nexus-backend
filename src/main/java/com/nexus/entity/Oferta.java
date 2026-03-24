@@ -63,6 +63,8 @@ public class Oferta extends DomainEntity {
 
     @Schema(description = "Ciudad donde se encuentra la oferta física (solo si esOnline=false)", example = "Madrid")
     private String ciudadOferta;
+    private Double latitude;
+    private Double longitude;
 
     @Schema(description = "Gastos de envío de la oferta. Null = no indicado, 0.0 = gratis", example = "3.99")
     private Double gastosEnvio;
@@ -139,6 +141,12 @@ public class Oferta extends DomainEntity {
     public void     setEsOnline(Boolean e)                   { this.esOnline = e; }
     public String   getCiudadOferta()                        { return ciudadOferta; }
     public void     setCiudadOferta(String c)                { this.ciudadOferta = c; }
+
+    public Double   getLatitude()                            { return latitude; }
+    public void     setLatitude(Double l)                    { this.latitude = l; }
+
+    public Double   getLongitude()                           { return longitude; }
+    public void     setLongitude(Double l)                   { this.longitude = l; }
     public Double   getGastosEnvio()                         { return gastosEnvio; }
     public void     setGastosEnvio(Double g)                 { this.gastosEnvio = g; }
     public Integer  getNumeroComentarios()                   { return numeroComentarios; }

@@ -65,6 +65,8 @@ public class Vehiculo extends DomainEntity {
     private LocalDateTime fechaITV;
     private Boolean garantia;
     private String  ubicacion;
+    private Double  latitude;
+    private Double  longitude;
 
     @Column(columnDefinition = "TEXT")
     private String imagenPrincipal;
@@ -146,6 +148,12 @@ public class Vehiculo extends DomainEntity {
     public void         setGarantia(Boolean g)                { this.garantia = g; }
     public String       getUbicacion()                        { return ubicacion; }
     public void         setUbicacion(String u)                { this.ubicacion = u; }
+
+    public Double       getLatitude()                         { return latitude; }
+    public void         setLatitude(Double l)                 { this.latitude = l; }
+
+    public Double       getLongitude()                        { return longitude; }
+    public void         setLongitude(Double l)                { this.longitude = l; }
     public String       getImagenPrincipal()                  { return imagenPrincipal; }
     public void         setImagenPrincipal(String i)          { this.imagenPrincipal = i; }
     public List<String> getGaleriaImagenes()                  { return galeriaImagenes; }

@@ -221,9 +221,30 @@ public class OfertaService {
                 : Sort.by(Sort.Direction.DESC, columna);
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
-        return ofertaRepository.buscarConFiltros(
+        return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
-                bloqueoService.getRelacionesBloqueo(currentUserId), pageable);
+                bloqueoService.getRelacionesBloqueo(currentUserId), 
+                null, null, null, null, pageable);
+    }
+
+    public Page<Oferta> buscarConFiltrosGeograficos(String categoria, String tienda,
+            Double precioMin, Double precioMax,
+            String busqueda, Boolean soloActivas,
+            String sortField, String sortDir,
+            Integer actorId, Integer currentUserId,
+            Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Pageable pageable) {
+        boolean solo = Boolean.TRUE.equals(soloActivas);
+        String columna = sanitizarSort(sortField);
+        Sort sort = "asc".equalsIgnoreCase(sortDir)
+                ? Sort.by(Sort.Direction.ASC, columna)
+                : Sort.by(Sort.Direction.DESC, columna);
+        pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+
+        return ofertaRepository.buscarConFiltrosGeograficos(
+                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
+                bloqueoService.getRelacionesBloqueo(currentUserId), 
+                minLat, maxLat, minLng, maxLng, pageable);
     }
 
     public Page<Oferta> buscarConFiltros(String categoria, String tienda,
@@ -232,9 +253,10 @@ public class OfertaService {
             Integer actorId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Direction.DESC, "fecha_publicacion"));
-        return ofertaRepository.buscarConFiltros(
+        return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, 
-                bloqueoService.getRelacionesBloqueo(null), pageable);
+                bloqueoService.getRelacionesBloqueo(null), 
+                null, null, null, null, pageable);
     }
 
     // ── Interacciones ────────────────────────────────────────────────────

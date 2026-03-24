@@ -75,6 +75,14 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
           OR o.actor_id = CAST(:actorId AS NUMERIC))
         AND
         (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
+        AND
+        (CAST(:minLat AS NUMERIC) IS NULL OR o.latitude >= CAST(:minLat AS NUMERIC))
+        AND
+        (CAST(:maxLat AS NUMERIC) IS NULL OR o.latitude <= CAST(:maxLat AS NUMERIC))
+        AND
+        (CAST(:minLng AS NUMERIC) IS NULL OR o.longitude >= CAST(:minLng AS NUMERIC))
+        AND
+        (CAST(:maxLng AS NUMERIC) IS NULL OR o.longitude <= CAST(:maxLng AS NUMERIC))
       """, countQuery = """
       SELECT COUNT(*) FROM oferta o
       LEFT JOIN categoria c ON c.id = o.categoria_id
@@ -101,8 +109,16 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
           OR o.actor_id = CAST(:actorId AS NUMERIC))
         AND
         (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
+        AND
+        (CAST(:minLat AS NUMERIC) IS NULL OR o.latitude >= CAST(:minLat AS NUMERIC))
+        AND
+        (CAST(:maxLat AS NUMERIC) IS NULL OR o.latitude <= CAST(:maxLat AS NUMERIC))
+        AND
+        (CAST(:minLng AS NUMERIC) IS NULL OR o.longitude >= CAST(:minLng AS NUMERIC))
+        AND
+        (CAST(:maxLng AS NUMERIC) IS NULL OR o.longitude <= CAST(:maxLng AS NUMERIC))
       """, nativeQuery = true)
-  Page<Oferta> buscarConFiltros(
+  Page<Oferta> buscarConFiltrosGeograficos(
       @Param("categoria") String categoria,
       @Param("tienda") String tienda,
       @Param("precioMin") Double precioMin,
@@ -111,6 +127,10 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       @Param("soloActivas") boolean soloActivas,
       @Param("actorId") Integer actorId,
       @Param("excludedActorIds") List<Integer> excludedActorIds,
+      @Param("minLat") Double minLat,
+      @Param("maxLat") Double maxLat,
+      @Param("minLng") Double minLng,
+      @Param("maxLng") Double maxLng,
       Pageable pageable);
 
   @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY (o.sparkCount - o.dripCount) DESC")

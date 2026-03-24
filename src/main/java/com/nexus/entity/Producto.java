@@ -59,6 +59,8 @@ public class Producto extends DomainEntity {
     private Double  precioEnvio    = 0.0;
     private Boolean precioNegociable = false;
     private String  ubicacion;
+    private Double  latitude;
+    private Double  longitude;
 
     @Column(name = "numero_vistas", nullable = false)
     private int numeroVistas = 0;
@@ -179,6 +181,12 @@ public class Producto extends DomainEntity {
 
     public String           getUbicacion()                      { return ubicacion; }
     public void             setUbicacion(String u)              { this.ubicacion = u; }
+
+    public Double           getLatitude()                       { return latitude; }
+    public void             setLatitude(Double l)               { this.latitude = l; }
+
+    public Double           getLongitude()                      { return longitude; }
+    public void             setLongitude(Double l)              { this.longitude = l; }
 
     public String           getImagenPrincipal()                { return imagenPrincipal; }
     public void             setImagenPrincipal(String i)        { this.imagenPrincipal = i; }

@@ -73,11 +73,32 @@ public class VehiculoService {
             Integer numeroPuertas, Integer plazas, Boolean garantia, Boolean itv,
             Pageable pageable) {
 
-        return vehiculoRepository.buscarPaginado(
+        return vehiculoRepository.buscarPaginadoGeografico(
             tipo, marca, modelo, precioMin, precioMax,
             anioMin, anioMax, kmMax, combustible, cambio,
             busqueda, potenciaMin, cilindradaMin, color,
-            numeroPuertas, plazas, garantia, itv, pageable
+            numeroPuertas, plazas, garantia, itv, 
+            null, null, null, null, pageable
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Vehiculo> buscarPaginadoGeografico(
+            TipoVehiculo tipo, String marca, String modelo,
+            Double precioMin, Double precioMax,
+            Integer anioMin, Integer anioMax, Integer kmMax,
+            TipoCombustible combustible, String cambio, String busqueda,
+            Integer potenciaMin, Integer cilindradaMin, String color,
+            Integer numeroPuertas, Integer plazas, Boolean garantia, Boolean itv,
+            Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Pageable pageable) {
+
+        return vehiculoRepository.buscarPaginadoGeografico(
+            tipo, marca, modelo, precioMin, precioMax,
+            anioMin, anioMax, kmMax, combustible, cambio,
+            busqueda, potenciaMin, cilindradaMin, color,
+            numeroPuertas, plazas, garantia, itv, 
+            minLat, maxLat, minLng, maxLng, pageable
         );
     }
 

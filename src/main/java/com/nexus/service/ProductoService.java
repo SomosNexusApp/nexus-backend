@@ -60,6 +60,7 @@ public class ProductoService {
             String ubicacion,
             Integer vendedorId,
             Integer currentUserId,
+            Double minLat, Double maxLat, Double minLng, Double maxLng,
             Pageable pageable) {
 
         // Expandir el término con sinónimos
@@ -75,7 +76,8 @@ public class ProductoService {
                 precioMin,
                 precioMax,
                 vendedorId,
-                bloqueoService.getRelacionesBloqueo(currentUserId));
+                bloqueoService.getRelacionesBloqueo(currentUserId),
+                minLat, maxLat, minLng, maxLng);
 
         return productoRepository.findAll(spec, pageable);
     }
@@ -91,7 +93,8 @@ public class ProductoService {
             Pageable pageable) {
 
         return buscarConFiltrosPaginado(
-                categoria, null, precioMin, precioMax, null, busqueda, null, null, currentUserId, pageable);
+                categoria, null, precioMin, precioMax, null, busqueda, null, null, currentUserId, 
+                null, null, null, null, pageable);
     }
 
     // ── Escrituras ────────────────────────────────────────────────────────────

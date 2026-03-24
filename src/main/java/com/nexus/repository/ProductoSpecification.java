@@ -15,7 +15,8 @@ public class ProductoSpecification {
             Double precioMin,
             Double precioMax,
             Integer vendedorId,
-            List<Integer> excludedVendedorIds) {
+            List<Integer> excludedVendedorIds,
+            Double minLat, Double maxLat, Double minLng, Double maxLng) {
 
         return (root, query, cb) -> {
 
@@ -71,6 +72,14 @@ public class ProductoSpecification {
             // ── Bloqueos ──────────────────────────────────────────────────
             if (excludedVendedorIds != null && !excludedVendedorIds.isEmpty()) {
                 where.add(cb.not(root.get("vendedor").get("id").in(excludedVendedorIds)));
+            }
+
+            // ── Geografía ─────────────────────────────────────────────────
+            if (minLat != null && maxLat != null) {
+                where.add(cb.between(root.get("latitude"), minLat, maxLat));
+            }
+            if (minLng != null && maxLng != null) {
+                where.add(cb.between(root.get("longitude"), minLng, maxLng));
             }
 
             return cb.and(where.toArray(new Predicate[0]));

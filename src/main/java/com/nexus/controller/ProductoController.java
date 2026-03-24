@@ -85,7 +85,8 @@ public class ProductoController {
         // Solo pasamos al service los que realmente usa el buscador de productos
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
                 categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
-                vendedorId != null ? null : (int) 0, // Placeholder if we don't have authenticated user easily here
+                vendedorId != null ? vendedorId : 0, 
+                null, null, null, null,
                 PageRequest.of(page, size));
 
         return ResponseEntity.ok(Map.of(

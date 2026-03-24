@@ -167,7 +167,16 @@ public class SecurityConfiguration {
                                                 .requestMatchers(HttpMethod.GET, "/votos/**", "/api/spark-votos/**")
                                                 .permitAll()
 
-                                                // BLOQUE 14 – SOLO ADMIN
+                                                 // BLOQUE 14 – BÚSQUEDA UNIFICADA (Público)
+                                                 .requestMatchers(HttpMethod.GET, "/market/**", "/api/market/**").permitAll()
+
+                                                 // BLOQUE 16 – FAVORITOS (Público para lectura, Auth para escritura)
+                                                 .requestMatchers(HttpMethod.GET, "/api/favoritos/usuario/**", "/favoritos/usuario/**")
+                                                 .permitAll()
+                                                 .requestMatchers("/favorito/**", "/api/favoritos/**")
+                                                 .authenticated()
+
+                                                // BLOQUE 15 – SOLO ADMIN
                                                 .requestMatchers("/admin/**", "/api/admin/**")
                                                 .hasAuthority("ROLE_ADMIN")
                                                 .requestMatchers("/api/moderation/**").hasAuthority("ROLE_ADMIN")

@@ -56,7 +56,11 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
             "AND (:numeroPuertas IS NULL OR v.numeroPuertas = :numeroPuertas) " +
             "AND (:plazas        IS NULL OR v.plazas        = :plazas) " +
             "AND (:garantia      IS NULL OR v.garantia      = :garantia) " +
-            "AND (:itv           IS NULL OR v.itv           = :itv)",
+            "AND (:itv           IS NULL OR v.itv           = :itv) " +
+            "AND (:minLat        IS NULL OR v.latitude      >= :minLat) " +
+            "AND (:maxLat        IS NULL OR v.latitude      <= :maxLat) " +
+            "AND (:minLng        IS NULL OR v.longitude     >= :minLng) " +
+            "AND (:maxLng        IS NULL OR v.longitude     <= :maxLng)",
 
         countQuery =
             "SELECT COUNT(DISTINCT v) FROM Vehiculo v " +
@@ -80,9 +84,13 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
             "AND (:numeroPuertas IS NULL OR v.numeroPuertas = :numeroPuertas) " +
             "AND (:plazas        IS NULL OR v.plazas        = :plazas) " +
             "AND (:garantia      IS NULL OR v.garantia      = :garantia) " +
-            "AND (:itv           IS NULL OR v.itv           = :itv)"
+            "AND (:itv           IS NULL OR v.itv           = :itv) " +
+            "AND (:minLat        IS NULL OR v.latitude      >= :minLat) " +
+            "AND (:maxLat        IS NULL OR v.latitude      <= :maxLat) " +
+            "AND (:minLng        IS NULL OR v.longitude     >= :minLng) " +
+            "AND (:maxLng        IS NULL OR v.longitude     <= :maxLng)"
     )
-    Page<Vehiculo> buscarPaginado(
+    Page<Vehiculo> buscarPaginadoGeografico(
             @Param("tipo")          TipoVehiculo     tipo,
             @Param("marca")         String           marca,
             @Param("modelo")        String           modelo,
@@ -101,6 +109,10 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
             @Param("plazas")        Integer          plazas,
             @Param("garantia")      Boolean          garantia,
             @Param("itv")           Boolean          itv,
+            @Param("minLat")        Double           minLat,
+            @Param("maxLat")        Double           maxLat,
+            @Param("minLng")        Double           minLng,
+            @Param("maxLng")        Double           maxLng,
             Pageable pageable);
 
     /**
