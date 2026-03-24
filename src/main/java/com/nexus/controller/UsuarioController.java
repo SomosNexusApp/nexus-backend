@@ -440,16 +440,30 @@ public class UsuarioController {
         Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
         Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
 
+        // 1. Verificar si es un usuario social (Google/Facebook)
+        if (u.getGoogleId() != null || u.getFacebookId() != null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Las cuentas vinculadas a Google o Facebook gestionan su contraseña en el proveedor externo."));
+        }
+
         String pwdActual = payload.get("passwordActual");
         String newPwd = payload.get("passwordNueva");
 
-        if (!passwordEncoder.matches(pwdActual, u.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña actual incorrecta"));
+        // 2. Validar contraseña actual
+        if (pwdActual == null || !passwordEncoder.matches(pwdActual, u.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "La contraseña actual es incorrecta."));
+        }
+
+        // 3. Validar longitud mínima
+        if (newPwd == null || newPwd.length() < 8) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "La nueva contraseña debe tener al menos 8 caracteres."));
         }
 
         u.setPassword(passwordEncoder.encode(newPwd));
         usuarioService.save(u);
-        return ResponseEntity.ok(Map.of("mensaje", "Contraseña modificada exitosamente"));
+        return ResponseEntity.ok(Map.of("mensaje", "Contraseña modificada exitosamente."));
     }
 
     // ── SEGURIDAD: 2FA (GOOGLE AUTHENTICATOR & EMAIL) ──
