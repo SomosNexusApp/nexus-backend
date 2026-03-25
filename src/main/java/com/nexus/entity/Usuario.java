@@ -44,8 +44,6 @@ public class Usuario extends Actor {
     @Column
     private LocalDateTime fechaAceptacionTerminos;
 
-    @Column(name = "stripe_customer_id")
-    private String stripeCustomerId;
 
     // CAMPOS EXISTENTES REVISADOS ---------------------------------------
     @Column(nullable = false)
@@ -191,13 +189,6 @@ public class Usuario extends Actor {
         this.fechaAceptacionTerminos = d;
     }
 
-    public String getStripeCustomerId() {
-        return stripeCustomerId;
-    }
-
-    public void setStripeCustomerId(String stripeCustomerId) {
-        this.stripeCustomerId = stripeCustomerId;
-    }
 
     public double getReputacion() {
         return reputacion;

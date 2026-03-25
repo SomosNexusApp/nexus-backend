@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.Actor;
+import com.nexus.entity.EstadoOferta;
 import com.nexus.entity.Oferta;
 import com.nexus.repository.ActorRepository;
 import com.nexus.service.ModerationService;

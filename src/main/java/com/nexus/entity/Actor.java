@@ -58,6 +58,9 @@ public abstract class Actor extends DomainEntity {
     @Embedded
     private ActorNotificacionConfig notificacionConfig = new ActorNotificacionConfig();
 
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
     @PrePersist
     protected void onActorCreate() {
         if (fechaRegistro == null)
@@ -172,6 +175,14 @@ public abstract class Actor extends DomainEntity {
 
     public void setFechaRegistro(LocalDateTime f) {
         this.fechaRegistro = f;
+    }
+
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
     }
 
     public ActorNotificacionConfig getNotificacionConfig() {

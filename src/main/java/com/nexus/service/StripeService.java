@@ -15,7 +15,7 @@ import com.stripe.model.PaymentMethodCollection;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.SetupIntentCreateParams;
 import com.stripe.param.PaymentMethodListParams;
-import com.nexus.entity.Usuario;
+import com.nexus.entity.Actor;
 
 import jakarta.annotation.PostConstruct;
 
@@ -105,18 +105,18 @@ public class StripeService {
         }
     }
 
-    public Customer getOrCreateCustomer(Usuario usuario) throws Exception {
+    public Customer getOrCreateCustomer(Actor actor) throws Exception {
         validarConfig();
-        if (usuario.getStripeCustomerId() != null && !usuario.getStripeCustomerId().isEmpty()) {
-            return Customer.retrieve(usuario.getStripeCustomerId());
+        if (actor.getStripeCustomerId() != null && !actor.getStripeCustomerId().isEmpty()) {
+            return Customer.retrieve(actor.getStripeCustomerId());
         }
 
         CustomerCreateParams params = CustomerCreateParams.builder()
-                .setEmail(usuario.getEmail())
-                .setName(usuario.getNombre() + " " + usuario.getApellidos())
+                .setEmail(actor.getEmail())
+                .setName(actor.getNombre() + " " + actor.getApellidos())
                 .build();
         Customer customer = Customer.create(params);
-        usuario.setStripeCustomerId(customer.getId());
+        actor.setStripeCustomerId(customer.getId());
         return customer;
     }
 

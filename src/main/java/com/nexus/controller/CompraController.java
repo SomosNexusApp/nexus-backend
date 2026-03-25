@@ -158,10 +158,10 @@ public class CompraController {
             @RequestParam(required = false) String transportista) {
 
         Optional<Producto> p = productoService.findById(productoId);
-        Optional<Usuario> u = usuarioService.findById(compradorId);
+        Optional<Actor> a = actorRepository.findById(compradorId);
 
-        if (p.isEmpty() || u.isEmpty()) {
-            return ResponseEntity.badRequest().body("Producto o Comprador no válidos");
+        if (p.isEmpty() || a.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Producto o Comprador no válidos"));
         }
         if (p.get().getEstadoProducto() != EstadoProducto.DISPONIBLE) {
             return ResponseEntity.badRequest().body(Map.of("error", "El producto ya no está disponible"));
@@ -213,11 +213,11 @@ public class CompraController {
             String idempotencyKey = "intent_" + compradorId + "_" + productoId + "_" + System.currentTimeMillis();
 
             PaymentIntent intent = stripeService.crearIntentoPago(
-                    totalCobrar, "Nexus: " + p.get().getTitulo(), idempotencyKey, u.get().getStripeCustomerId());
+                    totalCobrar, "Nexus: " + p.get().getTitulo(), idempotencyKey, a.get().getStripeCustomerId());
 
             // Compra PENDIENTE
             Compra compra = new Compra();
-            compra.setComprador(u.get());
+            compra.setComprador(a.get());
             compra.setProducto(p.get());
             compra.setFechaCompra(LocalDateTime.now());
             compra.setEstado(EstadoCompra.PENDIENTE);

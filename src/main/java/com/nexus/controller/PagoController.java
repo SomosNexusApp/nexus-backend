@@ -1,6 +1,6 @@
 package com.nexus.controller;
 
-import com.nexus.entity.Usuario;
+import com.nexus.entity.Actor;
 import com.nexus.repository.ActorRepository;
 import com.nexus.service.StripeService;
 import com.stripe.model.Customer;
@@ -26,18 +26,18 @@ public class PagoController {
     @Autowired
     private ActorRepository actorRepository;
 
-    @PostMapping("/{usuarioId}/setup-intent")
+    @PostMapping("/{actorId}/setup-intent")
     @Operation(summary = "Crear un SetupIntent para añadir una tarjeta")
-    public ResponseEntity<?> createSetupIntent(@PathVariable Integer usuarioId) {
+    public ResponseEntity<?> createSetupIntent(@PathVariable Integer actorId) {
         try {
-            Optional<com.nexus.entity.Actor> opt = actorRepository.findById(usuarioId);
-            if (opt.isEmpty() || !(opt.get() instanceof Usuario)) {
+            Optional<Actor> opt = actorRepository.findById(actorId);
+            if (opt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            Usuario usuario = (Usuario) opt.get();
+            Actor actor = opt.get();
 
-            Customer customer = stripeService.getOrCreateCustomer(usuario);
-            actorRepository.save(usuario); // Guardar si se creó un customer_id nuevo
+            Customer customer = stripeService.getOrCreateCustomer(actor);
+            actorRepository.save(actor); // Guardar si se creó un customer_id nuevo
 
             SetupIntent intent = stripeService.createSetupIntent(customer.getId());
             return ResponseEntity.ok(Map.of("clientSecret", intent.getClientSecret()));
@@ -46,20 +46,20 @@ public class PagoController {
         }
     }
 
-    @GetMapping("/{usuarioId}/metodos")
+    @GetMapping("/{actorId}/metodos")
     @Operation(summary = "Listar métodos de pago guardados")
-    public ResponseEntity<?> getMetodos(@PathVariable Integer usuarioId) {
+    public ResponseEntity<?> getMetodos(@PathVariable Integer actorId) {
         try {
-            Optional<com.nexus.entity.Actor> opt = actorRepository.findById(usuarioId);
-            if (opt.isEmpty() || !(opt.get() instanceof Usuario)) {
+            Optional<Actor> opt = actorRepository.findById(actorId);
+            if (opt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            Usuario usuario = (Usuario) opt.get();
+            Actor actor = opt.get();
 
-            if (usuario.getStripeCustomerId() == null) {
+            if (actor.getStripeCustomerId() == null) {
                 return ResponseEntity.ok(Map.of("data", new java.util.ArrayList<>()));
             }
-            PaymentMethodCollection pmc = stripeService.getPaymentMethods(usuario.getStripeCustomerId());
+            PaymentMethodCollection pmc = stripeService.getPaymentMethods(actor.getStripeCustomerId());
             return ResponseEntity.ok(Map.of("data", pmc.getData()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

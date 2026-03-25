@@ -343,6 +343,27 @@ public class UsuarioController {
         }
     }
 
+    @PatchMapping("/me/direccion")
+    @Operation(summary = "Actualizar dirección de envío por defecto")
+    public ResponseEntity<?> updateDireccion(@RequestBody com.nexus.entity.DireccionEnvio direccion) {
+        try {
+            Actor actor = jwtUtils.userLogin();
+            if (actor == null)
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+            Usuario u = usuarioService.findById(actor.getId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            u.setDireccionPorDefecto(direccion);
+            usuarioService.save(u);
+            
+            return ResponseEntity.ok(Map.of("mensaje", "Dirección actualizada correctamente"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
     @GetMapping("/me/datos-personales")
     @Operation(summary = "Descargar todos los datos del usuario (GDPR)")
     public ResponseEntity<?> descargarDatos() {

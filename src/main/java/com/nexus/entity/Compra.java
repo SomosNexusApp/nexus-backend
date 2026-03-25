@@ -18,7 +18,7 @@ public class Compra extends DomainEntity {
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler",
             "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
             "cuentaEliminada", "cuentaVerificada" })
-    private Usuario comprador;
+    private Actor comprador;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id", nullable = false)
@@ -71,11 +71,11 @@ public class Compra extends DomainEntity {
             estado = EstadoCompra.PENDIENTE;
     }
 
-    public Usuario getComprador() {
+    public Actor getComprador() {
         return comprador;
     }
 
-    public void setComprador(Usuario c) {
+    public void setComprador(Actor c) {
         this.comprador = c;
     }
 

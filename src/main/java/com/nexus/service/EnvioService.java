@@ -20,6 +20,8 @@ public class EnvioService {
     @Autowired
     private CompraRepository compraRepository;
     @Autowired
+    private ActorRepository actorRepository;
+    @Autowired
     private StripeService stripeService;
     @Autowired
     private ShippingPriceService shippingPriceService;
@@ -247,9 +249,11 @@ public class EnvioService {
         compra.getProducto().setEstadoProducto(EstadoProducto.VENDIDO);
         compraRepository.save(compra);
 
-        // Aumentar reputación del vendedor
-        Usuario vendedor = (Usuario) compra.getProducto().getPublicador();
-        vendedor.setReputacion(vendedor.getReputacion() + 1);
+        // Aumentar reputación del vendedor (si es Usuario particular)
+        if (compra.getProducto().getPublicador() instanceof Usuario vendedor) {
+            vendedor.setReputacion(vendedor.getReputacion() + 1);
+            actorRepository.save(vendedor);
+        }
     }
 
     private void notificarEnChat(Compra compra, String texto) {
