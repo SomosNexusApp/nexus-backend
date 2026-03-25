@@ -176,8 +176,9 @@ public class UsuarioController {
             }
 
             // Eliminar avatar anterior si no es el por defecto
-            if (!usuario.getAvatar().contains("avatar-default")) {
-                storageService.eliminarImagen(usuario.getAvatar());
+            String avatarActual = usuario.getAvatar();
+            if (avatarActual != null && !avatarActual.contains("avatar-default")) {
+                storageService.eliminarImagen(avatarActual);
             }
 
             // Guardar nueva URL en BD
@@ -412,8 +413,9 @@ public class UsuarioController {
             Usuario usuario = usuarioOptional.get();
 
             // Eliminar avatar de Cloudinary si no es el por defecto
-            if (!usuario.getAvatar().contains("avatar-default")) {
-                storageService.eliminarImagen(usuario.getAvatar());
+            String avatarActual = usuario.getAvatar();
+            if (avatarActual != null && !avatarActual.contains("avatar-default")) {
+                storageService.eliminarImagen(avatarActual);
             }
 
             usuarioService.delete(id);
