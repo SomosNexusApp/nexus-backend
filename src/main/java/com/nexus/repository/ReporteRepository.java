@@ -16,7 +16,7 @@ import java.util.List;
  *   findByTipo(TipoReporte)      line 34
  */
 @Repository
-public interface ReporteRepository extends JpaRepository<Reporte, Long> {
+public interface ReporteRepository extends JpaRepository<Reporte, Integer> {
 
     List<Reporte> findByEstado(EstadoReporte estado);
 
@@ -27,8 +27,8 @@ public interface ReporteRepository extends JpaRepository<Reporte, Long> {
     List<Reporte> findByEstadoOrderByFechaDesc(EstadoReporte estado);
 
     // ── Admin panel ───────────────────────────────────────────────────────────
-    Page<Reporte> findByEstado(Reporte.EstadoReporte estado, Pageable pageable);
+    Page<Reporte> findByEstado(EstadoReporte estado, Pageable pageable);
 
-    @Query("SELECT COUNT(r) FROM Reporte r WHERE CAST(r.estado AS string) = :estado")
-    long countByEstado(@Param("estado") String estado);
+    @Query("SELECT COUNT(r) FROM Reporte r WHERE r.estado = :estado")
+    long countByEstado(@Param("estado") EstadoReporte estado);
 }

@@ -42,9 +42,8 @@ public class SecurityConfiguration {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOriginPatterns(List.of(
-                                "http://localhost:4200",
-                                "https://localhost:4200",
-                                "http://localhost:4300",
+                                "http://localhost:*",
+                                "https://localhost:*",
                                 "https://*.nexus.app",
                                 "https://nexus.app"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -87,7 +86,8 @@ public class SecurityConfiguration {
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                                                 .permitAll()
-                                                .requestMatchers("/auth/me").authenticated()
+                                                .requestMatchers("/auth/login", "/auth/registro", "/api/auth/login", "/api/auth/verify-2fa").permitAll()
+                                                .requestMatchers("/auth/me", "/api/auth/me").authenticated()
                                                 .requestMatchers("/auth/**", "/api/auth/**").permitAll()
 
                                                 // BLOQUE 1 – INFRAESTRUCTURA

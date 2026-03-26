@@ -23,9 +23,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @RestController
 @RequestMapping("/admin")
 @Tag(name = "Administradores", description = "Gestión de administradores")
+@Transactional(readOnly = true)
 public class AdminController {
 	@Autowired
 	private AdminService adminService;
@@ -50,6 +53,7 @@ public class AdminController {
 	
 	@PostMapping
 	@Operation(summary = "Crear administrador")
+	@Transactional
 	public ResponseEntity<String> save(@RequestBody Admin admin) {
 		adminService.save(admin);
 		return ResponseEntity.status(HttpStatus.OK).body("Administrador creado correctamente");
@@ -57,6 +61,7 @@ public class AdminController {
 	
 	@PutMapping("/{id}")
 	@Operation(summary = "Actualizar administrador")
+	@Transactional
 	public ResponseEntity<String> update(@PathVariable Integer id, @RequestBody Admin admin) {
 		if (adminService.update(id, admin) != null) {
 			return ResponseEntity.status(HttpStatus.OK).body("Administrador actualizado correctamente");
@@ -66,6 +71,7 @@ public class AdminController {
 	
 	@DeleteMapping("/{id}")
 	@Operation(summary = "Eliminar administrador")
+	@Transactional
 	public ResponseEntity<String> delete(@PathVariable Integer id) {
 		Optional<Admin> oAdmin = adminService.findById(id);
 		

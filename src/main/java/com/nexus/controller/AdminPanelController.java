@@ -1,8 +1,6 @@
 package com.nexus.controller;
 
-import com.nexus.entity.AuditLog;
-import com.nexus.entity.Reporte;
-import com.nexus.entity.Usuario;
+import com.nexus.entity.*;
 import com.nexus.repository.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,17 +11,22 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
+@Transactional(readOnly = true)
 public class AdminPanelController {
 
+    @Autowired private ActorRepository actorRepo;
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private ReporteRepository reporteRepo;
     @Autowired private CompraRepository compraRepo;
+    @Autowired private ProductoRepository productoRepo;
+    @Autowired private OfertaRepository ofertaRepo;
     @Autowired private AuditLogRepository auditLogRepo;
 
     // ════════════════════════════════ SISTEMA ════════════════════════════════
@@ -46,15 +49,15 @@ public class AdminPanelController {
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("usuariosTotal", usuarioRepo.count());
         res.put("usuariosDelta", 0);
-        res.put("productosActivos", 0);
+        res.put("productosActivos", productoRepo.countByEstado(EstadoProducto.DISPONIBLE));
         res.put("productosDelta", 0);
-        res.put("ofertasActivas", 0);
+        res.put("ofertasActivas", ofertaRepo.countByEstado(EstadoOferta.ACTIVA));
         res.put("ofertasDelta", 0);
         res.put("comprasHoy", 0);
         res.put("comprasDelta", 0);
         res.put("revenueMes", 0.0);
         res.put("revenueDelta", 0);
-        res.put("reportesPendientes", reporteRepo.countByEstado("PENDIENTE"));
+        res.put("reportesPendientes", reporteRepo.countByEstado(EstadoReporte.PENDIENTE));
         res.put("reportesDelta", 0);
         return ResponseEntity.ok(res);
     }
@@ -118,55 +121,75 @@ public class AdminPanelController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        Page<Usuario> paged = usuarioRepo.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
+        Page<Actor> paged = actorRepo.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
         List<Object> content = paged.stream().map(this::mapUsuario).map(m -> (Object) m).toList();
         return ResponseEntity.ok(buildPage(content, paged));
     }
 
     @GetMapping("/usuarios/{id}")
     public ResponseEntity<Object> getUsuario(@PathVariable Integer id) {
-        return usuarioRepo.findById(id)
+        return actorRepo.findById(id)
             .map(u -> ResponseEntity.ok((Object) mapUsuario(u)))
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/reportes/{id}/verificar")
+    @Transactional
+    public ResponseEntity<Void> verificarReporte(@PathVariable Integer id, @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
+        var r = reporteRepo.findById(id).orElseThrow();
+        r.setEstado(EstadoReporte.RESUELTO);
+        reporteRepo.save(r);
+        audit(ud, "VERIFICAR_REPORTE", "REPORTE", id.longValue(), "Reporte verificado", req);
+        return ResponseEntity.ok().build();
+    }
+
     @PatchMapping("/usuarios/{id}/verificar")
+    @Transactional
     public ResponseEntity<Void> verificar(@PathVariable Integer id, @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = usuarioRepo.findById(id).orElseThrow();
+        var u = actorRepo.findById(id).orElseThrow();
         u.setCuentaVerificada(true);
-        usuarioRepo.save(u);
+        actorRepo.save(u);
         audit(ud, "VERIFICAR_USUARIO", "USUARIO", id.longValue(), "Usuario verificado", req);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/usuarios/{id}/suspender")
+    @Transactional
     public ResponseEntity<Void> suspender(@PathVariable Integer id, @RequestBody Map<String, Object> body,
                                           @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = usuarioRepo.findById(id).orElseThrow();
+        var u = actorRepo.findById(id).orElseThrow();
         int horas = Integer.parseInt(body.get("duracionHoras").toString());
         u.setSuspendidoHasta(LocalDateTime.now().plusHours(horas));
         u.setMotivoSuspension(body.get("motivo").toString());
-        usuarioRepo.save(u);
+        actorRepo.save(u);
         audit(ud, "SUSPENDER_USUARIO", "USUARIO", id.longValue(), horas + "h: " + body.get("motivo"), req);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/usuarios/{id}/banear")
+    @Transactional
     public ResponseEntity<Void> banear(@PathVariable Integer id, @RequestBody Map<String, Object> body,
                                        @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = usuarioRepo.findById(id).orElseThrow();
-        u.setBaneado(true); u.setMotivoBan(body.get("motivo").toString());
-        usuarioRepo.save(u);
+        var u = actorRepo.findById(id).orElseThrow();
+        u.setBaneado(true);
+        u.setMotivoBan(body.get("motivo").toString());
+        actorRepo.save(u);
         audit(ud, "BANEAR_USUARIO", "USUARIO", id.longValue(), body.get("motivo").toString(), req);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/usuarios/{id}/desbanear")
+    @Transactional
     public ResponseEntity<Void> desbanear(@PathVariable Integer id, @RequestBody Map<String, Object> body,
                                           @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = usuarioRepo.findById(id).orElseThrow();
-        u.setBaneado(false); u.setMotivoBan(null); u.setSuspendidoHasta(null); u.setMotivoSuspension(null);
-        usuarioRepo.save(u);
+        var u = actorRepo.findById(id).orElseThrow();
+        if (u instanceof Usuario) {
+            ((Usuario) u).setBaneado(false);
+            ((Usuario) u).setMotivoBan(null);
+        }
+        u.setSuspendidoHasta(null);
+        u.setMotivoSuspension(null);
+        actorRepo.save(u);
         audit(ud, "DESBANEAR_USUARIO", "USUARIO", id.longValue(), body.getOrDefault("motivo", "").toString(), req);
         return ResponseEntity.ok().build();
     }
@@ -196,7 +219,7 @@ public class AdminPanelController {
     ) {
         var pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
         Page<Reporte> paged = (estado != null)
-            ? reporteRepo.findByEstado(Reporte.EstadoReporte.valueOf(estado), pageable)
+            ? reporteRepo.findByEstado(EstadoReporte.valueOf(estado), pageable)
             : reporteRepo.findAll(pageable);
         List<Object> content = paged.stream().map(this::mapReporte).map(m -> (Object) m).toList();
         return ResponseEntity.ok(buildPage(content, paged));
@@ -204,38 +227,40 @@ public class AdminPanelController {
 
     @GetMapping("/reportes/count-pendientes")
     public ResponseEntity<Map<String, Object>> countPendientes() {
-        return ResponseEntity.ok(Map.of("total", reporteRepo.countByEstado("PENDIENTE")));
+        return ResponseEntity.ok(Map.of("total", reporteRepo.countByEstado(EstadoReporte.PENDIENTE)));
     }
 
     @PatchMapping("/reportes/{id}")
-    public ResponseEntity<Void> updateReporte(@PathVariable Long id, @RequestBody Map<String, Object> body,
+    @Transactional
+    public ResponseEntity<Void> updateReporte(@PathVariable Integer id, @RequestBody Map<String, Object> body,
                                                @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var r = reporteRepo.findById(id).orElseThrow();
-        if (body.containsKey("estado")) r.setEstado(Reporte.EstadoReporte.valueOf(body.get("estado").toString()));
+        Reporte r = reporteRepo.findById(id).orElseThrow();
+        if (body.containsKey("estado")) r.setEstado(EstadoReporte.valueOf(body.get("estado").toString()));
         if (body.containsKey("resolucion")) r.setResolucion(body.get("resolucion").toString());
         reporteRepo.save(r);
-        audit(ud, "UPDATE_REPORTE", "REPORTE", r.getId(), body.toString(), req);
+        audit(ud, "UPDATE_REPORTE", "REPORTE", r.getId() != null ? r.getId().longValue() : null, body.toString(), req);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/acciones/suspender-y-resolver")
+    @Transactional
     public ResponseEntity<Void> suspenderYResolver(@RequestBody Map<String, Object> body,
                                                     @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         int uid = Integer.parseInt(body.get("usuarioId").toString());
         int dur = Integer.parseInt(body.get("duracionHoras").toString());
         String mot = body.get("motivo").toString();
-        var u = usuarioRepo.findById(uid).orElseThrow();
+        var u = actorRepo.findById(uid).orElseThrow();
         u.setSuspendidoHasta(LocalDateTime.now().plusHours(dur));
         u.setMotivoSuspension(mot);
-        usuarioRepo.save(u);
+        actorRepo.save(u);
         if (body.containsKey("reporteId")) {
-            long rid = Long.parseLong(body.get("reporteId").toString());
-            var r = reporteRepo.findById(rid).orElseThrow();
-            r.setEstado(Reporte.EstadoReporte.RESUELTO);
+            int rid = Integer.parseInt(body.get("reporteId").toString());
+            Reporte r = reporteRepo.findById(rid).orElseThrow();
+            r.setEstado(EstadoReporte.RESUELTO);
             r.setResolucion("Suspensión " + dur + "h: " + mot);
             reporteRepo.save(r);
         }
-        audit(ud, "SUSPENDER_Y_RESOLVER", "USUARIO", (long) uid, mot, req);
+        audit(ud, "SUSPENDER_Y_RESOLVER", "ACTOR", (long) uid, mot, req);
         return ResponseEntity.ok().build();
     }
 
@@ -244,9 +269,9 @@ public class AdminPanelController {
     @GetMapping("/sanciones")
     public ResponseEntity<Map<String, Object>> sanciones(@RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "20") int size) {
-        Page<Usuario> paged = usuarioRepo.findAll(PageRequest.of(page, size));
+        Page<Actor> paged = actorRepo.findAll(PageRequest.of(page, size));
         List<Object> content = new ArrayList<>();
-        for (Usuario u : paged) {
+        for (Actor u : paged) {
             if (!u.isBaneado() && u.getSuspendidoHasta() == null) continue;
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", u.getId()); m.put("user", u.getUser()); m.put("avatar", u.getAvatar());
@@ -262,7 +287,7 @@ public class AdminPanelController {
 
     @GetMapping("/fraude/flags")
     public ResponseEntity<List<Object>> fraudeFlags() {
-        var list = usuarioRepo.findAll().stream().filter(Usuario::isFlagFraude).map(u -> {
+        var list = actorRepo.findAll().stream().filter(Actor::isFlagFraude).map(u -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", u.getId()); m.put("user", u.getUser()); m.put("avatar", u.getAvatar());
             m.put("motivo", u.getMotivoFlag()); m.put("nReportes", 0); m.put("nVentasFallidas", 0);
@@ -281,10 +306,10 @@ public class AdminPanelController {
     @PatchMapping("/fraude/flags/{userId}/revisado")
     public ResponseEntity<Void> marcarRevisado(@PathVariable Integer userId,
                                                 @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = usuarioRepo.findById(userId).orElseThrow();
+        var u = actorRepo.findById(userId).orElseThrow();
         u.setFlagFraude(false);
-        usuarioRepo.save(u);
-        audit(ud, "FRAUDE_REVISADO", "USUARIO", userId.longValue(), "Flag eliminado", req);
+        actorRepo.save(u);
+        audit(ud, "FRAUDE_REVISADO", "ACTOR", userId.longValue(), "Flag eliminado", req);
         return ResponseEntity.ok().build();
     }
 
@@ -342,25 +367,42 @@ public class AdminPanelController {
         a.setAccion(accion); a.setEntidadTipo(entidad); a.setEntidadId(eid);
         a.setDetalle(detalle); a.setIp(req.getRemoteAddr());
         if (ud != null) {
-            usuarioRepo.findByUsername(ud.getUsername()).ifPresent(u -> {
+            actorRepo.findByUsername(ud.getUsername()).ifPresent(u -> {
                 a.setAdminId(u.getId().longValue()); a.setAdminUser(u.getUser());
             });
+        }
+        // Fallback si no se encontró en ActorRepo (por si acaso)
+        if (a.getAdminUser() == null && ud != null) {
+            a.setAdminUser(ud.getUsername());
+            a.setAdminId(0L); // ID ficticio para evitar el NOT NULL
         }
         auditLogRepo.save(a);
     }
 
-    private Map<String, Object> mapUsuario(Usuario u) {
+    private Map<String, Object> mapUsuario(Actor a) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", u.getId()); m.put("user", u.getUser()); m.put("email", u.getEmail());
-        m.put("nombre", u.getNombre()); m.put("apellidos", u.getApellidos()); m.put("avatar", u.getAvatar());
-        m.put("rol", u.getRol() != null ? u.getRol().name() : null);
-        m.put("tipoCuenta", u.getTipoCuenta() != null ? u.getTipoCuenta().name() : null);
-        m.put("esVerificado", u.isEsVerificado()); m.put("cuentaVerificada", u.isCuentaVerificada());
-        m.put("baneado", u.isBaneado()); m.put("motivoBan", u.getMotivoBan());
-        m.put("suspendidoHasta", u.getSuspendidoHasta()); m.put("motivoSuspension", u.getMotivoSuspension());
-        m.put("flagFraude", u.isFlagFraude()); m.put("motivoFlag", u.getMotivoFlag());
-        m.put("fechaRegistro", u.getFechaRegistro());
-        m.put("totalVentas", 0); m.put("reportesRecibidos", 0); m.put("reputacion", u.getReputacion());
+        m.put("id", a.getId()); m.put("user", a.getUser()); m.put("email", a.getEmail());
+        m.put("nombre", a.getNombre()); m.put("apellidos", a.getApellidos()); m.put("avatar", a.getAvatar());
+        m.put("baneado", a.isBaneado()); m.put("motivoBan", a.getMotivoBan());
+        m.put("suspendidoHasta", a.getSuspendidoHasta()); m.put("motivoSuspension", a.getMotivoSuspension());
+        m.put("flagFraude", a.isFlagFraude()); m.put("motivoFlag", a.getMotivoFlag());
+        m.put("fechaRegistro", a.getFechaRegistro());
+        m.put("cuentaVerificada", a.isCuentaVerificada());
+
+        if (a instanceof Usuario) {
+            Usuario u = (Usuario) a;
+            m.put("rol", "USUARIO");
+            m.put("tipoCuenta", u.getTipoCuenta() != null ? u.getTipoCuenta().name() : null);
+            m.put("esVerificado", u.isEsVerificado());
+            m.put("reputacion", u.getReputacion());
+        } else if (a instanceof Empresa) {
+            m.put("rol", "EMPRESA");
+            m.put("esVerificado", ((Empresa) a).isVerificada());
+        } else if (a instanceof Admin) {
+            m.put("rol", "ADMIN");
+        }
+
+        m.put("totalVentas", 0); m.put("reportesRecibidos", 0);
         return m;
     }
 

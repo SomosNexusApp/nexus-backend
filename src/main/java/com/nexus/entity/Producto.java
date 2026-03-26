@@ -82,6 +82,19 @@ public class Producto extends DomainEntity {
 
     private LocalDateTime fechaPublicacion;
 
+    // ── Campos admin ─────────────────────────────────────────────────────────
+
+    /** Fecha hasta la que el producto está pausado por el admin. Null = no pausado por admin. */
+    private LocalDateTime pausadoHasta;
+
+    /** Motivo de la pausa admin (visible al vendedor). */
+    @Column(columnDefinition = "TEXT")
+    private String motivoPausa;
+
+    /** True = aparece primero en búsquedas y home. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean destacado = false;
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTORES
     // ═══════════════════════════════════════════════════════════════════════
@@ -196,6 +209,15 @@ public class Producto extends DomainEntity {
 
     public LocalDateTime    getFechaPublicacion()               { return fechaPublicacion; }
     public void             setFechaPublicacion(LocalDateTime f){ this.fechaPublicacion = f; }
+
+    public LocalDateTime    getPausadoHasta()                   { return pausadoHasta; }
+    public void             setPausadoHasta(LocalDateTime p)    { this.pausadoHasta = p; }
+
+    public String           getMotivoPausa()                    { return motivoPausa; }
+    public void             setMotivoPausa(String m)            { this.motivoPausa = m; }
+
+    public Boolean          getDestacado()                      { return destacado != null && destacado; }
+    public void             setDestacado(Boolean d)             { this.destacado = d != null ? d : false; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

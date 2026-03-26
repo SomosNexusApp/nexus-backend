@@ -54,6 +54,27 @@ public abstract class Actor extends DomainEntity {
 
     private LocalDateTime fechaRegistro;
 
+    /** Ban permanente */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean baneado = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String motivoBan;
+
+    /** Suspensión temporal — null = no suspendido */
+    @Column(name = "suspendido_hasta")
+    private LocalDateTime suspendidoHasta;
+
+    @Column(name = "motivo_suspension", columnDefinition = "TEXT")
+    private String motivoSuspension;
+
+    /** Fraude flag */
+    @Column(name = "flag_fraude", nullable = false, columnDefinition = "boolean default false")
+    private boolean flagFraude = false;
+
+    @Column(name = "motivo_flag", columnDefinition = "TEXT")
+    private String motivoFlag;
+
     // ---- Notificaciones -------------------------------------------------
     @Embedded
     private ActorNotificacionConfig notificacionConfig = new ActorNotificacionConfig();
@@ -96,7 +117,6 @@ public abstract class Actor extends DomainEntity {
         this.password = p;
     }
 
-    // Getters y Setters NUEVOS
     public String getNombre() {
         return nombre;
     }
@@ -200,4 +220,17 @@ public abstract class Actor extends DomainEntity {
     public void setAvatar(String avatar) {
         this.avatar = avatar;
     }
+
+    public boolean isBaneado()                           { return baneado; }
+    public void    setBaneado(boolean b)                 { this.baneado = b; }
+    public String  getMotivoBan()                        { return motivoBan; }
+    public void    setMotivoBan(String m)                { this.motivoBan = m; }
+    public LocalDateTime getSuspendidoHasta()            { return suspendidoHasta; }
+    public void    setSuspendidoHasta(LocalDateTime d)   { this.suspendidoHasta = d; }
+    public String  getMotivoSuspension()                 { return motivoSuspension; }
+    public void    setMotivoSuspension(String m)         { this.motivoSuspension = m; }
+    public boolean isFlagFraude()                        { return flagFraude; }
+    public void    setFlagFraude(boolean f)              { this.flagFraude = f; }
+    public String  getMotivoFlag()                       { return motivoFlag; }
+    public void    setMotivoFlag(String m)               { this.motivoFlag = m; }
 }

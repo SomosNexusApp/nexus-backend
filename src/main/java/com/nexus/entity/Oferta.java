@@ -59,7 +59,7 @@ public class Oferta extends DomainEntity {
     private String codigoDescuento;
 
     @Schema(description = "Indica si la oferta es online (true) o en tienda física (false)", defaultValue = "true")
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default true")
     private Boolean esOnline = true;
 
     @Schema(description = "Ciudad donde se encuentra la oferta física (solo si esOnline=false)", example = "Madrid")
@@ -69,6 +69,22 @@ public class Oferta extends DomainEntity {
 
     @Schema(description = "Gastos de envío de la oferta. Null = no indicado, 0.0 = gratis", example = "3.99")
     private Double gastosEnvio;
+
+    // ── Campos admin ─────────────────────────────────────────────────────────
+
+    /** True = aparece en el banner principal del chollometro. Máximo 3 simultáneas. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean destacada = false;
+
+    /** True = oferta flash con contador regresivo. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean esFlash = false;
+
+    /** Fecha/hora de fin de la oferta flash. */
+    private LocalDateTime flashFin;
+
+    /** Límite de unidades de la oferta flash (null = sin límite). */
+    private Integer limiteUnidades;
 
     @Transient
     private String miVoto; // 'SPARK', 'DRIP' o 'NONE'
@@ -165,6 +181,18 @@ public class Oferta extends DomainEntity {
 
     public String   getMiVoto()                              { return miVoto; }
     public void     setMiVoto(String v)                      { this.miVoto = v; }
+
+    public Boolean  getDestacada()                           { return destacada != null && destacada; }
+    public void     setDestacada(Boolean d)                  { this.destacada = d != null ? d : false; }
+
+    public Boolean  getEsFlash()                             { return esFlash != null && esFlash; }
+    public void     setEsFlash(Boolean f)                    { this.esFlash = f != null ? f : false; }
+
+    public LocalDateTime getFlashFin()                       { return flashFin; }
+    public void     setFlashFin(LocalDateTime f)             { this.flashFin = f; }
+
+    public Integer  getLimiteUnidades()                      { return limiteUnidades; }
+    public void     setLimiteUnidades(Integer l)             { this.limiteUnidades = l; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

@@ -19,4 +19,20 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
     List<Categoria> findByActivaTrueOrderByNombreAsc();
 
     List<Categoria> findByParentIdAndActivaTrue(Integer parentId);
-}
+
+    // ── Admin ─────────────────────────────────────────────────────────────────
+
+    /** Todas las categorías raíz ordenadas (sin filtro activa). */
+    List<Categoria> findByParentIsNullOrderByOrdenAsc();
+
+    /** Unicidad de slug para validación en tiempo real. */
+    boolean existsBySlug(String slug);
+
+    /** Conteo de productos activos para impedir borrado de categorías con contenido. */
+    @Query("SELECT COUNT(p) FROM Producto p WHERE p.categoria.id = :categoriaId")
+    long countByCategoriaId(Integer categoriaId);
+
+    /** Conteo de ofertas activas por categoría (para stats en árbol). */
+    @Query("SELECT COUNT(o) FROM Oferta o WHERE o.categoria.id = :categoriaId AND o.esActiva = true")
+    long countOfertasActivasByCategoriaId(Integer categoriaId);
+}

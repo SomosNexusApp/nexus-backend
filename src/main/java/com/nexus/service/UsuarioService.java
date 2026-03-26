@@ -194,10 +194,10 @@ public class UsuarioService implements UserDetailsService {
 
     public String obtenerRol(Actor a) {
         if (a instanceof Admin)
-            return "ADMIN";
+            return "ROLE_ADMIN";
         if (a instanceof Empresa)
-            return "EMPRESA";
-        return "USUARIO";
+            return "ROLE_EMPRESA";
+        return "ROLE_USUARIO";
     }
 
     private String codigo6() {

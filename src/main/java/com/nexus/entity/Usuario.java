@@ -103,46 +103,8 @@ public class Usuario extends Actor {
     @Column(name = "bloqueado_id")
     private List<Integer> blockedUserIds = new ArrayList<>();
 
-    // ── CAMPOS ADMIN / MODERACIÓN ──────────────────────────────────────────
-
-    /** Ban permanente */
-    @Column(nullable = false)
-    private boolean baneado = false;
-
-    @Column(columnDefinition = "TEXT")
-    private String motivoBan;
-
-    /** Suspensión temporal — null = no suspendido */
-    @Column(name = "suspendido_hasta")
-    private java.time.LocalDateTime suspendidoHasta;
-
-    @Column(name = "motivo_suspension", columnDefinition = "TEXT")
-    private String motivoSuspension;
-
-    /** Fraude flag */
-    @Column(name = "flag_fraude", nullable = false)
-    private boolean flagFraude = false;
-
-    @Column(name = "motivo_flag", columnDefinition = "TEXT")
-    private String motivoFlag;
-
     public Usuario() {
     }
-
-    // ---- Getters / Setters ADMIN -------------------------------------------
-
-    public boolean isBaneado()                           { return baneado; }
-    public void    setBaneado(boolean b)                 { this.baneado = b; }
-    public String  getMotivoBan()                        { return motivoBan; }
-    public void    setMotivoBan(String m)                { this.motivoBan = m; }
-    public java.time.LocalDateTime getSuspendidoHasta()  { return suspendidoHasta; }
-    public void    setSuspendidoHasta(java.time.LocalDateTime d) { this.suspendidoHasta = d; }
-    public String  getMotivoSuspension()                 { return motivoSuspension; }
-    public void    setMotivoSuspension(String m)         { this.motivoSuspension = m; }
-    public boolean isFlagFraude()                        { return flagFraude; }
-    public void    setFlagFraude(boolean f)              { this.flagFraude = f; }
-    public String  getMotivoFlag()                       { return motivoFlag; }
-    public void    setMotivoFlag(String m)               { this.motivoFlag = m; }
 
     // ---- Getters / Setters -----------------------------------------------
 

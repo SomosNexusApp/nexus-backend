@@ -11,10 +11,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.nexus.entity.BadgeOferta;
+import com.nexus.entity.EstadoOferta;
 import com.nexus.entity.Oferta;
 
 @Repository
 public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
+
+  long countByEstado(EstadoOferta estado);
 
   List<Oferta> findByEsActivaTrue();
 

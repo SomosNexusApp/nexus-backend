@@ -86,7 +86,23 @@ public class JWTUtils {
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .claim("rol", rol)
-                .signWith(getSigningKey()) // Sintaxis moderna (reemplaza a SignatureAlgorithm)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateTokenForUser(Actor actor) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + extensionToken);
+        String rol = "ROLE_USER";
+        if (actor instanceof Admin) rol = "ROLE_ADMIN";
+        else if (actor instanceof Empresa) rol = "ROLE_EMPRESA";
+
+        return Jwts.builder()
+                .setSubject(actor.getUser())
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .claim("rol", rol)
+                .signWith(getSigningKey())
                 .compact();
     }
 

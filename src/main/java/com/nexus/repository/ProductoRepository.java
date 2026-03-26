@@ -19,6 +19,7 @@ public interface ProductoRepository
     List<Producto> findByVendedorIdOrderByFechaPublicacionDesc(Integer id);
 
     List<Producto> findByEstado(EstadoProducto estado);
+    long countByEstado(EstadoProducto estado);
 
     /**
      * Conservamos este método para retrocompatibilidad con código que lo llame directamente.
@@ -61,4 +62,6 @@ public interface ProductoRepository
            "WHERE p.estado = com.nexus.entity.EstadoProducto.DISPONIBLE " +
            "AND p.categoria IS NOT NULL ORDER BY p.categoria.nombre")
     List<String> findCategoriasDistintas();
-}
+
+    long countByCategoriaId(Integer categoriaId);
+}
