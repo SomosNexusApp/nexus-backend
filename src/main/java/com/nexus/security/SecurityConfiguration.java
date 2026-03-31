@@ -87,8 +87,15 @@ public class SecurityConfiguration {
                                                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                                                 .permitAll()
                                                 .requestMatchers("/auth/login", "/auth/registro", "/api/auth/login", "/api/auth/verify-2fa").permitAll()
-                                                .requestMatchers("/auth/me", "/api/auth/me").authenticated()
+                                                .requestMatchers("/api/auth/me").authenticated()
                                                 .requestMatchers("/auth/**", "/api/auth/**").permitAll()
+
+                                                // BLOQUE 0 – ACCESO PÚBLICO GENERAL (PUBLICIDAD Y PERFILES)
+                                                .requestMatchers(HttpMethod.GET, 
+                                                                "/api/public/**", "/public/**",
+                                                                "/usuario/username/**", "/api/usuarios/username/**",
+                                                                "/usuario/*/perfil", "/api/usuarios/*/perfil")
+                                                .permitAll()
 
                                                 // BLOQUE 1 – INFRAESTRUCTURA
                                                 .requestMatchers(
@@ -143,10 +150,15 @@ public class SecurityConfiguration {
                                                 // BLOQUE 10 – PERFIL PÚBLICO
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/usuario/*/perfil", "/usuario/*/valoraciones",
-                                                                "/usuario/*/productos",
+                                                                "/usuario/*/productos", "/usuario/username/*",
                                                                 "/api/usuarios/*/perfil",
                                                                 "/api/usuarios/*/valoraciones",
-                                                                "/api/usuarios/*/productos")
+                                                                "/api/usuarios/*/productos", "/api/usuarios/username/*")
+                                                .permitAll()
+
+                                                // BLOQUE 10.5 - PUBLICIDAD PÚBLICA
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/api/public/publicidad/**", "/public/publicidad/**")
                                                 .permitAll()
 
                                                 // BLOQUE 11 – NEWSLETTER
