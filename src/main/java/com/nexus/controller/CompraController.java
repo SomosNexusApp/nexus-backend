@@ -226,6 +226,7 @@ public class CompraController {
             compra.setCostoEnvio(costoEnvio);
             compra.setComisionNexus(comisionNexus);
             compra.setTransportista(transportista != null ? transportista : "ESTANDAR");
+            compra.setStripePaymentIntentId(intent.getId());
 
             if (tipoEnvio == TipoEnvio.DOMICILIO)
                 compra.setDireccionCompleta(direccionCompleta);

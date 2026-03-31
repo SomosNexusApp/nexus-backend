@@ -28,7 +28,17 @@ public class DatabaseMigrationInitializer {
     @PostConstruct
     public void migrate() {
         addAdminColumns();
+        fixNotificacionEnum();
+        fixSoporteSchema();
         seedAdminUser();
+        seedCategories();
+    }
+
+    private void fixSoporteSchema() {
+        log.info("🔧 Verificando esquema de soporte...");
+        // Añadir columna status con default para evitar error de NOT NULL con filas existentes
+        run("ALTER TABLE soporte_chat_session ADD COLUMN IF NOT EXISTS status VARCHAR(255) NOT NULL DEFAULT 'OPEN'");
+        log.info("✅ Esquema de soporte OK.");
     }
 
     // ── 1. Columnas admin en tabla usuario ────────────────────────────────────
@@ -42,6 +52,12 @@ public class DatabaseMigrationInitializer {
         run("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS flag_fraude      boolean   NOT NULL DEFAULT false");
         run("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS motivo_flag      TEXT");
         log.info("✅ Columnas admin OK.");
+    }
+
+    private void fixNotificacionEnum() {
+        log.info("🔧 Verificando restricciones de enum en 'notificacion_in_app'...");
+        run("ALTER TABLE notificacion_in_app DROP CONSTRAINT IF EXISTS notificacion_in_app_tipo_check");
+        log.info("✅ Restricción de enum eliminada (para permitir nuevos tipos).");
     }
 
     // ── 2. Admin por defecto ──────────────────────────────────────────────────
@@ -68,6 +84,15 @@ public class DatabaseMigrationInitializer {
         } catch (Exception e) {
             log.warn("⚠️  No se pudo crear el admin por defecto: {}", e.getMessage());
         }
+    }
+
+    private void seedCategories() {
+        log.info("🔧 Verificando categorías core...");
+        // Categoría Viajes (Solo para ofertas en el frontend, pero debe existir en DB)
+        run("INSERT INTO categoria (nombre, slug, icono, orden, activa) " +
+            "SELECT 'Viajes', 'viajes', 'plane', 10, true " +
+            "WHERE NOT EXISTS (SELECT 1 FROM categoria WHERE slug = 'viajes')");
+        log.info("✅ Categorías OK.");
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────

@@ -24,7 +24,15 @@ public class CuponValidacionService {
     }
 
     public ValidacionResult validar(AplicarCuponRequest req) {
-        Cupon cupon = cuponRepo.findByCodigo(req.codigo().toUpperCase())
+        if (req == null || req.codigo() == null || req.codigo().isBlank()) {
+            return new ValidacionResult(false, "Debes introducir un código de cupón.", null, null, null);
+        }
+        if (req.usuarioId() == null || req.importeTotal() == null) {
+            return new ValidacionResult(false, "Datos de validación incompletos.", null, null, null);
+        }
+
+        String codigoNormalizado = req.codigo().trim().toUpperCase();
+        Cupon cupon = cuponRepo.findByCodigoIgnoreCase(codigoNormalizado)
                 .orElse(null);
 
         if (cupon == null) {
@@ -102,6 +110,17 @@ public class CuponValidacionService {
                 break;
             case ENVIO_GRATIS:
                 dto = envio != null ? envio : BigDecimal.ZERO;
+                break;
+            case COMBINADO:
+                BigDecimal dtoFijo = cupon.getValorFijo() != null ? cupon.getValorFijo() : BigDecimal.ZERO;
+                BigDecimal dtoPerc = BigDecimal.ZERO;
+                if (cupon.getValorPorcentaje() != null) {
+                    dtoPerc = total.multiply(cupon.getValorPorcentaje()).divide(new BigDecimal("100"));
+                    if (cupon.getTopeMaximo() != null && dtoPerc.compareTo(cupon.getTopeMaximo()) > 0) {
+                        dtoPerc = cupon.getTopeMaximo();
+                    }
+                }
+                dto = dtoFijo.add(dtoPerc);
                 break;
         }
         return dto;

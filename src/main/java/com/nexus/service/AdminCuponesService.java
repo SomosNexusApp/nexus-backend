@@ -52,7 +52,10 @@ public class AdminCuponesService {
             c.setActivo(datos.isActivo());
         } else {
             // Edición completa
+            c.setTipo(datos.getTipo());
             c.setValor(datos.getValor());
+            c.setValorFijo(datos.getValorFijo());
+            c.setValorPorcentaje(datos.getValorPorcentaje());
             c.setImporteMinimo(datos.getImporteMinimo());
             c.setTopeMaximo(datos.getTopeMaximo());
             c.setFechaInicio(datos.getFechaInicio());

@@ -51,6 +51,7 @@ public class ChatMensaje extends DomainEntity {
 
     private LocalDateTime fechaEnvio;
     private Boolean leido = false;
+    private Boolean recibido = false;
     private Double precioPropuesto;
     private String estadoPropuesta;
 
@@ -138,6 +139,14 @@ public class ChatMensaje extends DomainEntity {
 
     public void setLeido(Boolean l) {
         this.leido = l;
+    }
+
+    public Boolean getRecibido() {
+        return recibido;
+    }
+
+    public void setRecibido(Boolean r) {
+        this.recibido = r;
     }
 
     public Double getPrecioPropuesto() {

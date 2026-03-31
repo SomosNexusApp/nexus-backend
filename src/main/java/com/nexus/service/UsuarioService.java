@@ -157,21 +157,65 @@ public class UsuarioService implements UserDetailsService {
         }
 
         Map<String, Object> resultado = new HashMap<>();
-        Optional<Actor> existente = actorRepository.findByEmail(email);
+        
+        // 1. Buscamos por Google ID primero (para manejar reactivaciones de cuentas borradas)
+        Optional<Usuario> existentePorGoogle = usuarioRepository.findByGoogleId(p.getSubject());
+        
+        Actor a = null;
+        if (existentePorGoogle.isPresent()) {
+            a = existentePorGoogle.get();
+        } else {
+            // 2. Si no, buscamos por Email (para vincular cuentas locales existentes)
+            a = actorRepository.findByEmail(email).orElse(null);
+        }
 
-        if (existente.isPresent()) {
-            Actor a = existente.get();
+        if (a != null) {
+            boolean wasDeleted = a.isCuentaEliminada();
+            // Si la cuenta estaba borrada, la "limpiamos" para que parezca nueva
+            if (wasDeleted) {
+                a.setCuentaEliminada(false);
+                a.setEmail(email);
+                a.setTwoFactorEnabled(false);
+                a.setNombre(nombre);
+                a.setApellidos(null);
+                a.setTelefono(null);
+                a.setAvatar(foto);
+                a.setCuentaVerificada(true);
+                
+                if (a instanceof Usuario u) {
+                    u.setTipoCuenta(null);
+                    u.setBiografia(null);
+                    u.setUbicacion(null);
+                    u.setReputacion(0.0);
+                    u.setTotalVentas(0);
+                    u.setEsVerificado(false);
+                    u.setDireccionPorDefecto(null);
+                    u.setTerminosAceptados(false);
+                }
+            }
+            
             // Siempre sincronizamos la foto de Google si el usuario la tiene
             if (foto != null && !foto.trim().isEmpty()) {
-                a.setAvatar(foto);
+                a.setGoogleAvatarUrl(foto);
+                
+                // Si el avatar actual es nulo, por defecto o de ui-avatars, lo actualizamos con la de Google
+                // O si acabamos de reactivar (wasDeleted), forzamos la de Google
+                if (wasDeleted || a.getAvatar() == null || 
+                    a.getAvatar().contains("ui-avatars.com") || 
+                    a.getAvatar().contains("avatar-default")) {
+                    a.setAvatar(foto);
+                }
+                if (a.getAvatarSource() == null) {
+                    a.setAvatarSource("GOOGLE");
+                }
             }
             // Sincronizar ID de Google si es un Usuario y no lo tenía
             if (a instanceof Usuario u && u.getGoogleId() == null) {
-                u.setGoogleId(p.getSubject()); // Subject es el ID único de Google
+                u.setGoogleId(p.getSubject());
             }
             actorRepository.save(a);
             resultado.put("actor", a);
-            resultado.put("esNuevo", false);
+            resultado.put("esNuevo", wasDeleted ? true : false); // Si fue reactivada, cuenta como nueva
         } else {
             // Generar el nombre de usuario base a partir del correo (ej: pepe@gmail.com -> pepe)
             String baseUser = email.contains("@") ? email.substring(0, email.indexOf("@")) : nombre;
@@ -183,6 +227,8 @@ public class UsuarioService implements UserDetailsService {
             nu.setNombre(nombre); // Guardamos su nombre real de Google
             nu.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
             nu.setAvatar(foto);
+            nu.setGoogleAvatarUrl(foto);
+            nu.setAvatarSource("GOOGLE");
             nu.setCuentaVerificada(true); // Las cuentas de Google ya están verificadas por Google
 
             resultado.put("actor", usuarioRepository.save(nu));
@@ -190,6 +236,35 @@ public class UsuarioService implements UserDetailsService {
         }
 
         return resultado;
+    }
+
+    @Transactional
+    public void actualizarAvatarChoice(Integer usuarioId, String choice) {
+        Actor a = actorRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        a.setAvatarSource(choice);
+
+        if ("GOOGLE".equals(choice)) {
+            if (a.getGoogleAvatarUrl() != null) {
+                a.setAvatar(a.getGoogleAvatarUrl());
+            }
+        } else if ("INITIALS".equals(choice)) {
+            String baseName = a.getNombre() != null ? a.getNombre() : a.getUser();
+            try {
+                String initialsUrl = "https://ui-avatars.com/api/?name="
+                        + java.net.URLEncoder.encode(baseName, java.nio.charset.StandardCharsets.UTF_8)
+                        + "&background=random";
+                a.setAvatar(initialsUrl);
+            } catch (Exception e) {
+                a.setAvatar(null);
+            }
+        } else if ("CUSTOM".equals(choice)) {
+            if (a.getCustomAvatarUrl() != null) {
+                a.setAvatar(a.getCustomAvatarUrl());
+            }
+        }
+        actorRepository.save(a);
     }
 
     public String obtenerRol(Actor a) {

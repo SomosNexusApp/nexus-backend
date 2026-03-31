@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +27,20 @@ public class EnvioService {
     @Autowired
     private ShippingPriceService shippingPriceService;
     @Autowired
+    private CarrierApiService carrierApiService;
+    @Autowired
     private ChatWebSocketController chatWebSocketController;
     @Autowired
     private ValoracionService valoracionService;
+    @Autowired
+    private NotificacionService notificacionService;
+    @Autowired
+    private EmailService emailService;
+    @Autowired
+    private PuntoRecogidaService puntoRecogidaService;
+
+    @Value("${nexus.envio.plazo-dias:10}")
+    private int plazoEnvioDias;
 
     /**
      * Crea el envío justo después de confirmar el pago.
@@ -70,10 +82,38 @@ public class EnvioService {
             envio.setPrecioEnvio(precioEnvio != null ? precioEnvio : 0.0);
         }
 
+        envio.setFechaLimiteEnvio(LocalDateTime.now().plusDays(plazoEnvioDias));
         Envio guardado = envioRepository.save(envio);
 
         // Notificar en el chat automáticamente
         notificarEnChat(compra, "📦 Pago confirmado. Esperando que el vendedor envíe el producto.");
+
+        Producto prod = compra.getProducto();
+        Actor vendedor = prod.getPublicador();
+        String urlEnvio = "/compras/" + compra.getId() + "/enviar";
+        String ubicacionProd = prod.getUbicacion();
+        String puntosHint = puntoRecogidaService.buscarPorCiudadOCp(ubicacionProd).stream()
+                .findFirst()
+                .map(p -> p.getNombre() + " (" + p.getCiudad() + ")")
+                .orElse("oficina de Correos / SEUR / MRW más cercana");
+        notificacionService.notificarGuiaEnvioVendedor(
+                vendedor.getId(),
+                prod.getTitulo(),
+                guardado.getCodigoEnvio(),
+                ubicacionProd != null ? ubicacionProd + " — ej. " + puntosHint : puntosHint,
+                urlEnvio,
+                plazoEnvioDias);
+        if (vendedor.getEmail() != null) {
+            emailService.enviarGuiaEnvioConQrVendedor(
+                    vendedor.getEmail(),
+                    prod.getTitulo(),
+                    compra.getId(),
+                    guardado.getCodigoEnvio(),
+                    guardado.getQrBase64(),
+                    guardado.getTransportista(),
+                    guardado.getCiudad(),
+                    plazoEnvioDias);
+        }
 
         return guardado;
     }
@@ -92,10 +132,20 @@ public class EnvioService {
             throw new IllegalStateException("El envío no está en estado PENDIENTE_ENVIO");
         }
 
+        String trackingFinal = numeroSeguimiento;
+        if (trackingFinal == null || trackingFinal.isBlank()) {
+            throw new IllegalStateException("Debes introducir el número de seguimiento real del transportista.");
+        }
+
         envio.setEstado(EstadoEnvio.ENVIADO);
-        envio.setTransportista(transportista);
-        envio.setNumeroSeguimiento(numeroSeguimiento);
-        envio.setUrlSeguimiento(urlSeguimiento);
+        String transportistaFinal = (transportista != null && !transportista.isBlank())
+                ? transportista
+                : (envio.getTransportistaEnum() != null ? envio.getTransportistaEnum().name() : "CORREOS");
+        envio.setTransportista(transportistaFinal);
+        envio.setNumeroSeguimiento(trackingFinal);
+        envio.setUrlSeguimiento((urlSeguimiento != null && !urlSeguimiento.isBlank())
+                ? urlSeguimiento
+                : buildTrackingUrl(transportistaFinal, trackingFinal));
         envio.setFechaEnvio(LocalDateTime.now());
         envio.setFechaEstimadaEntrega(fechaEstimadaEntrega);
 
@@ -108,8 +158,26 @@ public class EnvioService {
         Envio actualizado = envioRepository.save(envio);
 
         String msg = String.format("🚚 ¡Pedido enviado! Transportista: %s. Nº seguimiento: %s",
-                transportista, numeroSeguimiento);
+                transportistaFinal, trackingFinal);
         notificarEnChat(compra, msg);
+
+        Producto prod = compra.getProducto();
+        Actor comprador = compra.getComprador();
+        Actor seller = prod.getPublicador();
+        notificacionService.notificarEnvio(comprador.getId(), prod.getTitulo());
+        String urlCompra = "/perfil?tab=compras&compraId=" + compra.getId();
+        notificacionService.notificarSeguimientoVendedor(seller.getId(), prod.getTitulo(), trackingFinal,
+                "/compras/" + compra.getId() + "/enviar");
+        if (comprador.getEmail() != null) {
+            emailService.enviarNotificacionEnvio(comprador.getEmail(), prod.getTitulo(),
+                    trackingFinal, transportistaFinal);
+            emailService.enviarActualizacionTracking(comprador.getEmail(), prod.getTitulo(), trackingFinal,
+                    "ENVIADO", actualizado.getUrlSeguimiento());
+        }
+        if (seller.getEmail() != null) {
+            emailService.enviarActualizacionTracking(seller.getEmail(), prod.getTitulo(), trackingFinal,
+                    "ENVIADO", actualizado.getUrlSeguimiento());
+        }
 
         return actualizado;
     }
@@ -122,8 +190,10 @@ public class EnvioService {
     public Envio confirmarEntrega(Integer envioId, Integer valoracion, String comentario) {
         Envio envio = findByIdOrThrow(envioId);
 
-        if (envio.getEstado() != EstadoEnvio.ENVIADO && envio.getEstado() != EstadoEnvio.EN_TRANSITO) {
-            throw new IllegalStateException("El pedido no está en estado ENVIADO o EN_TRANSITO");
+        if (envio.getEstado() != EstadoEnvio.ENVIADO
+                && envio.getEstado() != EstadoEnvio.EN_TRANSITO
+                && envio.getEstado() != EstadoEnvio.EN_REPARTO) {
+            throw new IllegalStateException("El pedido no está en estado ENVIADO, EN_TRANSITO o EN_REPARTO");
         }
 
         envio.setEstado(EstadoEnvio.ENTREGADO);
@@ -152,11 +222,56 @@ public class EnvioService {
                 // No bloquear la confirmación si la valoración falla
                 System.err.println("⚠️ Error creando valoración automática: " + e.getMessage());
             }
+            notificacionService.notificarNuevaValoracion(
+                    compra.getProducto().getPublicador().getId(), valoracion);
         }
 
         notificarEnChat(compra, "✅ Entrega confirmada. Fondos liberados al vendedor. ¡Gracias por usar Nexus!");
+        notificacionService.crear(
+                compra.getComprador().getId(),
+                TipoNotificacion.SISTEMA,
+                "¡Tu pedido fue entregado!",
+                "Deja una reseña al vendedor para cerrar tu experiencia en Nexus.",
+                "/perfil?tab=compras&compraId=" + compra.getId(),
+                true,
+                "{\"compraId\":" + compra.getId() + ",\"accion\":\"solicitar_resena\"}");
+
+        if (compra.getComprador().getEmail() != null) {
+            emailService.enviarEntregaConfirmada(compra.getComprador().getEmail(), compra.getProducto().getTitulo(), true);
+        }
+        if (compra.getProducto().getPublicador().getEmail() != null) {
+            emailService.enviarEntregaConfirmada(compra.getProducto().getPublicador().getEmail(),
+                    compra.getProducto().getTitulo(), false);
+        }
 
         return actualizado;
+    }
+
+    @Transactional
+    public Envio registrarEventoTransportista(String codigoEnvio, EstadoEnvio estado) {
+        Envio envio = envioRepository.findByCodigoEnvio(codigoEnvio)
+                .orElseThrow(() -> new IllegalArgumentException("Código de envío no encontrado"));
+        return avanzarEstadoTracking(envio, estado, "Evento recibido del transportista");
+    }
+
+    @Transactional
+    public Optional<Envio> refrescarTrackingEnvio(Integer envioId) {
+        Envio envio = findByIdOrThrow(envioId);
+        return consultarYActualizarTracking(envio);
+    }
+
+    @Transactional
+    public int refrescarTrackingPendientes() {
+        List<Envio> envios = envioRepository.findByEstadoIn(List.of(
+                EstadoEnvio.ENVIADO, EstadoEnvio.EN_TRANSITO, EstadoEnvio.EN_REPARTO));
+        int cambios = 0;
+        for (Envio envio : envios) {
+            Optional<Envio> actualizado = consultarYActualizarTracking(envio);
+            if (actualizado.isPresent()) {
+                cambios++;
+            }
+        }
+        return cambios;
     }
 
     /**
@@ -177,6 +292,12 @@ public class EnvioService {
         completarCompra(compra);
 
         notificarEnChat(compra, "🤝 Entrega en persona confirmada. ¡Transacción completada!");
+        if (compra.getComprador().getEmail() != null) {
+            emailService.enviarEntregaConfirmada(compra.getComprador().getEmail(), compra.getProducto().getTitulo(), true);
+        }
+        if (compra.getProducto().getPublicador().getEmail() != null) {
+            emailService.enviarEntregaConfirmada(compra.getProducto().getPublicador().getEmail(), compra.getProducto().getTitulo(), false);
+        }
 
         return actualizado;
     }
@@ -197,6 +318,16 @@ public class EnvioService {
 
         envioRepository.save(envio);
         notificarEnChat(compra, "⚠️ Disputa abierta: " + motivo + ". El equipo de Nexus revisará el caso.");
+        if (compra.getComprador().getEmail() != null) {
+            emailService.enviarEmailHtml(compra.getComprador().getEmail(), "Disputa abierta en tu pedido",
+                    "<h2>Hemos recibido tu disputa</h2><p>Tu incidencia para el pedido de <b>"
+                            + compra.getProducto().getTitulo() + "</b> ya está en revisión.</p><p>Motivo: " + motivo + "</p>");
+        }
+        if (compra.getProducto().getPublicador().getEmail() != null) {
+            emailService.enviarEmailHtml(compra.getProducto().getPublicador().getEmail(), "Se abrió una disputa en una venta",
+                    "<h2>Disputa abierta por el comprador</h2><p>El pedido de <b>"
+                            + compra.getProducto().getTitulo() + "</b> está en estado de incidencia.</p><p>Motivo: " + motivo + "</p>");
+        }
 
         return envio;
     }
@@ -220,8 +351,82 @@ public class EnvioService {
 
         compra.setEstado(EstadoCompra.REEMBOLSADA);
         compra.getProducto().setEstadoProducto(EstadoProducto.DISPONIBLE); // Volver a disponible
+        envioRepository.findByCompraId(compraId).ifPresent(e -> {
+            e.setEstado(EstadoEnvio.CANCELADO);
+            envioRepository.save(e);
+        });
         compraRepository.save(compra);
         notificarEnChat(compra, "💸 Reembolso procesado. El dinero volverá a tu cuenta en 3-5 días hábiles.");
+        if (compra.getComprador().getEmail() != null) {
+            emailService.enviarAdminReembolsoComprador(compra.getComprador().getEmail(), compra.getId(),
+                    compra.getProducto().getTitulo(), "Reembolso procesado");
+        }
+        if (compra.getProducto().getPublicador().getEmail() != null) {
+            emailService.enviarAdminReembolsoVendedor(compra.getProducto().getPublicador().getEmail(), compra.getId(),
+                    compra.getProducto().getTitulo(), "Reembolso procesado");
+        }
+    }
+
+    /**
+     * Vendedor no envió a tiempo: reembolso al comprador + notificaciones y emails.
+     */
+    @Transactional
+    public void procesarReembolsoPorPlazoEnvio(Integer compraId) {
+        Compra compra = compraRepository.findById(compraId)
+                .orElseThrow(() -> new IllegalArgumentException("Compra no encontrada"));
+        if (compra.getEstado() != EstadoCompra.PAGADO) {
+            return;
+        }
+        try {
+            if (compra.getStripePaymentIntentId() != null) {
+                stripeService.reembolsar(compra.getStripePaymentIntentId());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error al procesar reembolso en Stripe: " + e.getMessage());
+        }
+        compra.setEstado(EstadoCompra.REEMBOLSADA);
+        compra.getProducto().setEstadoProducto(EstadoProducto.DISPONIBLE);
+        envioRepository.findByCompraId(compraId).ifPresent(e -> {
+            e.setEstado(EstadoEnvio.CANCELADO);
+            envioRepository.save(e);
+        });
+        compraRepository.save(compra);
+
+        Producto prod = compra.getProducto();
+        String titulo = prod.getTitulo();
+        Actor comprador = compra.getComprador();
+        Actor vendedor = prod.getPublicador();
+        notificacionService.notificarReembolsoAutomatico(comprador.getId(), "Compra reembolsada",
+                "El vendedor no envió «" + titulo + "» a tiempo. Se ha reembolsado el importe.",
+                "/perfil?tab=compras");
+        notificacionService.notificarAccionAdmin(vendedor.getId(), "Pedido cancelado por plazo de envío",
+                "Se reembolsó al comprador de «" + titulo + "» por no enviar en el plazo.",
+                "/perfil?tab=compras");
+        if (comprador.getEmail() != null) {
+            emailService.enviarReembolsoPlazoVencidoComprador(comprador.getEmail(), titulo);
+        }
+        notificarEnChat(compra, "💸 Compra reembolsada: plazo de envío superado sin que el vendedor enviara el paquete.");
+    }
+
+    /**
+     * Tarea programada: envíos pendientes cuya fecha límite ya pasó.
+     */
+    @Transactional
+    public int procesarEnviosPendientesPlazoVencido() {
+        List<Envio> vencidos = envioRepository.findByEstadoAndFechaLimiteEnvioBefore(
+                EstadoEnvio.PENDIENTE_ENVIO, LocalDateTime.now());
+        int n = 0;
+        for (Envio e : vencidos) {
+            try {
+                if (e.getCompra() != null && e.getCompra().getEstado() == EstadoCompra.PAGADO) {
+                    procesarReembolsoPorPlazoEnvio(e.getCompra().getId());
+                    n++;
+                }
+            } catch (Exception ex) {
+                System.err.println("⚠️ Reembolso plazo envío compra " + e.getCompra().getId() + ": " + ex.getMessage());
+            }
+        }
+        return n;
     }
 
     public Optional<Envio> findByCompraId(Integer compraId) {
@@ -266,5 +471,77 @@ public class EnvioService {
             // No interrumpir la operación principal si el chat falla
             System.err.println("⚠️ Error notificando en chat: " + e.getMessage());
         }
+    }
+
+    private Optional<Envio> consultarYActualizarTracking(Envio envio) {
+        CarrierApiService.TrackingResult result = carrierApiService.consultarTracking(
+                envio.getTransportista(), envio.getNumeroSeguimiento(), envio.getUrlSeguimiento());
+        if (result.getEstado() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(avanzarEstadoTracking(envio, result.getEstado(), result.getDescripcion()));
+    }
+
+    private Envio avanzarEstadoTracking(Envio envio, EstadoEnvio nuevoEstado, String motivo) {
+        if (envio.getEstado() == nuevoEstado || !isValidProgression(envio.getEstado(), nuevoEstado)) {
+            return envio;
+        }
+
+        if (nuevoEstado == EstadoEnvio.ENTREGADO) {
+            return confirmarEntrega(envio.getId(), null, null);
+        }
+
+        envio.setEstado(nuevoEstado);
+        Envio actualizado = envioRepository.save(envio);
+        Compra compra = envio.getCompra();
+        Producto prod = compra.getProducto();
+        Actor comprador = compra.getComprador();
+        Actor vendedor = prod.getPublicador();
+        String textoEstado = nuevoEstado.name().replace("_", " ");
+        notificacionService.crear(comprador.getId(), TipoNotificacion.ENVIO_ACTUALIZADO, "Actualización de envío",
+                "Tu pedido de «" + prod.getTitulo() + "» está en " + textoEstado + ".", "/perfil?tab=compras");
+        notificacionService.crear(vendedor.getId(), TipoNotificacion.ENVIO_ACTUALIZADO, "Envío en curso",
+                "El pedido de «" + prod.getTitulo() + "» pasó a " + textoEstado + ".", "/perfil?tab=ventas");
+        notificarEnChat(compra, "📍 Estado de envío actualizado: " + textoEstado + ". " + (motivo != null ? motivo : ""));
+        if (comprador.getEmail() != null) {
+            emailService.enviarActualizacionTracking(
+                    comprador.getEmail(),
+                    prod.getTitulo(),
+                    envio.getNumeroSeguimiento(),
+                    textoEstado,
+                    envio.getUrlSeguimiento());
+        }
+        if (vendedor.getEmail() != null) {
+            emailService.enviarActualizacionTracking(
+                    vendedor.getEmail(),
+                    prod.getTitulo(),
+                    envio.getNumeroSeguimiento(),
+                    textoEstado,
+                    envio.getUrlSeguimiento());
+        }
+        return actualizado;
+    }
+
+    private boolean isValidProgression(EstadoEnvio actual, EstadoEnvio siguiente) {
+        if (actual == EstadoEnvio.ENVIADO) {
+            return siguiente == EstadoEnvio.EN_TRANSITO || siguiente == EstadoEnvio.EN_REPARTO
+                    || siguiente == EstadoEnvio.ENTREGADO;
+        }
+        if (actual == EstadoEnvio.EN_TRANSITO) {
+            return siguiente == EstadoEnvio.EN_REPARTO || siguiente == EstadoEnvio.ENTREGADO;
+        }
+        return actual == EstadoEnvio.EN_REPARTO && siguiente == EstadoEnvio.ENTREGADO;
+    }
+
+    private String buildTrackingUrl(String transportista, String tracking) {
+        String t = transportista != null ? transportista.toUpperCase() : "CORREOS";
+        if ("SEUR".equals(t)) {
+            return "https://www.seur.com/livetracking/pages/seguimiento-online.do?segOnlineIdentificador="
+                    + tracking;
+        }
+        if ("MRW".equals(t)) {
+            return "https://www.mrw.es/seguimiento_envios/MRW_tracking.asp?codigo=" + tracking;
+        }
+        return "https://www.correos.es/es/es/herramientas/localizador/envios/detalle?tracking-number=" + tracking;
     }
 }

@@ -3,5 +3,6 @@ package com.nexus.entity;
 public enum TipoDescuento {
     PORCENTAJE,
     FIJO,
-    ENVIO_GRATIS
+    ENVIO_GRATIS,
+    COMBINADO
 }

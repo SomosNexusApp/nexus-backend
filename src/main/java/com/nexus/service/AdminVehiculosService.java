@@ -65,8 +65,9 @@ public class AdminVehiculosService {
         Vehiculo v = findOrThrow(id);
         // Usamos PAUSADO ya que SUSPENDIDO no existe en EstadoVehiculo
         v.setEstadoVehiculo(EstadoVehiculo.PAUSADO);
-        notificacionService.notificarSistema(v.getPublicador().getId(),
-                "Tu vehículo \"" + v.getTitulo() + "\" ha sido pausado por el administrador. Motivo: " + motivo);
+        notificacionService.notificarAccionAdmin(v.getPublicador().getId(), "Vehículo pausado",
+                "Tu vehículo \"" + v.getTitulo() + "\" ha sido pausado por el administrador. Motivo: " + motivo,
+                "/vehiculos/" + v.getId());
         auditLogService.registrar("VEHICULO_PAUSADO", id, "admin", "Motivo: " + motivo);
         return vehiculoRepo.save(v);
     }
@@ -74,8 +75,9 @@ public class AdminVehiculosService {
     public Vehiculo reactivar(Integer id) {
         Vehiculo v = findOrThrow(id);
         v.setEstadoVehiculo(EstadoVehiculo.DISPONIBLE);
-        notificacionService.notificarSistema(v.getPublicador().getId(),
-                "Tu vehículo \"" + v.getTitulo() + "\" ha sido reactivado.");
+        notificacionService.notificarAccionAdmin(v.getPublicador().getId(), "Vehículo reactivado",
+                "Tu vehículo \"" + v.getTitulo() + "\" ha sido reactivado.",
+                "/vehiculos/" + v.getId());
         auditLogService.registrar("VEHICULO_REACTIVADO", id, "admin", null);
         return vehiculoRepo.save(v);
     }
@@ -85,8 +87,8 @@ public class AdminVehiculosService {
         v.setEstadoVehiculo(EstadoVehiculo.ELIMINADO);
         vehiculoRepo.save(v);
         auditLogService.registrar("VEHICULO_ELIMINADO", id, "admin", "Motivo: " + motivo);
-        notificacionService.notificarSistema(v.getPublicador().getId(),
-                "Tu vehículo \"" + v.getTitulo() + "\" ha sido eliminado. Motivo: " + motivo);
+        notificacionService.notificarAccionAdmin(v.getPublicador().getId(), "Vehículo eliminado",
+                "Tu vehículo \"" + v.getTitulo() + "\" ha sido eliminado. Motivo: " + motivo, null);
     }
 
     private Vehiculo findOrThrow(Integer id) {

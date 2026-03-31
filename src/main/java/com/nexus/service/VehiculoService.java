@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,10 @@ public class VehiculoService {
     @Autowired private ActorRepository     actorRepository;
     @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private StorageService      storageService;
+    @Autowired private ModerationService   moderationService;
+
+    @Value("${nexus.anuncio.vida-dias:180}")
+    private int vidaAnuncioDias;
 
     // ── CRUD básico ──────────────────────────────────────────────────────────
 
@@ -106,6 +111,7 @@ public class VehiculoService {
 
     @Transactional
     public Vehiculo publicar(Vehiculo vehiculo, Integer publicadorId) {
+        validarModeracion(vehiculo);
         Actor publicador = actorRepository.findById(publicadorId)
             .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado: " + publicadorId));
         vehiculo.setPublicador(publicador);
@@ -117,6 +123,7 @@ public class VehiculoService {
 
     @Transactional
     public Vehiculo crear(Vehiculo vehiculo, Integer publicadorId, List<MultipartFile> imagenes) {
+        validarModeracion(vehiculo);
         Actor publicador = actorRepository.findById(publicadorId)
             .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado: " + publicadorId));
         vehiculo.setPublicador(publicador);
@@ -140,6 +147,7 @@ public class VehiculoService {
 
     @Transactional
     public Vehiculo update(Integer id, Vehiculo datos) {
+        validarModeracion(datos);
         Vehiculo v = vehiculoRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Vehiculo no encontrado: " + id));
 
@@ -181,6 +189,30 @@ public class VehiculoService {
 
     @Transactional
     public void deleteById(Integer id) { delete(id); }
+
+    @Transactional
+    public Vehiculo renovar(Integer id, Integer publicadorId) {
+        Vehiculo v = vehiculoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vehículo no encontrado"));
+        if (!v.getPublicador().getId().equals(publicadorId)) {
+            throw new IllegalStateException("No autorizado");
+        }
+        if (v.getEstadoVehiculo() != EstadoVehiculo.EXPIRADO) {
+            throw new IllegalStateException("Solo se puede renovar un vehículo expirado");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        v.setEstadoVehiculo(EstadoVehiculo.DISPONIBLE);
+        v.setFechaPublicacion(now);
+        v.setFechaCaducidad(now.plusDays(vidaAnuncioDias));
+        v.setUltimoAvisoCaducidadDias(null);
+        return vehiculoRepository.save(v);
+    }
+
+    private void validarModeracion(Vehiculo v) {
+        if (v == null) return;
+        moderationService.validarYBloquear(v.getTitulo(), "vehículo", "el título");
+        moderationService.validarYBloquear(v.getDescripcion(), "vehículo", "la descripción");
+    }
 
     // ── Helpers privados ─────────────────────────────────────────────────────
 

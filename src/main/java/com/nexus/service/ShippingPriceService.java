@@ -94,6 +94,15 @@ public class ShippingPriceService {
         return sb.toString();
     }
 
+    /** Número de seguimiento público generado por Nexus (carrier + tracking). */
+    public String generateTrackingNumber() {
+        StringBuilder sb = new StringBuilder("NX-TRACK-");
+        for (int i = 0; i < 10; i++) {
+            sb.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));
+        }
+        return sb.toString();
+    }
+
     // ── QR ────────────────────────────────────────────────────────────────
 
     /**

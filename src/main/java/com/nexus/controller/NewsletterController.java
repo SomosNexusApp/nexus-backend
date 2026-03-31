@@ -93,8 +93,8 @@ public class NewsletterController {
                                               @RequestParam(required = false) String motivo) {
         boolean ok = newsletterService.darDeBajaConToken(token, motivo);
         String destino = ok
-            ? frontendUrl + "/newsletter/baja-confirmada"
-            : frontendUrl + "/newsletter/error?motivo=token-invalido";
+            ? frontendUrl + "/darse-baja?estado=ok"
+            : frontendUrl + "/darse-baja?estado=error";
         return ResponseEntity.status(302)
             .header("Location", destino)
             .build();

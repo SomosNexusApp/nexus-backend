@@ -63,6 +63,8 @@ public class Envio extends DomainEntity {
 
     // Timestamps
     private LocalDateTime fechaCreacion;
+    /** Tras este instante, si sigue PENDIENTE_ENVIO, se puede reembolsar al comprador (scheduler). */
+    private LocalDateTime fechaLimiteEnvio;
     private LocalDateTime fechaEnvio;
     private LocalDateTime fechaEstimadaEntrega;
     private LocalDateTime fechaConfirmacionEntrega;
@@ -223,6 +225,14 @@ public class Envio extends DomainEntity {
 
     public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
+    }
+
+    public LocalDateTime getFechaLimiteEnvio() {
+        return fechaLimiteEnvio;
+    }
+
+    public void setFechaLimiteEnvio(LocalDateTime fechaLimiteEnvio) {
+        this.fechaLimiteEnvio = fechaLimiteEnvio;
     }
 
     public LocalDateTime getFechaEnvio() {

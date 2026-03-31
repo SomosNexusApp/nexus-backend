@@ -6,5 +6,6 @@ public enum EstadoProducto {
     VENDIDO,           // Compra completada
     PAUSADO,           // Vendedor lo ocultó temporalmente
     ELIMINADO,         // Soft delete
-    SUSPENDIDO_ADMIN   // Suspendido por el administrador
+    SUSPENDIDO_ADMIN,  // Suspendido por el administrador
+    EXPIRADO           // Caducó el plazo del anuncio (reactivar para volver a publicar)
 }

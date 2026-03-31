@@ -20,12 +20,18 @@ public class ChatService {
     private ProductoService productoService;
     @Autowired
     private StorageService storageService;
+    @Autowired
+    private ModerationService moderationService;
 
     @Transactional
     public ChatMensaje guardarMensajeTexto(Integer productoId, Integer remitenteId,
             Integer receptorId, String texto) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
-        msg.setTexto(texto);
+        
+        // Aplicar moderación
+        String textoCensurado = moderationService.censurarTexto(texto);
+        msg.setTexto(textoCensurado);
+        
         msg.setTipo(TipoMensaje.TEXTO);
         return chatMensajeRepository.save(msg);
     }
@@ -129,7 +135,10 @@ public class ChatService {
     public ChatMensaje mensajeSistema(Integer productoId, Integer remitenteId,
             Integer receptorId, String texto) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
-        msg.setTexto(texto);
+        String finalTexto = (texto == null || texto.isBlank())
+                ? "Actualización del pedido disponible en tu perfil."
+                : texto.trim();
+        msg.setTexto(finalTexto);
         msg.setTipo(TipoMensaje.SISTEMA);
         return chatMensajeRepository.save(msg);
     }
@@ -150,9 +159,18 @@ public class ChatService {
         return chatMensajeRepository.countNoLeidosByReceptor(usuarioId);
     }
 
+    public long getNoLeidosConversations(Integer usuarioId) {
+        return chatMensajeRepository.countNoLeidosConversationsByReceptor(usuarioId);
+    }
+
     @Transactional
     public void marcarLeidos(String roomId, Integer receptorId) {
         chatMensajeRepository.marcarComoLeidosEnRoom(roomId, receptorId);
+    }
+
+    @Transactional
+    public void marcarRecibidos(String roomId, Integer receptorId) {
+        chatMensajeRepository.marcarComoRecibidosEnRoom(roomId, receptorId);
     }
 
     public Double getPrecioNegociado(Integer productoId, Integer compradorId) {

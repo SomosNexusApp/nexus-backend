@@ -64,7 +64,8 @@ public class AdminOfertasController {
 
     @PostMapping("/flash")
     @Transactional
-    public ResponseEntity<Oferta> crearFlash(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Oferta> crearFlash(@RequestBody Map<String, Object> body, 
+                                            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails ud) {
         FlashOfertaRequest req = new FlashOfertaRequest(
                 (String) body.get("titulo"),
                 (String) body.get("descripcion"),
@@ -72,9 +73,13 @@ public class AdminOfertasController {
                 body.get("precioOriginal") != null ? ((Number) body.get("precioOriginal")).doubleValue() : null,
                 parseDateTime((String) body.get("flashInicio")),
                 parseDateTime((String) body.get("flashFin")),
-                body.get("limiteUnidades") != null ? ((Number) body.get("limiteUnidades")).intValue() : null
+                body.get("limiteUnidades") != null ? ((Number) body.get("limiteUnidades")).intValue() : null,
+                (String) body.get("imagenPrincipal"),
+                (String) body.get("tienda"),
+                (String) body.get("urlOferta"),
+                body.get("categoriaId") != null ? ((Number) body.get("categoriaId")).intValue() : null
         );
-        return ResponseEntity.ok(service.crearFlash(req));
+        return ResponseEntity.ok(service.crearFlash(req, ud.getUsername()));
     }
 
     private LocalDateTime parseDateTime(String s) {

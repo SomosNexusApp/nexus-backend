@@ -17,6 +17,12 @@ public class Cupon extends DomainEntity {
 
     private BigDecimal valor;
 
+    @Column(name = "valor_fijo")
+    private BigDecimal valorFijo;
+
+    @Column(name = "valor_porcentaje")
+    private BigDecimal valorPorcentaje;
+
     @Column(name = "importe_minimo")
     private BigDecimal importeMinimo;
 
@@ -78,6 +84,12 @@ public class Cupon extends DomainEntity {
 
     public BigDecimal getValor() { return valor; }
     public void setValor(BigDecimal valor) { this.valor = valor; }
+
+    public BigDecimal getValorFijo() { return valorFijo; }
+    public void setValorFijo(BigDecimal valorFijo) { this.valorFijo = valorFijo; }
+
+    public BigDecimal getValorPorcentaje() { return valorPorcentaje; }
+    public void setValorPorcentaje(BigDecimal valorPorcentaje) { this.valorPorcentaje = valorPorcentaje; }
 
     public BigDecimal getImporteMinimo() { return importeMinimo; }
     public void setImporteMinimo(BigDecimal importeMinimo) { this.importeMinimo = importeMinimo; }

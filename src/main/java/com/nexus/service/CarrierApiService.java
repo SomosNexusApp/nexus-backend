@@ -3,7 +3,14 @@ package com.nexus.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.nexus.entity.EstadoEnvio;
 
 /**
  * Servicio de integración con APIs reales de transportistas.
@@ -15,8 +22,6 @@ import org.springframework.stereotype.Service;
  * ──────────────────────────────────────────────────────
  * Correos: API B2B REST/SOAP — Requiere contrato comercial y acceso al portal
  * Mi Oficina
- * SEUR: API REST — Requiere contrato comercial (https://www.seur.com)
- * MRW: SOAP/REST — Requiere contrato comercial (https://www.mrw.es)
  * ──────────────────────────────────────────────────────
  */
 @Service
@@ -36,24 +41,13 @@ public class CarrierApiService {
     @Value("${correos.client-secret:}")
     private String correosClientSecret;
 
-    // ── SEUR ──────────────────────────────────────────────────────────────────
+    @Value("${nexus.shipping.tracking-provider-url:}")
+    private String trackingProviderUrl;
 
-    @Value("${seur.user:}")
-    private String seurUser;
+    @Value("${nexus.shipping.tracking-provider-token:}")
+    private String trackingProviderToken;
 
-    @Value("${seur.password:}")
-    private String seurPassword;
-
-    @Value("${seur.cif:}")
-    private String seurCif;
-
-    // ── MRW ───────────────────────────────────────────────────────────────────
-
-    @Value("${mrw.codigo-abonado:}")
-    private String mrwCodigoAbonado;
-
-    @Value("${mrw.codigo-departamento:}")
-    private String mrwCodigoDepartamento;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     // ── Precio público ─────────────────────────────────────────────────────────
 
@@ -91,32 +85,112 @@ public class CarrierApiService {
      * @return precio en €, o null si no hay APIs configuradas
      */
     public Double getBestPrice(double pesoKg, boolean esRecogida) {
-        Double correos = getPriceFromCorreos(pesoKg, esRecogida);
-        Double seur = getPriceFromSeur(pesoKg, esRecogida);
-        Double mrw = getPriceFromMrw(pesoKg, esRecogida);
-
-        Double mejor = null;
-        if (correos != null)
-            mejor = correos;
-        if (seur != null && (mejor == null || seur < mejor))
-            mejor = seur;
-        if (mrw != null && (mejor == null || mrw < mejor))
-            mejor = mrw;
-
-        return mejor;
+        return getPriceFromCorreos(pesoKg, esRecogida);
     }
 
     public Double getPriceForCarrier(String carrierId, double pesoKg, boolean esRecogida, double precioBaseSugerido) {
-        if ("CORREOS".equals(carrierId))
-            return getPriceFromCorreos(pesoKg, esRecogida) != null ? getPriceFromCorreos(pesoKg, esRecogida)
-                    : precioBaseSugerido + 0.10;
-        if ("SEUR".equals(carrierId))
-            return getPriceFromSeur(pesoKg, esRecogida) != null ? getPriceFromSeur(pesoKg, esRecogida)
-                    : precioBaseSugerido + 0.50;
-        if ("MRW".equals(carrierId))
-            return getPriceFromMrw(pesoKg, esRecogida) != null ? getPriceFromMrw(pesoKg, esRecogida)
-                    : precioBaseSugerido + 0.35;
-        return precioBaseSugerido;
+        Double correos = getPriceFromCorreos(pesoKg, esRecogida);
+        return correos != null ? correos : precioBaseSugerido;
+    }
+
+    public TrackingResult consultarTracking(String carrierId, String numeroSeguimiento, String urlSeguimiento) {
+        if (numeroSeguimiento == null || numeroSeguimiento.isBlank()) {
+            return TrackingResult.sinCambios();
+        }
+
+        TrackingResult porProveedor = consultarProveedorExterno(carrierId, numeroSeguimiento);
+        if (porProveedor.estado != null) {
+            return porProveedor;
+        }
+
+        if (urlSeguimiento == null || urlSeguimiento.isBlank()) {
+            return TrackingResult.sinCambios();
+        }
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    urlSeguimiento, HttpMethod.GET, HttpEntity.EMPTY, String.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                return TrackingResult.sinCambios();
+            }
+
+            String body = response.getBody().toLowerCase();
+            if (body.contains("entregado") || body.contains("delivered")) {
+                return new TrackingResult(EstadoEnvio.ENTREGADO, "Entrega confirmada por transportista");
+            }
+            if (body.contains("en reparto") || body.contains("out for delivery")) {
+                return new TrackingResult(EstadoEnvio.EN_REPARTO, "Paquete en reparto");
+            }
+            if (body.contains("en tránsito") || body.contains("en transito") || body.contains("in transit")) {
+                return new TrackingResult(EstadoEnvio.EN_TRANSITO, "Paquete en tránsito");
+            }
+            if (body.contains("admitido") || body.contains("accepted") || body.contains("clasificación")) {
+                return new TrackingResult(EstadoEnvio.ENVIADO, "Paquete admitido por transportista");
+            }
+            return TrackingResult.sinCambios();
+        } catch (Exception e) {
+            log.debug("[Tracking] No se pudo leer URL de seguimiento {}: {}", urlSeguimiento, e.getMessage());
+            return TrackingResult.sinCambios();
+        }
+    }
+
+    private TrackingResult consultarProveedorExterno(String carrierId, String numeroSeguimiento) {
+        if (trackingProviderUrl == null || trackingProviderUrl.isBlank()) {
+            return TrackingResult.sinCambios();
+        }
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            if (trackingProviderToken != null && !trackingProviderToken.isBlank()) {
+                headers.setBearerAuth(trackingProviderToken);
+            }
+            HttpEntity<Void> request = new HttpEntity<>(headers);
+            String url = String.format("%s?carrier=%s&tracking=%s",
+                    trackingProviderUrl, carrierId != null ? carrierId : "CORREOS", numeroSeguimiento);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                return TrackingResult.sinCambios();
+            }
+            String body = response.getBody().toLowerCase();
+            if (body.contains("\"status\":\"delivered\"")) {
+                return new TrackingResult(EstadoEnvio.ENTREGADO, "Entrega confirmada por API de tracking");
+            }
+            if (body.contains("\"status\":\"out_for_delivery\"")) {
+                return new TrackingResult(EstadoEnvio.EN_REPARTO, "Paquete en reparto");
+            }
+            if (body.contains("\"status\":\"in_transit\"")) {
+                return new TrackingResult(EstadoEnvio.EN_TRANSITO, "Paquete en tránsito");
+            }
+            if (body.contains("\"status\":\"accepted\"")) {
+                return new TrackingResult(EstadoEnvio.ENVIADO, "Paquete admitido por transportista");
+            }
+            return TrackingResult.sinCambios();
+        } catch (Exception e) {
+            log.debug("[Tracking] Provider externo no disponible: {}", e.getMessage());
+            return TrackingResult.sinCambios();
+        }
+    }
+
+    public static class TrackingResult {
+        private final EstadoEnvio estado;
+        private final String descripcion;
+
+        public TrackingResult(EstadoEnvio estado, String descripcion) {
+            this.estado = estado;
+            this.descripcion = descripcion;
+        }
+
+        public static TrackingResult sinCambios() {
+            return new TrackingResult(null, null);
+        }
+
+        public EstadoEnvio getEstado() {
+            return estado;
+        }
+
+        public String getDescripcion() {
+            return descripcion;
+        }
     }
 
     // ── Correos ────────────────────────────────────────────────────────────────
@@ -158,71 +232,4 @@ public class CarrierApiService {
         }
     }
 
-    // ── SEUR ───────────────────────────────────────────────────────────────────
-
-    /**
-     * Precio real de SEUR.
-     * Requiere: seur.user, seur.password, seur.cif en application.properties
-     *
-     * Endpoint real: GET https://api.seur.com/private/GetPrice
-     * Autenticación: Basic Auth (user:password)
-     * Parámetros: CIF, peso, servicio (ESTANDAR / PUNTO_RED)
-     *
-     * @return precio con margen o null si no configurado
-     */
-    public Double getPriceFromSeur(double pesoKg, boolean esRecogida) {
-        if (seurUser == null || seurUser.isBlank()) {
-            return null;
-        }
-
-        try {
-            // TODO: Implementar cuando tengas credenciales SEUR
-            // GET https://api.seur.com/private/GetPrice
-            // ?CIF={seurCif}&PESO={pesoGr}&TIPO_SERVICIO={esRecogida?"PUNTO_RED":"ESTANDAR"}
-            // Authorization: Basic Base64(user:password)
-            // → XML/JSON con PVP
-            // return pvp + MARGEN;
-            log.info("[SEUR] Credenciales configuradas pero integración pendiente — usando tabla");
-            return null;
-        } catch (Exception e) {
-            log.warn("[SEUR] Error llamando a la API: {} — usando tabla", e.getMessage());
-            return null;
-        }
-    }
-
-    // ── MRW ────────────────────────────────────────────────────────────────────
-
-    /**
-     * Precio real de MRW.
-     * Requiere: mrw.codigo-abonado, mrw.codigo-departamento en
-     * application.properties
-     *
-     * WSDL: https://www.mrw.es/Franquicia/Servicios/ServicioMRW.svc?wsdl
-     * Método SOAP: GetEnvioFromCGM o CalculatePriceEnvio
-     * Autenticación: CodigoAbonado + CodigoDepartamento en header SOAP
-     *
-     * @return precio con margen o null si no configurado
-     */
-    public Double getPriceFromMrw(double pesoKg, boolean esRecogida) {
-        if (mrwCodigoAbonado == null || mrwCodigoAbonado.isBlank()) {
-            return null;
-        }
-
-        try {
-            // TODO: Implementar cuando tengas credenciales MRW
-            // Requiere cliente SOAP (javax.xml.ws / cxf)
-            // <CalculatePriceEnvio>
-            // <CodigoAbonado>mrwCodigoAbonado</CodigoAbonado>
-            // <PesoEnvio>pesoGr</PesoEnvio>
-            // <TipoEnvio>DOMICILIO o AGENCIA</TipoEnvio>
-            // </CalculatePriceEnvio>
-            // → <ImporteEnvio>5.20</ImporteEnvio>
-            // return importeEnvio + MARGEN;
-            log.info("[MRW] Credenciales configuradas pero integración pendiente — usando tabla");
-            return null;
-        } catch (Exception e) {
-            log.warn("[MRW] Error llamando a la API: {} — usando tabla", e.getMessage());
-            return null;
-        }
-    }
 }

@@ -142,6 +142,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
   @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findTop10ByOrderBySparkScoreDesc(Pageable pageable);
 
+  List<Oferta> findByEsFlashTrueAndEsActivaTrueOrderByFechaPublicacionDesc();
+
   @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND o.fechaPublicacion >= :desde " +
       "ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findTrending(@Param("desde") LocalDateTime hace24h, Pageable pageable);

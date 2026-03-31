@@ -348,9 +348,12 @@ public class ActorController {
             perfil.put("metodo2FA", actor.getTwoFactorMethod());
             perfil.put("cuentaVerificada", actor.isCuentaVerificada());
             perfil.put("notificaciones", actor.getNotificacionConfig());
+            perfil.put("avatar", actor.getAvatar());
+            perfil.put("avatarSource", actor.getAvatarSource());
+            perfil.put("googleAvatarUrl", actor.getGoogleAvatarUrl());
+            perfil.put("customAvatarUrl", actor.getCustomAvatarUrl());
 
             if (actor instanceof Usuario u) {
-                perfil.put("avatar", u.getAvatar());
                 perfil.put("telefono", u.isMostrarTelefono() ? u.getTelefono() : null);
                 perfil.put("biografia", u.getBiografia());
                 perfil.put("ubicacion", u.isMostrarUbicacion() ? u.getUbicacion() : null);

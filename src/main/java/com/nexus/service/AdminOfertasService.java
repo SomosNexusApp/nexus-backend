@@ -3,11 +3,13 @@ package com.nexus.service;
 import com.nexus.entity.*;
 import com.nexus.repository.AdminOfertaRepository;
 import com.nexus.repository.OfertaRepository;
+import com.nexus.repository.ActorRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nexus.repository.CategoriaRepository;
 import java.time.LocalDateTime;
 
 @Service
@@ -18,19 +20,23 @@ public class AdminOfertasService {
     private final OfertaRepository ofertaRepo;
     private final NotificacionService notificacionService;
     private final AuditLogService auditLogService;
-    private final FavoritoService favoritoService;
+
+    private final CategoriaRepository categoriaRepo;
+    private final ActorRepository actorRepo;
 
     public AdminOfertasService(
             AdminOfertaRepository adminRepo,
             OfertaRepository ofertaRepo,
             NotificacionService notificacionService,
             AuditLogService auditLogService,
-            FavoritoService favoritoService) {
+            CategoriaRepository categoriaRepo,
+            ActorRepository actorRepo) {
         this.adminRepo = adminRepo;
         this.ofertaRepo = ofertaRepo;
         this.notificacionService = notificacionService;
         this.auditLogService = auditLogService;
-        this.favoritoService = favoritoService;
+        this.categoriaRepo = categoriaRepo;
+        this.actorRepo = actorRepo;
     }
 
     @Transactional(readOnly = true)
@@ -44,8 +50,9 @@ public class AdminOfertasService {
         Oferta o = findOrThrow(id);
         o.setEstado(EstadoOferta.ACTIVA);
         o.setEsActiva(true);
-        notificacionService.notificarSistema(o.getActor().getId(),
-                "Tu oferta \"" + o.getTitulo() + "\" ha sido aprobada y ya es visible.");
+        notificacionService.notificarAccionAdmin(o.getActor().getId(), "Oferta aprobada",
+                "Tu oferta \"" + o.getTitulo() + "\" ha sido aprobada y ya es visible.",
+                "/ofertas/" + o.getId());
         auditLogService.registrar("OFERTA_APROBADA", id, "admin", null);
         return ofertaRepo.save(o);
     }
@@ -54,8 +61,8 @@ public class AdminOfertasService {
         Oferta o = findOrThrow(id);
         o.setEstado(EstadoOferta.RECHAZADA);
         o.setEsActiva(false);
-        notificacionService.notificarSistema(o.getActor().getId(),
-                "Tu oferta \"" + o.getTitulo() + "\" ha sido rechazada. Motivo: " + motivo);
+        notificacionService.notificarAccionAdmin(o.getActor().getId(), "Oferta rechazada",
+                "Tu oferta \"" + o.getTitulo() + "\" ha sido rechazada. Motivo: " + motivo, null);
         auditLogService.registrar("OFERTA_RECHAZADA", id, "admin", "Motivo: " + motivo);
         return ofertaRepo.save(o);
     }
@@ -75,12 +82,23 @@ public class AdminOfertasService {
         return ofertaRepo.save(o);
     }
 
-    public Oferta crearFlash(FlashOfertaRequest req) {
+    public Oferta crearFlash(FlashOfertaRequest req, String adminUsername) {
         Oferta o = new Oferta();
         o.setTitulo(req.titulo());
         o.setDescripcion(req.descripcion());
         o.setPrecioOferta(req.precioEspecial());
         o.setPrecioOriginal(req.precioOriginal());
+        o.setImagenPrincipal(req.imagenPrincipal());
+        o.setTienda(req.tienda());
+        o.setUrlOferta(req.urlOferta());
+        
+        if (req.categoriaId() != null) {
+            categoriaRepo.findById(req.categoriaId()).ifPresent(o::setCategoria);
+        }
+
+        Actor admin = actorRepo.findByUsername(adminUsername).orElseThrow();
+        o.setActor(admin);
+
         o.setEsFlash(true);
         o.setFlashFin(req.flashFin());
         o.setLimiteUnidades(req.limiteUnidades());
@@ -114,6 +132,10 @@ public class AdminOfertasService {
             Double precioOriginal,
             LocalDateTime flashInicio,
             LocalDateTime flashFin,
-            Integer limiteUnidades
+            Integer limiteUnidades,
+            String imagenPrincipal,
+            String tienda,
+            String urlOferta,
+            Integer categoriaId
     ) {}
 }

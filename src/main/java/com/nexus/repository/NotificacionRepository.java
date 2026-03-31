@@ -17,4 +17,6 @@ public interface NotificacionRepository extends JpaRepository<NotificacionInApp,
     List<NotificacionInApp> findByActorIdAndLeidaFalseOrderByFechaDesc(Integer actorId);
     long countByActorIdAndLeidaFalse(Integer actorId);
     Page<NotificacionInApp> findByActorIdOrderByFechaDesc(Integer actorId, Pageable pageable);
+
+    List<NotificacionInApp> findByActorIdAndDestacadaTrueAndLeidaFalseOrderByFechaDesc(Integer actorId);
 }

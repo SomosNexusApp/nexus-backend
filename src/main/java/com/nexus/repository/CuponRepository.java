@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface CuponRepository extends JpaRepository<Cupon, Integer> {
 
     Optional<Cupon> findByCodigo(String codigo);
+    Optional<Cupon> findByCodigoIgnoreCase(String codigo);
 
     boolean existsByCodigo(String codigo);
 

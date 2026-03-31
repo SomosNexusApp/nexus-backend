@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.nexus.entity.ChatMensaje;
 import com.nexus.service.ChatService;
 import com.nexus.service.BloqueoService;
+import com.nexus.service.NotificacionService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +30,8 @@ public class ChatController {
     private BloqueoService bloqueoService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private NotificacionService notificacionService;
 
     @GetMapping("/historial/{roomId}")
     public ResponseEntity<List<ChatMensaje>> historial(@PathVariable String roomId) {
@@ -53,10 +56,8 @@ public class ChatController {
 
             // Publicar en WebSocket para que el receptor lo reciba en tiempo real
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
-            if (receptorId != null) {
-                messagingTemplate.convertAndSendToUser(
-                        receptorId.toString(), "/queue/notificaciones",
-                        Map.of("tipo", "NUEVO_MENSAJE", "roomId", guardado.getRoomId()));
+            if (receptorId != null && remitenteId != null) {
+                notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
             }
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
@@ -81,6 +82,11 @@ public class ChatController {
     @GetMapping("/no-leidos/{usuarioId}")
     public ResponseEntity<Map<String, Long>> noLeidos(@PathVariable Integer usuarioId) {
         return ResponseEntity.ok(Map.of("noLeidos", chatService.getNoLeidos(usuarioId)));
+    }
+
+    @GetMapping("/no-leidos/{usuarioId}/conversaciones")
+    public ResponseEntity<Map<String, Long>> noLeidosConversaciones(@PathVariable Integer usuarioId) {
+        return ResponseEntity.ok(Map.of("noLeidos", chatService.getNoLeidosConversations(usuarioId)));
     }
 
     @PutMapping("/leer/{roomId}")
@@ -140,9 +146,7 @@ public class ChatController {
 
             // Publicar en WebSocket
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
-            messagingTemplate.convertAndSendToUser(
-                    receptorId.toString(), "/queue/notificaciones",
-                    Map.of("tipo", "NUEVO_MENSAJE", "roomId", guardado.getRoomId()));
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
@@ -163,6 +167,7 @@ public class ChatController {
             ChatMensaje msg = chatService.guardarPropuestaPrecio(
                     productoId, remitenteId, receptorId, precioPropuesto);
             messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, true, precioPropuesto);
             return ResponseEntity.status(HttpStatus.CREATED).body(msg);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -87,10 +87,13 @@ public class Vehiculo extends DomainEntity {
     private Actor publicador;
 
     private LocalDateTime fechaPublicacion;
+    private LocalDateTime fechaCaducidad;
+    private Integer ultimoAvisoCaducidadDias;
 
     @PrePersist
     protected void onCreate() {
         if (fechaPublicacion == null) fechaPublicacion = LocalDateTime.now();
+        if (fechaCaducidad == null) fechaCaducidad = fechaPublicacion.plusDays(180);
         if (estadoVehiculo   == null) estadoVehiculo   = EstadoVehiculo.DISPONIBLE;
         if (tipoVehiculo     == null) tipoVehiculo     = TipoVehiculo.COCHE;
         if (tipoOferta       == null) tipoOferta       = TipoOferta.VENTA;
@@ -162,6 +165,10 @@ public class Vehiculo extends DomainEntity {
     public void         setPublicador(Actor p)                { this.publicador = p; }
     public LocalDateTime getFechaPublicacion()                { return fechaPublicacion; }
     public void         setFechaPublicacion(LocalDateTime f)  { this.fechaPublicacion = f; }
+    public LocalDateTime getFechaCaducidad()                    { return fechaCaducidad; }
+    public void         setFechaCaducidad(LocalDateTime f)      { this.fechaCaducidad = f; }
+    public Integer      getUltimoAvisoCaducidadDias()           { return ultimoAvisoCaducidadDias; }
+    public void         setUltimoAvisoCaducidadDias(Integer u)  { this.ultimoAvisoCaducidadDias = u; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

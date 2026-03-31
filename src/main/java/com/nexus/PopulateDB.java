@@ -9,8 +9,10 @@ import org.springframework.stereotype.Component;
 
 import com.nexus.entity.*;
 import com.nexus.repository.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -54,13 +56,119 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
     @Autowired private NewsletterRepository       newsletterRepository;
     @Autowired private NotificacionRepository     notificacionRepository;
     @Autowired private PasswordEncoder            passwordEncoder;
+    @Autowired private JdbcTemplate               jdbcTemplate;
 
     private boolean done = false;
 
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        if (done || actorRepository.count() > 0) { done = true; return; }
+        // --- MIGRACION DE EMERGENCIA: Asegurar tipos de texto en Postgres ---
+        try {
+            jdbcTemplate.execute("ALTER TABLE producto ALTER COLUMN titulo TYPE text USING CAST(titulo AS text)");
+            jdbcTemplate.execute("ALTER TABLE producto ALTER COLUMN descripcion TYPE text USING CAST(descripcion AS text)");
+            System.out.println("=== PopulateDB: Schema de producto verificado/corregido (TEXT) ===");
+        } catch (Exception e) {
+            System.err.println("=== PopulateDB: Error al verificar schema (posiblemente no es Postgres o ya es correcto): " + e.getMessage());
+        }
+
+        if (done || actorRepository.count() > 0) {
+            // Migrar comisiones si faltan en compras existentes
+            List<Compra> todas = compraRepository.findAll();
+            for (Compra c : todas) {
+                if (c.getComisionNexus() == null || c.getComisionNexus() == 0) {
+                    c.setComisionNexus(c.getPrecioFinal() * 0.10);
+                    compraRepository.save(c);
+                }
+            }
+
+            // Incluso si ya hay actores, nos aseguramos de que haya compras extras para el gráfico
+            if (compraRepository.count() < 15) {
+                Usuario m = usuarioRepository.findByUsername("maria_chollos").orElse(null);
+                List<Producto> todosProds = productoRepository.findAll();
+                if (m != null && !todosProds.isEmpty()) {
+                    for (int i = 0; i < 30; i++) {
+                        Compra extra = new Compra();
+                        extra.setComprador(m);
+                        extra.setProducto(todosProds.get(i % todosProds.size()));
+                        extra.setEstado(EstadoCompra.COMPLETADA);
+                        double precioBase = 50.0 + (Math.random() * 500.0);
+                        extra.setPrecioFinal(precioBase);
+                        extra.setComisionNexus(precioBase * 0.10);
+                        extra.setFechaCompra(LocalDateTime.now().minusDays(i % 30).minusHours(i % 12));
+                        extra.setFechaPago(extra.getFechaCompra().plusMinutes(10));
+                        extra.setStripePaymentIntentId("pi_test_extra_final_" + i);
+                        compraRepository.save(extra);
+                    }
+                }
+            }
+
+            // --- TEST: Asegurar Patrocinados Variados ---
+            List<Producto> destacados = productoRepository.findAll();
+            if (!destacados.isEmpty()) {
+                for (int i = 0; i < Math.min(3, destacados.size()); i++) {
+                    Producto p = destacados.get(i);
+                    p.setPatrocinado(true);
+                    productoRepository.save(p);
+                }
+            }
+
+            productoRepository.findByTitulo("iPhone 14 Pro 128GB - Azul Profundo").ifPresent(p -> {
+                boolean hasContract = contratoRepository.findAll().stream()
+                        .anyMatch(c -> p.getId().equals(c.getProductoId()) && c.getTipoContrato() == TipoContrato.PUBLICACION);
+                if (!hasContract) {
+                     Contrato con = new Contrato();
+                     con.setTipoContrato(TipoContrato.PUBLICACION);
+                     con.setProductoId(p.getId());
+                     con.setEstado(EstadoContrato.ACTIVE);
+                     con.setFechaInicio(LocalDateTime.now().minusDays(7));
+                     con.setFechaFin(LocalDateTime.now().plusMonths(1));
+                     con.setMonto(50.0);
+                     // Buscar techstore
+                     actorRepository.findAll().stream()
+                        .filter(a -> "techstore_oficial".equals(a.getUser()) && a instanceof Empresa)
+                        .findFirst()
+                        .ifPresent(e -> con.setEmpresa((Empresa) e));
+                     contratoRepository.save(con);
+                }
+            });
+
+            // --- TEST: Asegurar Ofertas de Viajes y Flash ---
+            Categoria catViajes = categoriaRepository.findBySlug("viajes").orElse(null);
+            if (catViajes != null && !ofertaRepository.findAll().stream().anyMatch(o -> "Viaje de Lujo: 7 días en Maldivas todo incluido - Oferta Flash".equals(o.getTitulo()))) {
+                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
+                if (tech == null) tech = actorRepository.findAll().stream().filter(a -> a instanceof Empresa).findFirst().orElse(null);
+                
+                if (tech != null) {
+                    Oferta flashViaje = new Oferta();
+                    flashViaje.setTitulo("Viaje de Lujo: 7 días en Maldivas todo incluido - Oferta Flash");
+                    flashViaje.setDescripcion("Disfruta de una villa sobre el agua en el resort más exclusivo de las Maldivas. Vuelos, traslados y pensión completa incluidos. ¡Solo 5 unidades!");
+                    flashViaje.setPrecioOferta(1499.0);
+                    flashViaje.setPrecioOriginal(2990.0);
+                    flashViaje.setTienda("B the travel brand");
+                    flashViaje.setUrlOferta("https://bthetravelbrand.com/maldivas");
+                    flashViaje.setCategoria(catViajes);
+                    flashViaje.setActor(tech);
+                    flashViaje.setImagenPrincipal("https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800");
+                    flashViaje.setSparkCount(950);
+                    flashViaje.setDripCount(2);
+                    flashViaje.setNumeroVistas(25000);
+                    flashViaje.setNumeroCompartidos(1500);
+                    flashViaje.setEsActiva(true);
+                    flashViaje.setBadge(BadgeOferta.CHOLLAZO);
+                    flashViaje.setFechaPublicacion(LocalDateTime.now());
+                    flashViaje.setEsFlash(true);
+                    flashViaje.setFlashFin(LocalDateTime.now().plusHours(12));
+                    flashViaje.setDestacada(true);
+                    flashViaje.recalcularScore();
+                    ofertaRepository.save(flashViaje);
+                    System.out.println("=== PopulateDB: Oferta Flash de Viaje inyectada (Emergencia) ===");
+                }
+            }
+
+            done = true; 
+            return; 
+        }
         done = true;
 
         System.out.println("=== PopulateDB: iniciando inserción de datos ===");
@@ -76,7 +184,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         Categoria catLibros       = cat("Libros",           "libros",          "book",              "#4E342E", null, 8);
         Categoria catJuguetes     = cat("Juguetes",         "juguetes",        "toy-brick",         "#F57F17", null, 9);
         Categoria catInmuebles    = cat("Inmuebles",        "inmuebles",       "building",          "#37474F", null, 10);
-        Categoria catOtros        = cat("Otros",            "otros",           "archive",           "#78909C", null, 11);
+        Categoria catViajes       = cat("Viajes",           "viajes",          "plane",             "#F44336", null, 12);
+        cat("Vuelos",           "vuelos",          "plane-takeoff",     "#F44336", catViajes, 1);
+        cat("Hoteles",          "hoteles",         "bed",               "#F44336", catViajes, 2);
+        cat("Otros",            "otros",           "archive",           "#78909C", null, 13);
 
         // Sub-categorías
         Categoria catMoviles      = cat("Móviles",          "moviles",         "smartphone",        "#1565C0", catElectronica, 1);
@@ -201,6 +312,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             680.0, TipoOferta.VENTA, pedro, catMoviles, "Samsung", "Galaxy S23 Ultra",
             CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Valencia",
             "https://images.unsplash.com/photo-1675272979687-aad85d4be5c7?w=800");
+        samsungS23.setPatrocinado(true);
+        productoRepository.save(samsungS23);
 
         Producto pixelPhone = producto(
             "Google Pixel 7 Pro 128GB",
@@ -374,6 +487,17 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
             "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
 
+        // --- CONTRATO PATROCINADO PARA TEST ---
+        Contrato conPatrocinio = new Contrato();
+        conPatrocinio.setTipoContrato(TipoContrato.PUBLICACION);
+        conPatrocinio.setEmpresa(techStore);
+        conPatrocinio.setProductoId(iphone14.getId());
+        conPatrocinio.setEstado(EstadoContrato.ACTIVE);
+        conPatrocinio.setFechaInicio(LocalDateTime.now().minusDays(7));
+        conPatrocinio.setFechaFin(LocalDateTime.now().plusMonths(1));
+        conPatrocinio.setMonto(50.0);
+        contratoRepository.save(conPatrocinio);
+
         // ── 7. VEHÍCULOS ──────────────────────────────────────────────────────
         Vehiculo bmw320d = vehiculo(
             "BMW 320d xDrive Touring 2021",
@@ -496,6 +620,43 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             catJuguetes, maria, BadgeOferta.NUEVA, -1,
             "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800",
             23, 1, 890, 45);
+
+        // --- VIAJES ---
+        Oferta viajeMaldivas = oferta(
+            "Viaje de Lujo: 7 días en Maldivas todo incluido - Oferta Flash",
+            "Disfruta de una villa sobre el agua en el resort más exclusivo de las Maldivas. Vuelos, traslados y pensión completa incluidos. ¡Solo 5 unidades!",
+            1499.0, 2990.0, "B the travel brand", "https://bthetravelbrand.com/maldivas",
+            catViajes, techStore, BadgeOferta.CHOLLAZO, -1,
+            "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800",
+            950, 2, 25000, 1500);
+        viajeMaldivas.setEsFlash(true);
+        viajeMaldivas.setFlashFin(LocalDateTime.now().plusHours(12));
+        viajeMaldivas.setDestacada(true);
+        ofertaRepository.save(viajeMaldivas);
+
+        Oferta viajeJapon = oferta(
+            "Vuelo + 10 días en Japón (Tokio y Kioto) - ¡Chollazo!",
+            "Increíble pack para visitar el país del sol naciente. Incluye vuelos directos, hoteles céntricos y JR Pass para 7 días.",
+            1250.0, 1890.0, "Logitravel", "https://logitravel.com/japon",
+            catViajes, techStore, BadgeOferta.CHOLLAZO, -4,
+            "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+            550, 12, 12500, 890);
+
+        Oferta viajeBali = oferta(
+            "7 noches en Villa Privada en Bali con piscina",
+            "Relájate en el paraíso de Ubud. Villa privada con vistas a los arrozales, desayuno incluido y traslado al aeropuerto.",
+            450.0, 800.0, "Booking", "https://booking.com/bali-villa",
+            catViajes, maria, BadgeOferta.DESTACADA, -24,
+            "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800",
+            420, 5, 8900, 420);
+
+        Oferta cruceroMed = oferta(
+            "Crucero Todo Incluido por el Mediterráneo - MSC World Europa",
+            "Salida desde Barcelona. Itinerario: Marsella, Génova, Nápoles, Mesina y La Valeta. Lo mejor de MS. Todo incluido.",
+            599.0, 950.0, "MSC Cruceros", "https://msc.com/mediterraneo",
+            catViajes, carlos, BadgeOferta.NUEVA, -12,
+            "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800",
+            380, 2, 5600, 150);
 
         // Oferta gratuita
         Oferta ofertaNetflixTrial = oferta(
@@ -640,6 +801,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         compra1.setFechaEnvio(LocalDateTime.now().minusDays(29));
         compra1.setFechaEntrega(LocalDateTime.now().minusDays(27));
         compra1.setFechaCompletada(LocalDateTime.now().minusDays(27));
+        compra1.setComisionNexus(compra1.getPrecioFinal() * 0.10);
         iphone14.setEstadoProducto(EstadoProducto.VENDIDO);
         productoRepository.save(iphone14);
         compraRepository.save(compra1);
@@ -657,6 +819,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         compra2.setFechaPago(LocalDateTime.now().minusDays(20));
         compra2.setFechaEntrega(LocalDateTime.now().minusDays(19));
         compra2.setFechaCompletada(LocalDateTime.now().minusDays(19));
+        compra2.setComisionNexus(compra2.getPrecioFinal() * 0.10);
         ps5Console.setEstadoProducto(EstadoProducto.VENDIDO);
         productoRepository.save(ps5Console);
         compraRepository.save(compra2);
@@ -680,6 +843,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         compra3.setFechaPago(LocalDateTime.now().minusDays(3));
         compra3.setFechaEnvio(LocalDateTime.now().minusDays(2));
         macbookPro.setEstadoProducto(EstadoProducto.RESERVADO);
+        compra3.setComisionNexus(compra3.getPrecioFinal() * 0.10);
         productoRepository.save(macbookPro);
         compraRepository.save(compra3);
 
@@ -701,6 +865,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         compra4.setFechaCompra(LocalDateTime.now().minusDays(1));
         compra4.setFechaPago(LocalDateTime.now().minusDays(1));
         sonyWH.setEstadoProducto(EstadoProducto.RESERVADO);
+        compra4.setComisionNexus(compra4.getPrecioFinal() * 0.10);
         productoRepository.save(sonyWH);
         compraRepository.save(compra4);
 
@@ -771,8 +936,25 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         compra9.setFechaPago(LocalDateTime.now().minusDays(7));
         compra9.setFechaEntrega(LocalDateTime.now().minusDays(6));
         lgOled.setEstadoProducto(EstadoProducto.VENDIDO);
+        compra9.setComisionNexus(compra9.getPrecioFinal() * 0.10);
         productoRepository.save(lgOled);
         compraRepository.save(compra9);
+
+        // Generar transacciones aleatorias adicionales para el gráfico
+        List<Producto> poolProds = List.of(iphone14, samsungS23, macbookPro, sonyWH, ps5Console, rtx4070);
+        for (int i = 0; i < 30; i++) {
+            Compra extra = new Compra();
+            extra.setComprador(i % 2 == 0 ? maria : pedro);
+            extra.setProducto(poolProds.get(i % poolProds.size()));
+            extra.setEstado(EstadoCompra.COMPLETADA);
+            double precioBase = 100.0 + (Math.random() * 800.0);
+            extra.setPrecioFinal(precioBase);
+            extra.setComisionNexus(precioBase * 0.10);
+            extra.setFechaCompra(LocalDateTime.now().minusDays(i % 30).minusHours(i % 12));
+            extra.setFechaPago(extra.getFechaCompra().plusMinutes(15));
+            extra.setStripePaymentIntentId("pi_test_extra_final_v_clean_" + i);
+            compraRepository.save(extra);
+        }
 
         // ── 15. ENVÍOS ────────────────────────────────────────────────────────
         // Envío de compra1 (completada - iPhone 14 Pro)

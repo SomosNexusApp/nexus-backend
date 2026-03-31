@@ -4,8 +4,10 @@ import com.nexus.entity.*;
 import com.nexus.repository.AdminProductoRepository;
 import com.nexus.repository.CategoriaRepository;
 import com.nexus.repository.ProductoRepository;
+import com.nexus.repository.ProductoSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,18 +24,21 @@ public class AdminProductosService {
     private final CategoriaRepository categoriaRepo;
     private final NotificacionService notificacionService;
     private final AuditLogService auditLogService;
+    private final ModerationService moderationService;
 
     public AdminProductosService(
             AdminProductoRepository adminRepo,
             ProductoRepository productoRepo,
             CategoriaRepository categoriaRepo,
             NotificacionService notificacionService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            ModerationService moderationService) {
         this.adminRepo = adminRepo;
         this.productoRepo = productoRepo;
         this.categoriaRepo = categoriaRepo;
         this.notificacionService = notificacionService;
         this.auditLogService = auditLogService;
+        this.moderationService = moderationService;
     }
 
     // ── Búsqueda ─────────────────────────────────────────────────────────────
@@ -42,19 +47,31 @@ public class AdminProductosService {
     public Page<Producto> buscar(String q, Integer categoriaId, String estadoStr,
                                   Integer vendedorId, Double precioMin, Double precioMax,
                                   String fechaDesde, Pageable pageable) {
-        EstadoProducto estado = estadoStr != null && !estadoStr.isBlank()
+        EstadoProducto estado = (estadoStr != null && !estadoStr.isBlank())
                 ? EstadoProducto.valueOf(estadoStr) : null;
         LocalDateTime desde = parseDateTime(fechaDesde);
-        String qNorm = (q != null && !q.isBlank()) ? q : null;
-        return adminRepo.buscarAdmin(qNorm, categoriaId, estado, vendedorId, precioMin, precioMax, desde, pageable);
+
+        Specification<Producto> spec = ProductoSpecification.buscarComoAdmin(
+                q, categoriaId, estado, vendedorId, precioMin, precioMax, desde
+        );
+
+        return adminRepo.findAll(spec, pageable);
     }
 
     // ── Editar ───────────────────────────────────────────────────────────────
 
     public Producto editar(Integer id, Map<String, Object> body) {
         Producto p = findOrThrow(id);
-        if (body.containsKey("titulo"))       p.setTitulo((String) body.get("titulo"));
-        if (body.containsKey("descripcion"))  p.setDescripcion((String) body.get("descripcion"));
+        if (body.containsKey("titulo")) {
+            String titulo = (String) body.get("titulo");
+            moderationService.validarYBloquear(titulo, "producto", "el título");
+            p.setTitulo(titulo);
+        }
+        if (body.containsKey("descripcion")) {
+            String descripcion = (String) body.get("descripcion");
+            moderationService.validarYBloquear(descripcion, "producto", "la descripción");
+            p.setDescripcion(descripcion);
+        }
         if (body.containsKey("precio"))       p.setPrecio(((Number) body.get("precio")).doubleValue());
         if (body.containsKey("estado"))       p.setEstado(EstadoProducto.valueOf((String) body.get("estado")));
         if (body.containsKey("categoriaId")) {
@@ -71,9 +88,10 @@ public class AdminProductosService {
         p.setEstado(EstadoProducto.SUSPENDIDO_ADMIN);
         p.setMotivoPausa(motivo);
         p.setPausadoHasta(LocalDateTime.now().plusHours(duracionHoras));
-        notificacionService.notificarSistema(p.getVendedor().getId(),
+        notificacionService.notificarAccionAdmin(p.getVendedor().getId(), "Producto pausado por moderación",
                 "Tu producto \"" + p.getTitulo() + "\" ha sido pausado hasta "
-                        + p.getPausadoHasta().toLocalDate() + ". Motivo: " + motivo);
+                        + p.getPausadoHasta().toLocalDate() + ". Motivo: " + motivo,
+                "/productos/" + p.getId());
         auditLogService.registrar("PRODUCTO_PAUSADO", id, "admin", "Motivo: " + motivo + " | Horas: " + duracionHoras);
         return productoRepo.save(p);
     }
@@ -85,8 +103,9 @@ public class AdminProductosService {
         p.setEstado(EstadoProducto.DISPONIBLE);
         p.setPausadoHasta(null);
         p.setMotivoPausa(null);
-        notificacionService.notificarSistema(p.getVendedor().getId(),
-                "Tu producto \"" + p.getTitulo() + "\" ha sido reactivado.");
+        notificacionService.notificarAccionAdmin(p.getVendedor().getId(), "Producto reactivado",
+                "Tu producto \"" + p.getTitulo() + "\" ha sido reactivado.",
+                "/productos/" + p.getId());
         auditLogService.registrar("PRODUCTO_REACTIVADO", id, "admin", null);
         return productoRepo.save(p);
     }
@@ -121,8 +140,9 @@ public class AdminProductosService {
             p.setEstado(EstadoProducto.DISPONIBLE);
             p.setPausadoHasta(null);
             p.setMotivoPausa(null);
-            notificacionService.notificarSistema(p.getVendedor().getId(),
-                    "Tu producto \"" + p.getTitulo() + "\" ha sido reactivado automáticamente.");
+            notificacionService.notificarAccionAdmin(p.getVendedor().getId(), "Producto reactivado",
+                    "Tu producto \"" + p.getTitulo() + "\" ha sido reactivado automáticamente.",
+                    "/productos/" + p.getId());
             productoRepo.save(p);
         }
         return vencidos.size();

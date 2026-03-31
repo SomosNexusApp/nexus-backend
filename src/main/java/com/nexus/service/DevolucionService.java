@@ -30,6 +30,8 @@ public class DevolucionService {
     private EmailService emailService;
     @Autowired
     private ChatWebSocketController chatWebSocketController;
+    @Autowired
+    private NotificacionService notificacionService;
 
     /**
      * El comprador solicita una devolución.
@@ -65,12 +67,13 @@ public class DevolucionService {
 
         Devolucion guardada = devolucionRepository.save(d);
 
-        // Notificar al vendedor por email y chat
         notificarEnChat(compra, "↩️ El comprador ha solicitado una devolución. Motivo: " + motivo.name());
-        String vendedorEmail = compra.getProducto().getPublicador().getEmail();
-        emailService.enviarEmail(vendedorEmail, "Solicitud de devolución — Nexus",
-                "El comprador ha solicitado devolver el producto <b>" +
-                        compra.getProducto().getTitulo() + "</b>. Tienes 48 horas para responder.");
+        Producto prod = compra.getProducto();
+        notificacionService.notificarDevolucion(prod.getPublicador().getId(), prod.getTitulo());
+        String vendedorEmail = prod.getPublicador().getEmail();
+        if (vendedorEmail != null) {
+            emailService.enviarSolicitudDevolucionVendedor(vendedorEmail, prod.getTitulo());
+        }
 
         return guardada;
     }
@@ -97,9 +100,14 @@ public class DevolucionService {
                 : "❌ El vendedor ha RECHAZADO tu devolución. Motivo: " + nota;
         notificarEnChat(d.getCompra(), msgComprador);
 
-        // Notificar al comprador por email
-        emailService.enviarEmail(d.getCompra().getComprador().getEmail(),
-                "Respuesta a tu devolución — Nexus", msgComprador);
+        Compra c = d.getCompra();
+        String titulo = c.getProducto().getTitulo();
+        notificacionService.notificarDevolucionActualizacion(c.getComprador().getId(), titulo, msgComprador,
+                "/perfil?tab=compras");
+        String emailC = c.getComprador().getEmail();
+        if (emailC != null) {
+            emailService.enviarRespuestaDevolucionComprador(emailC, msgComprador);
+        }
 
         return actualizada;
     }
@@ -122,6 +130,11 @@ public class DevolucionService {
 
         Devolucion actualizada = devolucionRepository.save(d);
         notificarEnChat(d.getCompra(), "📦 El comprador ha enviado el producto de vuelta. Tracking: " + tracking);
+        Compra c = d.getCompra();
+        notificacionService.notificarDevolucionActualizacion(c.getProducto().getPublicador().getId(),
+                c.getProducto().getTitulo(),
+                "El comprador ha enviado la devolución. Tracking: " + tracking,
+                "/perfil?tab=compras");
         return actualizada;
     }
 
@@ -150,6 +163,15 @@ public class DevolucionService {
         productoRepository.save(producto);
 
         notificarEnChat(d.getCompra(), "💸 Devolución completada. Reembolso procesado. ¡Gracias por usar Nexus!");
+        Compra c = d.getCompra();
+        notificacionService.notificarDevolucionActualizacion(c.getComprador().getId(), c.getProducto().getTitulo(),
+                "Tu devolución está cerrada y el reembolso ha sido procesado.",
+                "/perfil?tab=compras");
+        String emailC = c.getComprador().getEmail();
+        if (emailC != null) {
+            emailService.enviarRespuestaDevolucionComprador(emailC,
+                    "Tu reembolso por «" + c.getProducto().getTitulo() + "» ha sido procesado.");
+        }
         return actualizada;
     }
 

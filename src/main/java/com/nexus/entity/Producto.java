@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 })
 public class Producto extends DomainEntity {
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String titulo;
 
     @Column(columnDefinition = "TEXT")
@@ -82,6 +82,12 @@ public class Producto extends DomainEntity {
 
     private LocalDateTime fechaPublicacion;
 
+    /** Fin de vigencia del anuncio (estilo Wallapop). Si pasa, pasa a EXPIRADO. */
+    private LocalDateTime fechaCaducidad;
+
+    /** Último hito de aviso enviado (días restantes: 30, 14, 7 o 1). Null = ninguno. */
+    private Integer ultimoAvisoCaducidadDias;
+
     // ── Campos admin ─────────────────────────────────────────────────────────
 
     /** Fecha hasta la que el producto está pausado por el admin. Null = no pausado por admin. */
@@ -94,6 +100,10 @@ public class Producto extends DomainEntity {
     /** True = aparece primero en búsquedas y home. */
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean destacado = false;
+
+    /** Contrato de publicidad pagado: prioridad en listados y etiqueta Patrocinado. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean patrocinado = false;
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTORES
@@ -122,6 +132,7 @@ public class Producto extends DomainEntity {
     @PrePersist
     protected void onCreate() {
         if (fechaPublicacion == null) fechaPublicacion = LocalDateTime.now();
+        if (fechaCaducidad == null) fechaCaducidad = fechaPublicacion.plusDays(180);
         if (estado           == null) estado           = EstadoProducto.DISPONIBLE;
         if (tipoOferta       == null) tipoOferta       = TipoOferta.VENTA;
         if (galeriaImagenes  == null) galeriaImagenes  = new ArrayList<>();
@@ -210,6 +221,12 @@ public class Producto extends DomainEntity {
     public LocalDateTime    getFechaPublicacion()               { return fechaPublicacion; }
     public void             setFechaPublicacion(LocalDateTime f){ this.fechaPublicacion = f; }
 
+    public LocalDateTime    getFechaCaducidad()                 { return fechaCaducidad; }
+    public void             setFechaCaducidad(LocalDateTime f)  { this.fechaCaducidad = f; }
+
+    public Integer          getUltimoAvisoCaducidadDias()       { return ultimoAvisoCaducidadDias; }
+    public void             setUltimoAvisoCaducidadDias(Integer u) { this.ultimoAvisoCaducidadDias = u; }
+
     public LocalDateTime    getPausadoHasta()                   { return pausadoHasta; }
     public void             setPausadoHasta(LocalDateTime p)    { this.pausadoHasta = p; }
 
@@ -218,6 +235,9 @@ public class Producto extends DomainEntity {
 
     public Boolean          getDestacado()                      { return destacado != null && destacado; }
     public void             setDestacado(Boolean d)             { this.destacado = d != null ? d : false; }
+
+    public Boolean          getPatrocinado()                    { return patrocinado != null && patrocinado; }
+    public void             setPatrocinado(Boolean p)          { this.patrocinado = p != null ? p : false; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

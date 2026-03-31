@@ -2,6 +2,7 @@ package com.nexus.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nexus.entity.*;
 import com.nexus.repository.*;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * Servicio de Newsletter - cumplimiento RGPD / LSSI.
@@ -37,10 +39,16 @@ import com.nexus.repository.*;
 public class NewsletterService {
 
     @Autowired private NewsletterRepository newsletterRepository;
+    @Autowired private NewsletterConfigRepository newsletterConfigRepository;
+    @Autowired private ProductoRepository productoRepository;
+    @Autowired private OfertaRepository ofertaRepository;
     @Autowired private EmailService         emailService;
 
     @Value("${nexus.frontend.url:http://localhost:4200}")
     private String frontendUrl;
+
+    @Value("${nexus.api.url:http://localhost:8080}")
+    private String apiUrl;
 
     @Value("${nexus.newsletter.version-politica:1.0}")
     private String versionPolitica;
@@ -142,6 +150,115 @@ public class NewsletterService {
             }).orElse(false);
     }
 
+    // ---- Admin Actions --------------------------------------------------
+
+    public Map<String, Long> getNewsletterStats() {
+        return Map.of(
+            "total", newsletterRepository.count(),
+            "activos", newsletterRepository.countByEstado(EstadoSuscripcion.ACTIVO),
+            "pendientes", newsletterRepository.countByEstado(EstadoSuscripcion.PENDIENTE),
+            "bajas", newsletterRepository.countByEstado(EstadoSuscripcion.BAJA)
+        );
+    }
+
+    @Async
+    public void enviarNewsletterPrueba(String targetEmail, String asunto, String htmlContent) {
+        String testTag = "<div style='background:#fff3cd; color:#856404; padding:10px; text-align:center; font-size:12px; margin-bottom:20px;'>MODO PRUEBA: Este es un correo de test</div>";
+        emailService.enviarEmailHtml(targetEmail, "[PRUEBA] " + asunto, testTag + htmlContent);
+    }
+
+    @Async
+    @Transactional(readOnly = true)
+    public void enviarAActivos(String asunto, String htmlContent) {
+        List<NewsletterSuscripcion> activos = newsletterRepository.findByEstado(EstadoSuscripcion.ACTIVO);
+        for (NewsletterSuscripcion s : activos) {
+            String htmlConFooter = agregarFooterBaja(htmlContent, s.getTokenBaja(), s.getNombre());
+            emailService.enviarEmailHtml(s.getEmail(), asunto, htmlConFooter);
+        }
+    }
+
+    // --- GESTIÓN DE CONFIGURACIÓN SEMANAL ---
+
+    public NewsletterConfig getConfig() {
+        return newsletterConfigRepository.findAll().stream().findFirst()
+                .orElseGet(() -> {
+                    NewsletterConfig nc = new NewsletterConfig();
+                    return newsletterConfigRepository.save(nc);
+                });
+    }
+
+    public NewsletterConfig saveConfig(NewsletterConfig nc) {
+        NewsletterConfig current = getConfig();
+        current.setAutomatedEnabled(nc.isAutomatedEnabled());
+        current.setDayOfWeek(nc.getDayOfWeek());
+        current.setTimeOfDay(nc.getTimeOfDay());
+        return newsletterConfigRepository.save(current);
+    }
+
+    // --- GENERACIÓN DE RESUMEN SEMANAL ---
+
+    public String generateWeeklyDigestHtml() {
+        // 1. Obtener top productos (3 más actuales)
+        List<Producto> topProductos = productoRepository.buscarConFiltros(null, null, null, null, PageRequest.of(0, 3)).getContent();
+
+        // 2. Obtener top ofertas (3 con más Sparks)
+        List<Oferta> topOfertas = ofertaRepository.findTopBySparkScore(PageRequest.of(0, 3));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<h2 style='text-align:center;'>Lo mejor de Nexus esta semana</h2>");
+        sb.append("<p style='text-align:center; color:#64748b;'>Hemos seleccionado estas piezas exclusivas y chollazos para ti.</p>");
+
+        // Sección Ofertas
+        if (!topOfertas.isEmpty()) {
+            sb.append("<div style='margin-top:40px;'>");
+            sb.append("<h3 style='color:#7c3aed; border-bottom:2px solid #f5f3ff; padding-bottom:10px;'>🔥 Chollazos Destacados</h3>");
+            for (Oferta o : topOfertas) {
+                sb.append("<div style='display:flex; margin-bottom:20px; background:#f8fafc; border-radius:12px; padding:15px; border:1px solid #e2e8f0;'>");
+                String img = o.getImagenPrincipal();
+                if (img == null || img.isEmpty()) {
+                   img = "https://nexus-app.es/logo.webp"; // Fallback publico
+                } else if (!img.startsWith("http")) {
+                    img = (img.startsWith("/") ? apiUrl : apiUrl + "/") + img;
+                }
+                sb.append("<img src='").append(img).append("' style='width:100px; height:100px; object-fit:cover; border-radius:8px; margin-right:15px;'>");
+                sb.append("<div>");
+                sb.append("<h4 style='margin:0; font-size:16px;'>").append(o.getTitulo()).append("</h4>");
+                sb.append("<p style='margin:5px 0; color:#7c3aed; font-weight:700; font-size:18px;'>").append(o.getPrecioOferta()).append("€ <span style='color:#64748b; font-size:14px; text-decoration:line-through; font-weight:400;'>").append(o.getPrecioOriginal()).append("€</span></p>");
+                sb.append("<p style='margin:0; font-size:12px; color:#64748b;'>Tienda: ").append(o.getTienda()).append("</p>");
+                sb.append("</div></div>");
+            }
+            sb.append("</div>");
+        }
+
+        // Sección Productos
+        if (!topProductos.isEmpty()) {
+            sb.append("<div style='margin-top:40px;'>");
+            sb.append("<h3 style='color:#7c3aed; border-bottom:2px solid #f5f3ff; padding-bottom:10px;'>✨ Últimas Novedades</h3>");
+            for (Producto p : topProductos) {
+                sb.append("<div style='display:flex; margin-bottom:20px; background:#f8fafc; border-radius:12px; padding:15px; border:1px solid #e2e8f0;'>");
+                String img = p.getImagenPrincipal();
+                if (img == null || img.isEmpty()) {
+                    img = "https://nexus-app.es/logo.webp"; // Fallback publico
+                } else if (!img.startsWith("http")) {
+                    img = (img.startsWith("/") ? apiUrl : apiUrl + "/") + img;
+                }
+                sb.append("<img src='").append(img).append("' style='width:100px; height:100px; object-fit:cover; border-radius:8px; margin-right:15px;'>");
+                sb.append("<div>");
+                sb.append("<h4 style='margin:0; font-size:16px;'>").append(p.getTitulo()).append("</h4>");
+                sb.append("<p style='margin:5px 0; color:#0f172a; font-weight:700; font-size:18px;'>").append(p.getPrecio()).append("€</p>");
+                sb.append("<p style='margin:0; font-size:12px; color:#64748b;'>Vendedor: ").append(p.getVendedor().getUser()).append("</p>");
+                sb.append("</div></div>");
+            }
+            sb.append("</div>");
+        }
+
+        sb.append("<div style='text-align:center; margin-top:40px;'>");
+        sb.append("<a href='https://nexus-app.es/market' class='btn'>Ver todo en Nexus</a>");
+        sb.append("</div>");
+
+        return sb.toString();
+    }
+
     // ---- Actualizar preferencias (desde ajustes) -----------------------
 
     @Transactional
@@ -225,7 +342,6 @@ public class NewsletterService {
 
     @Async
     private void enviarEmailBienvenida(NewsletterSuscripcion s) {
-        String bajaLink = frontendUrl + "/newsletter/baja?t=" + s.getTokenBaja();
         String html = "<html><body style='font-family:sans-serif;max-width:600px;margin:auto'>"
             + "<h2>Bienvenido/a al Newsletter de Nexus</h2>"
             + "<p>Hola " + (s.getNombre() != null ? s.getNombre() : "") + ",</p>"

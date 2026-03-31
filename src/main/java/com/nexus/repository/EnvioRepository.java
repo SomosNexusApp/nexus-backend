@@ -1,5 +1,6 @@
 package com.nexus.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,10 @@ public interface EnvioRepository extends JpaRepository<Envio, Integer> {
     Optional<Envio> findByCodigoEnvio(String codigoEnvio);
 
     List<Envio> findByEstado(EstadoEnvio estado);
+
+    List<Envio> findByEstadoIn(List<EstadoEnvio> estados);
+
+    List<Envio> findByEstadoAndFechaLimiteEnvioBefore(EstadoEnvio estado, LocalDateTime antes);
 
     // Envíos pendientes de confirmación por el comprador (para la tarea automática
     // de 7 días)

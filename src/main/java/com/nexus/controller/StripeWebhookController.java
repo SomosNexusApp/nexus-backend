@@ -2,8 +2,10 @@ package com.nexus.controller;
 
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.nexus.service.CompraService;
+import com.nexus.service.ContratoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ public class StripeWebhookController {
 
     @Autowired
     private CompraService compraService;
+
+    @Autowired
+    private ContratoService contratoService;
 
     @PostMapping("/stripe")
     public ResponseEntity<String> handleStripeWebhook(
@@ -44,13 +49,21 @@ public class StripeWebhookController {
             return ResponseEntity.badRequest().body("Webhook Error");
         }
 
-        // Manejar el evento
+        if ("checkout.session.completed".equals(event.getType())) {
+            try {
+                Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
+                if (session != null && session.getMetadata() != null && session.getMetadata().get("contrato_id") != null) {
+                    log.info("Checkout completado contrato publicidad: session={}", session.getId());
+                    contratoService.activarTrasCheckoutCompletado(session.getId());
+                }
+            } catch (Exception e) {
+                log.error("Webhook checkout contrato: {}", e.getMessage());
+            }
+        }
+
         if ("payment_intent.succeeded".equals(event.getType())) {
             PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject().get();
             log.info("Pago recibido vía Webhook: PI={}", intent.getId());
-            
-            // Aquí llamarías a un método de CompraService para marcar como pagada
-            // basándote solo en el PaymentIntent ID si la compra existe.
             try {
                 compraService.confirmarPagoPorStripeId(intent.getId());
             } catch (Exception e) {

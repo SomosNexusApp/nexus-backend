@@ -1,9 +1,11 @@
 package com.nexus.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,6 +29,11 @@ public class ProductoService {
     private BloqueoService bloqueoService;
     @Autowired
     private SynonymService synonymService;
+    @Autowired
+    private ModerationService moderationService;
+
+    @Value("${nexus.anuncio.vida-dias:180}")
+    private int vidaAnuncioDias;
 
     // ── Lecturas ─────────────────────────────────────────────────────────────
 
@@ -37,7 +44,7 @@ public class ProductoService {
 
     @Transactional(readOnly = true)
     public List<Producto> findDisponibles() {
-        return productoRepository.findByEstado(EstadoProducto.DISPONIBLE);
+        return productoRepository.findByEstadoOrderByPatrocinadoDescFechaPublicacionDesc(EstadoProducto.DISPONIBLE);
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +108,7 @@ public class ProductoService {
 
     @Transactional
     public Producto publicar(Producto producto, Integer usuarioId) {
+        validarModeracion(producto);
         return actorRepository.findById(usuarioId).map(actor -> {
             producto.setVendedor(actor);
             if (producto.getEstado() == null)
@@ -111,7 +119,13 @@ public class ProductoService {
 
     @Transactional
     public Producto update(Integer id, Producto detalles) {
+        validarModeracion(detalles);
         return productoRepository.save(detalles);
+    }
+
+    private void validarModeracion(Producto p) {
+        moderationService.validarYBloquear(p.getTitulo(), "producto", "el título");
+        moderationService.validarYBloquear(p.getDescripcion(), "producto", "la descripción");
     }
 
     @Transactional
@@ -159,6 +173,25 @@ public class ProductoService {
         Producto p = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + id));
         p.setEstado(nuevo);
+        return productoRepository.save(p);
+    }
+
+    /** Reactiva un anuncio caducado (Wallapop): nueva ventana de vigencia. */
+    @Transactional
+    public Producto renovar(Integer id, Integer vendedorId) {
+        Producto p = productoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        if (!p.getVendedor().getId().equals(vendedorId)) {
+            throw new IllegalStateException("No autorizado");
+        }
+        if (p.getEstado() != EstadoProducto.EXPIRADO) {
+            throw new IllegalStateException("Solo se puede renovar un producto expirado");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        p.setEstado(EstadoProducto.DISPONIBLE);
+        p.setFechaPublicacion(now);
+        p.setFechaCaducidad(now.plusDays(vidaAnuncioDias));
+        p.setUltimoAvisoCaducidadDias(null);
         return productoRepository.save(p);
     }
 }

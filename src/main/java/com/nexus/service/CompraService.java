@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nexus.entity.*;
 import com.nexus.repository.*;
+import com.nexus.controller.ChatWebSocketController;
 
 @Service
 public class CompraService {
@@ -20,6 +21,12 @@ public class CompraService {
     private ProductoRepository productoRepository;
     @Autowired
     private EnvioService envioService;
+    @Autowired
+    private NotificacionService notificacionService;
+    @Autowired
+    private EmailService emailService;
+    @Autowired
+    private ChatWebSocketController chatWebSocketController;
 
     public List<Compra> findAll() {
         return compraRepository.findAll();
@@ -89,6 +96,44 @@ public class CompraService {
                 nombreDest, direccion, ciudad, cp, pais, telefonoDest, precioEnvio,
                 pesoKg, transportista);
 
+        Producto p = guardada.getProducto();
+        String titulo = p.getTitulo();
+        Actor vendedor = p.getPublicador();
+        Actor comprador = guardada.getComprador();
+        notificacionService.notificarNuevaCompraVendedor(vendedor.getId(), titulo, guardada.getId(), true);
+        notificacionService.notificarCompraConfirmadaComprador(comprador.getId(), titulo, guardada.getId());
+        if (comprador.getEmail() != null) {
+            emailService.enviarConfirmacionCompra(comprador.getEmail(), titulo, guardada.getPrecioFinal());
+            emailService.enviarResumenPagoComprador(
+                    comprador.getEmail(),
+                    guardada.getId(),
+                    titulo,
+                    guardada.getPrecioFinal(),
+                    producto.getPrecio(),
+                    guardada.getCostoEnvio(),
+                    guardada.getComisionNexus());
+        }
+        if (vendedor.getEmail() != null) {
+            String nombreC = comprador.getNombre() != null && !comprador.getNombre().isBlank()
+                    ? comprador.getNombre() : comprador.getUser();
+            emailService.enviarNuevaVentaVendedor(vendedor.getEmail(), titulo, guardada.getId(), nombreC);
+        }
+        try {
+            chatWebSocketController.publicarMensajeSistema(
+                    guardada.getProducto().getId(),
+                    vendedor.getId(),
+                    comprador.getId(),
+                    "✅ Han comprado tu producto. Pago confirmado de «" + titulo
+                            + "». Revisa la guía de envío para continuar.");
+            chatWebSocketController.publicarMensajeSistema(
+                    guardada.getProducto().getId(),
+                    comprador.getId(),
+                    vendedor.getId(),
+                    "✅ Compra confirmada de «" + titulo
+                            + "». Te iremos avisando en este chat con cada actualización del envío.");
+        } catch (Exception ignored) {
+        }
+
         return guardada;
     }
 
@@ -131,20 +176,13 @@ public class CompraService {
         return compraRepository.save(compra);
     }
 
+    /**
+     * Webhook Stripe: no marca la compra como pagada aquí. El flujo completo (envío, notificaciones,
+     * escrow) solo ocurre en {@link #confirmarPago} llamado por el cliente tras el pago.
+     * Marcar PAGADO solo desde el webhook dejaba la compra sin envío y bloqueaba confirmar-pago.
+     */
     @Transactional
     public void confirmarPagoPorStripeId(String stripeId) {
-        compraRepository.findByStripePaymentIntentId(stripeId).ifPresent(compra -> {
-            if (compra.getEstado() == EstadoCompra.PENDIENTE) {
-                compra.setEstado(EstadoCompra.PAGADO);
-                compra.setFechaPago(LocalDateTime.now());
-
-                Producto p = compra.getProducto();
-                if (p.getEstadoProducto() == EstadoProducto.DISPONIBLE) {
-                    p.setEstadoProducto(EstadoProducto.RESERVADO);
-                    productoRepository.save(p);
-                }
-                compraRepository.save(compra);
-            }
-        });
+        // Reservado para diagnóstico o reconciliación futura; la fuente de verdad es POST /confirmar-pago.
     }
 }

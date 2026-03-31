@@ -1,5 +1,6 @@
 package com.nexus.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,15 @@ public class NotificacionController {
     }
 
     /**
+     * Notificaciones destacadas sin leer (modal prioritario al iniciar sesión).
+     */
+    @GetMapping("/destacadas-pendientes/{actorId}")
+    @Operation(summary = "Listar notificaciones destacadas no leidas")
+    public ResponseEntity<List<NotificacionInApp>> destacadasPendientes(@PathVariable Integer actorId) {
+        return ResponseEntity.ok(notificacionService.getDestacadasPendientes(actorId));
+    }
+
+    /**
      * Marcar una notificacion como leida.
      * PUT /api/notificaciones/{id}/leer
      */
@@ -71,6 +81,16 @@ public class NotificacionController {
     @Operation(summary = "Marcar todas como leidas")
     public ResponseEntity<Void> marcarTodasLeidas(@PathVariable Integer actorId) {
         notificacionService.marcarTodasLeidas(actorId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Alternar estado destacado.
+     */
+    @PutMapping("/{id}/toggle-destacada")
+    @Operation(summary = "Alternar estado destacado de una notificacion")
+    public ResponseEntity<Void> toggleDestacada(@PathVariable Integer id) {
+        notificacionService.toggleDestacada(id);
         return ResponseEntity.ok().build();
     }
 

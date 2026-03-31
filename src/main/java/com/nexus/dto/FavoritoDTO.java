@@ -7,8 +7,8 @@ public class FavoritoDTO {
     private LocalDateTime fechaGuardado;
     private String nota;
     private ProductoResumenDTO producto;
-    // Si necesitas mostrar ofertas favoritas, puedes crear un OfertaResumenDTO e incluirlo aquí
-    // private OfertaResumenDTO oferta; 
+    private VehiculoResumenDTO vehiculo;
+    private OfertaResumenDTO oferta; 
 
     public FavoritoDTO() {}
 
@@ -24,4 +24,10 @@ public class FavoritoDTO {
 
     public ProductoResumenDTO getProducto() { return producto; }
     public void setProducto(ProductoResumenDTO producto) { this.producto = producto; }
+
+    public VehiculoResumenDTO getVehiculo() { return vehiculo; }
+    public void setVehiculo(VehiculoResumenDTO vehiculo) { this.vehiculo = vehiculo; }
+    
+    public OfertaResumenDTO getOferta() { return oferta; }
+    public void setOferta(OfertaResumenDTO oferta) { this.oferta = oferta; }
 }

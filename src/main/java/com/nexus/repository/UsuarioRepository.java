@@ -18,4 +18,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     @Query("SELECT u FROM Usuario u WHERE u.esVerificado = true ORDER BY u.reputacion DESC")
     List<Usuario> findTopVendedores(Pageable pageable);
+
+    Optional<Usuario> findByGoogleId(String googleId);
 }

@@ -33,12 +33,6 @@ public class Usuario extends Actor {
     private boolean newsletterSuscrito = false;
 
     @Column
-    private String googleId;
-
-    @Column
-    private String facebookId;
-
-    @Column
     private String versionTerminosAceptados;
 
     @Column
@@ -155,22 +149,6 @@ public class Usuario extends Actor {
 
     public void setNewsletterSuscrito(boolean b) {
         this.newsletterSuscrito = b;
-    }
-
-    public String getGoogleId() {
-        return googleId;
-    }
-
-    public void setGoogleId(String g) {
-        this.googleId = g;
-    }
-
-    public String getFacebookId() {
-        return facebookId;
-    }
-
-    public void setFacebookId(String f) {
-        this.facebookId = f;
     }
 
     public String getVersionTerminosAceptados() {

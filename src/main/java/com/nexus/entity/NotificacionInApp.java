@@ -2,6 +2,7 @@ package com.nexus.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
  * Notificacion in-app.
@@ -23,10 +24,17 @@ public class NotificacionInApp extends DomainEntity {
     @Column(nullable = false) private String titulo;
     @Column(columnDefinition = "TEXT") private String mensaje;
     private String url;
+    /** Si true, la app puede mostrar modal/banner prioritario (p. ej. venta con envío pendiente). */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean destacada = false;
+    /** JSON opcional: entityType, entityId, compraId, etc. */
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
     @Column(nullable = false) private boolean leida = false;
     @Column(nullable = false) private LocalDateTime fecha;
     @PrePersist protected void onCreate() { if (fecha == null) fecha = LocalDateTime.now(); }
 
+    @JsonIgnore
     public Actor            getActor()                       { return actor; }
     public void             setActor(Actor a)                { this.actor = a; }
     public TipoNotificacion getTipo()                        { return tipo; }
@@ -41,4 +49,10 @@ public class NotificacionInApp extends DomainEntity {
     public void             setLeida(boolean l)              { this.leida = l; }
     public LocalDateTime    getFecha()                       { return fecha; }
     public void             setFecha(LocalDateTime f)        { this.fecha = f; }
+
+    public boolean          isDestacada()                    { return destacada; }
+    public void             setDestacada(boolean d)          { this.destacada = d; }
+
+    public String           getMetadata()                    { return metadata; }
+    public void             setMetadata(String m)            { this.metadata = m; }
 }

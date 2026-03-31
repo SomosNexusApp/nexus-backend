@@ -1,16 +1,35 @@
 package com.nexus.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
 
 @Service
 public class ModerationService {
+
+	@Autowired
+	private com.nexus.repository.AdminConfigRepository configRepository;
+
+	private Pattern dynamicPattern = null;
+
+	private void debugLog(String msg) {
+		try {
+			String log = LocalDateTime.now() + " : " + msg + "\n";
+			Files.write(Paths.get("C:/Users/josem/nexus_debug.txt"), log.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+		} catch (Exception e) {}
+	}
+
 
 	// 1. Lista base de palabras prohibidas (limpias, en minúscula y sin tildes)
 	// Puedes añadir las que quieras, el sistema generará sus variantes
@@ -536,40 +555,35 @@ public class ModerationService {
 			"bicho",
 	};
 
-	// 2. Patrón compilado dinámicamente una sola vez al arrancar (Ultra rápido)
-	private static final Pattern BAD_WORDS_PATTERN = compilarPatronAvanzado();
+	public String getAllWordsAsString() {
+		String customWords = configRepository.findById("sensitiveKeywords")
+				.map(com.nexus.entity.AdminConfig::getValue)
+				.orElse("");
+		
+		java.util.List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));
+		if (!customWords.isEmpty()) {
+			allWords.addAll(Arrays.asList(customWords.split("\\s*,\\s*")));
+		}
+		return allWords.stream().distinct().collect(Collectors.joining(", "));
+	}
 
 	/**
 	 * Construye el Súper-Regex combinando todas las palabras y sus posibles
 	 * evasiones.
 	 */
-	private static Pattern compilarPatronAvanzado() {
-		String regexCombinado = Arrays.stream(PALABRAS_BASE)
-				.map(ModerationService::generarRegexParaPalabra)
-				.collect(Collectors.joining("|"));
-
-		// (?iu) -> Insensible a mayúsculas y soporte Unicode (detecta ñ, tildes).
-		// (?:^|\P{L}) -> Límite inicial: principio del texto o cualquier carácter que
-		// NO sea una letra.
-		// (?:$|\P{L}) -> Límite final: fin del texto o cualquier carácter que NO sea
-		// una letra.
-		// Esto evita el "Scunthorpe problem" (ej. NO bloqueará la palabra "disputa"
-		// porque la 's' es una letra).
-		return Pattern.compile("(?iu)(?:^|\\P{L})(" + regexCombinado + ")(?:$|\\P{L})");
-	}
-
 	/**
 	 * Convierte la palabra "puta" en ->
 	 * [p]+[\W_]*[uúùüûv]+[\W_]*[t]+[\W_]*[aáàäâ@4]+
 	 */
 	private static String generarRegexParaPalabra(String palabra) {
 		StringBuilder sb = new StringBuilder();
+		String separator = "[\\W_]*";
 		for (char c : palabra.toCharArray()) {
-			sb.append(obtenerVariaciones(c)).append("[\\W_]*");
+			sb.append(obtenerVariaciones(c)).append(separator);
 		}
-		// Eliminar el último [\W_]* sobrante (7 caracteres de longitud)
-		if (sb.length() >= 7) {
-			sb.setLength(sb.length() - 7);
+		// Eliminar el último separator sobrante
+		if (sb.length() >= separator.length()) {
+			sb.setLength(sb.length() - separator.length());
 		}
 		return sb.toString();
 	}
@@ -594,24 +608,77 @@ public class ModerationService {
 
 	/**
 	 * Verifica si el texto cumple con las normas de la comunidad.
-	 * 
-	 * @param texto El texto a analizar.
-	 * @return true si es limpio, false si es inapropiado.
 	 */
 	public boolean esContenidoApropiado(String texto) {
-		if (texto == null || texto.trim().isEmpty()) {
-			return true;
+		debugLog("Validando contenido: " + texto);
+		if (texto == null || texto.trim().isEmpty()) return true;
+		boolean apropiado = !getPattern().matcher(texto).find();
+		debugLog("Resultado validacion: " + apropiado);
+		return apropiado;
+	}
+
+	/**
+	 * Valida el contenido y lanza una excepción descriptiva si no es apropiado.
+	 * 
+	 * @param texto       El texto a validar.
+	 * @param tipoEntidad "producto", "oferta" o "vehículo".
+	 * @param campos      "título", "descripción" o "título o descripción".
+	 */
+	public void validarYBloquear(String texto, String tipoEntidad, String campos) {
+		if (!esContenidoApropiado(texto)) {
+			throw new IllegalArgumentException(
+					"No podemos incluir este tipo de palabras en " + campos + " al publicar un " + tipoEntidad);
+		}
+	}
+
+	/**
+	 * Censura el texto reemplazando palabras prohibidas por asteriscos.
+	 * Ejemplo: "vete a la mierda" -> "vete a la ******"
+	 */
+	public String censurarTexto(String texto) {
+		debugLog("Censurando texto: " + texto);
+		if (texto == null || texto.trim().isEmpty()) return texto;
+		
+		Matcher matcher = getPattern().matcher(texto);
+		StringBuilder sb = new StringBuilder();
+		int lastEnd = 0;
+		
+		while (matcher.find()) {
+			sb.append(texto, lastEnd, matcher.start());
+			String match = matcher.group();
+			// Reemplazar cada carácter (excepto espacios si los hay) por *
+			for (int i = 0; i < match.length(); i++) {
+				sb.append('*');
+			}
+			lastEnd = matcher.end();
+		}
+		sb.append(texto.substring(lastEnd));
+		return sb.toString();
+	}
+
+	private Pattern getPattern() {
+		if (dynamicPattern == null) {
+			recompilarPatron();
+		}
+		return dynamicPattern;
+	}
+
+	public void recompilarPatron() {
+		String customWords = configRepository.findById("sensitiveKeywords")
+				.map(com.nexus.entity.AdminConfig::getValue)
+				.orElse("");
+		
+		List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));
+		if (!customWords.isEmpty()) {
+			allWords.addAll(Arrays.asList(customWords.split("\\s*,\\s*")));
 		}
 
-		Matcher matcher = BAD_WORDS_PATTERN.matcher(texto);
-		if (matcher.find()) {
-			// Descomenta esto en desarrollo si quieres ver exactamente qué palabra hizo
-			// saltar el filtro:
-			// System.out.println("🚨 Moderación: Bloqueado por coincidencia exacta -> '" +
-			// matcher.group().trim() + "'");
-			return false;
-		}
-		return true;
+		String regexCombinado = allWords.stream()
+				.distinct()
+				.map(ModerationService::generarRegexParaPalabra)
+				.collect(Collectors.joining("|"));
+
+		dynamicPattern = Pattern.compile("(?iu)(?:^|\\P{L})(" + regexCombinado + ")(?:$|\\P{L})");
 	}
 
 	/**

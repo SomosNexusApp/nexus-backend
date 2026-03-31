@@ -42,6 +42,9 @@ public class MensajeService {
         return mensajeRepository.findByProducto(p); // Ordenado por defecto o añadir Sort en repository
     }
 
+    @Autowired
+    private ModerationService moderationService;
+
     // Enviar mensaje
     public Mensaje save(Mensaje mensaje, Integer usuarioId, Integer productoId) {
         Optional<Usuario> oUsuario = usuarioService.findById(usuarioId);
@@ -51,6 +54,10 @@ public class MensajeService {
             if (mensaje.getTexto() == null || mensaje.getTexto().trim().isEmpty()) {
                 throw new IllegalArgumentException("El mensaje no puede estar vacío");
             }
+
+            // Aplicar censura
+            String textoCensurado = moderationService.censurarTexto(mensaje.getTexto());
+            mensaje.setTexto(textoCensurado);
 
             mensaje.setUsuario(oUsuario.get());
             mensaje.setProducto(oProducto.get());

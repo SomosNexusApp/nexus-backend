@@ -1,5 +1,6 @@
 package com.nexus.repository;
 
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,8 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
     List<Vehiculo> findByPublicadorIdOrderByFechaPublicacionDesc(Integer publicadorId);
 
     List<Vehiculo> findByEstadoVehiculo(EstadoVehiculo estado);
+
+    List<Vehiculo> findByEstadoVehiculoIn(Collection<EstadoVehiculo> estados);
 
     List<Vehiculo> findByTipoVehiculoAndEstadoVehiculo(TipoVehiculo tipo, EstadoVehiculo estado);
 

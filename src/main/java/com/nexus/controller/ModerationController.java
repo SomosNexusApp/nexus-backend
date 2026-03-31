@@ -19,7 +19,7 @@ public class ModerationController {
     private ModerationService moderationService;
 
     @PostMapping("/check-text")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')") // O hasRole('ADMIN') según tu SecurityConfig
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Verificar si un texto es apropiado (Solo ADMIN)")
     public ResponseEntity<Map<String, Object>> checkText(@RequestBody Map<String, String> body) {
         String texto = body.getOrDefault("texto", "");

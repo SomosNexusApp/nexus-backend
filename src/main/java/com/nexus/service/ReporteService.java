@@ -33,6 +33,7 @@ public class ReporteService {
     @Autowired private VehiculoRepository   vehiculoRepository;
     @Autowired private ComentarioRepository comentarioRepository;
     @Autowired private MensajeRepository    mensajeRepository;
+    @Autowired private NotificacionService  notificacionService;
 
     public List<Reporte> findAll()             { return reporteRepository.findAll(); }
     public Optional<Reporte> findById(Integer id) { return reporteRepository.findById(id); }
@@ -131,7 +132,9 @@ public class ReporteService {
         r.setEstado(estado);
         r.setResolucion(resolucion);
         r.setFechaResolucion(LocalDateTime.now());
-        return reporteRepository.save(r);
+        Reporte g = reporteRepository.save(r);
+        notificarResolucionReporte(g);
+        return g;
     }
 
     /**
@@ -146,7 +149,19 @@ public class ReporteService {
         r.setResolucion(resolucion);
         r.setFechaResolucion(LocalDateTime.now());
         actorRepository.findById(adminId).ifPresent(r::setResoltor);
-        return reporteRepository.save(r);
+        Reporte g = reporteRepository.save(r);
+        notificarResolucionReporte(g);
+        return g;
+    }
+
+    /** Llamado también desde AdminPanelController al actualizar un reporte. */
+    public void notificarResolucionReporte(Reporte r) {
+        if (r.getReportador() == null) return;
+        String detalle = r.getResolucion() != null ? r.getResolucion() : "";
+        notificacionService.notificarAccionAdmin(r.getReportador().getId(),
+                "Resolución de tu reporte",
+                "Estado: " + (r.getEstado() != null ? r.getEstado().name() : "") + ". " + detalle,
+                null);
     }
 
     @Transactional

@@ -8,6 +8,8 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import com.stripe.model.Customer;
 import com.stripe.model.SetupIntent;
 import com.stripe.model.PaymentMethod;
@@ -142,5 +144,32 @@ public class StripeService {
         validarConfig();
         PaymentMethod pm = PaymentMethod.retrieve(paymentMethodId);
         pm.detach();
+    }
+
+    /**
+     * Checkout Stripe para pago de contrato publicitario (metadata contrato_id).
+     */
+    public Session crearCheckoutContrato(Integer contratoId, Integer empresaActorId, double montoEur,
+            String successUrl, String cancelUrl) throws Exception {
+        validarConfig();
+        long centimos = Math.round(montoEur * 100);
+        SessionCreateParams params = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(successUrl)
+                .setCancelUrl(cancelUrl)
+                .addLineItem(SessionCreateParams.LineItem.builder()
+                        .setQuantity(1L)
+                        .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+                                .setCurrency(moneda)
+                                .setUnitAmount(centimos)
+                                .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                        .setName("Contrato publicitario Nexus")
+                                        .build())
+                                .build())
+                        .build())
+                .putMetadata("contrato_id", String.valueOf(contratoId))
+                .putMetadata("empresa_actor_id", String.valueOf(empresaActorId))
+                .build();
+        return Session.create(params);
     }
 }

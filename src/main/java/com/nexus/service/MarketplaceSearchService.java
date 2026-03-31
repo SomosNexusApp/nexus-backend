@@ -27,8 +27,15 @@ public class MarketplaceSearchService {
     @Autowired
     private VehiculoService vehiculoService;
 
+    @Autowired
+    private com.nexus.repository.ContratoRepository contratoRepository;
+
+    @Autowired
+    private com.nexus.repository.ProductoRepository productoRepository;
+
     public Map<String, Object> buscarTodo(
             String q,
+            String tipo,
             String categoria,
             Double precioMin,
             Double precioMax,
@@ -41,6 +48,21 @@ public class MarketplaceSearchService {
             Pageable pageable) {
 
         int sizePerType = pageable.getPageSize();
+
+        // 0. Bounding Box (Aproximado)
+        Double minLat = null, maxLat = null, minLng = null, maxLng = null;
+        if (lat != null && lng != null && radius != null && radius > 0) {
+            double deltaLat = radius / 111.1;
+            double deltaLng = radius / (111.1 * Math.cos(Math.toRadians(lat)));
+            minLat = lat - deltaLat;
+            maxLat = lat + deltaLat;
+            minLng = lng - deltaLng;
+            maxLng = lng + deltaLng;
+        }
+
+        // 1. Patrocinados (Inyección Proactiva)
+        List<Map<String, Object>> sponsoredItems = fetchSponsoredItems(q, tipo, categoria, precioMin, precioMax, minLat, maxLat, minLng, maxLng);
+
         // Construir Sort para los sub-servicios
         org.springframework.data.domain.Sort subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
         
@@ -51,17 +73,6 @@ public class MarketplaceSearchService {
         }
 
         PageRequest subPage = PageRequest.of(pageable.getPageNumber(), sizePerType, subSort);
-
-        // Bounding Box (Aproximado)
-        Double minLat = null, maxLat = null, minLng = null, maxLng = null;
-        if (lat != null && lng != null && radius != null && radius > 0) {
-            double deltaLat = radius / 111.1;
-            double deltaLng = radius / (111.1 * Math.cos(Math.toRadians(lat)));
-            minLat = lat - deltaLat;
-            maxLat = lat + deltaLat;
-            minLng = lng - deltaLng;
-            maxLng = lng + deltaLng;
-        }
 
         // Determinar orden para ofertas (usan nombres de campo distintos)
         String sortOferta = "fechaPublicacion";
@@ -77,17 +88,23 @@ public class MarketplaceSearchService {
             dirOferta = "desc";
         }
 
-        // 1. Buscar Ofertas
-        Page<Oferta> paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
+        // 2. Buscar Ofertas
+        Page<Oferta> paginaOfertas = Page.empty();
+        if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "OFERTA".equalsIgnoreCase(tipo)) {
+            paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
                 categoria, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
                 minLat, maxLat, minLng, maxLng, subPage);
+        }
 
-        // 2. Buscar Productos
-        Page<Producto> paginaProductos = productoService.buscarConFiltrosPaginado(
+        // 3. Buscar Productos
+        Page<Producto> paginaProductos = Page.empty();
+        if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "PRODUCTO".equalsIgnoreCase(tipo)) {
+            paginaProductos = productoService.buscarConFiltrosPaginado(
                 categoria, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
                 minLat, maxLat, minLng, maxLng, subPage);
+        }
 
-        // 3. Buscar Vehículos
+        // 4. Buscar Vehículos
         boolean esCategoriaVehiculo = false;
         if (categoria == null || categoria.isBlank()) {
             esCategoriaVehiculo = true;
@@ -97,14 +114,14 @@ public class MarketplaceSearchService {
         }
 
         Page<Vehiculo> paginaVehiculos = Page.empty();
-        if (esCategoriaVehiculo) {
+        if (esCategoriaVehiculo && (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "VEHICULO".equalsIgnoreCase(tipo))) {
             paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
                     null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null, null,
                     null, null,
                     minLat, maxLat, minLng, maxLng, subPage);
         }
 
-        // 4. Transformar y Combinar
+        // 5. Transformar y Combinar
         List<Map<String, Object>> items = new ArrayList<>();
 
         items.addAll(paginaOfertas.getContent().stream().map(o -> {
@@ -117,6 +134,10 @@ public class MarketplaceSearchService {
             m.put("precio", o.getPrecioOferta() != null ? o.getPrecioOferta() : (o.getPrecioOriginal() != null ? o.getPrecioOriginal() : 0));
             m.put("fechaPublicacion", o.getFechaPublicacion());
             m.put("searchType", "OFERTA");
+            m.put("ubicacion", o.getCiudadOferta());
+            m.put("latitude", o.getLatitude());
+            m.put("longitude", o.getLongitude());
+            m.put("esOnline", o.getEsOnline());
             if (o.getCategoria() != null) {
                 Map<String, Object> catMap = new java.util.HashMap<>();
                 catMap.put("nombre", o.getCategoria().getNombre());
@@ -137,6 +158,9 @@ public class MarketplaceSearchService {
             m.put("precio", p.getPrecio() != null ? p.getPrecio() : 0);
             m.put("fechaPublicacion", p.getFechaPublicacion());
             m.put("searchType", "PRODUCTO");
+            m.put("ubicacion", p.getUbicacion());
+            m.put("latitude", p.getLatitude());
+            m.put("longitude", p.getLongitude());
             if (p.getCategoria() != null) {
                 Map<String, Object> catMap = new java.util.HashMap<>();
                 catMap.put("nombre", p.getCategoria().getNombre());
@@ -160,10 +184,28 @@ public class MarketplaceSearchService {
             m.put("precio", v.getPrecio() != null ? v.getPrecio() : 0);
             m.put("fechaPublicacion", v.getFechaPublicacion());
             m.put("searchType", "VEHICULO");
+            m.put("ubicacion", v.getUbicacion());
+            m.put("latitude", v.getLatitude());
+            m.put("longitude", v.getLongitude());
             return m;
         }).collect(Collectors.toList()));
 
-        // 5. Ordenación Global Unificada
+        // 6. Unificar con Patrocinados (evitar duplicados)
+        List<Map<String, Object>> finalItems = new ArrayList<>(sponsoredItems);
+        java.util.Set<String> seenIds = sponsoredItems.stream()
+                .map(it -> it.get("searchType") + "_" + it.get("id"))
+                .collect(java.util.stream.Collectors.toSet());
+
+        for (Map<String, Object> it : items) {
+            String key = it.get("searchType") + "_" + it.get("id");
+            if (!seenIds.contains(key)) {
+                finalItems.add(it);
+                seenIds.add(key);
+            }
+        }
+        items = finalItems;
+
+        // 7. Ordenación Global Unificada
         items.sort((a, b) -> {
             try {
                 if ("precio_asc".equalsIgnoreCase(orden)) {
@@ -188,13 +230,103 @@ public class MarketplaceSearchService {
             }
         });
 
-        long total = paginaOfertas.getTotalElements() + paginaProductos.getTotalElements()
+        long totalCount = paginaOfertas.getTotalElements() + paginaProductos.getTotalElements()
                 + paginaVehiculos.getTotalElements();
 
         return Map.of(
                 "items", items,
-                "total", total,
+                "total", totalCount,
                 "page", pageable.getPageNumber(),
                 "size", pageable.getPageSize());
+    }
+
+    private List<Map<String, Object>> fetchSponsoredItems(String q, String tipo, String categoria, Double precioMin, Double precioMax,
+                                                           Double minLat, Double maxLat, Double minLng, Double maxLng) {
+        List<Map<String, Object>> sponsored = new ArrayList<>();
+        
+        // Si se pide específicamente algo que no sea productos, no devolvemos patrocinados (que son productos)
+        if (tipo != null && !"TODOS".equalsIgnoreCase(tipo) && !"PRODUCTO".equalsIgnoreCase(tipo)) {
+            return sponsored;
+        }
+
+        try {
+            // A. De Contratos Activos
+            List<com.nexus.entity.Contrato> contratos = contratoRepository.findActiveSponsoredProducts();
+            for (com.nexus.entity.Contrato c : contratos) {
+                if (c.getProductoId() != null) {
+                    productoRepository.findById(c.getProductoId()).ifPresent(p -> {
+                        if (p.getEstado() == com.nexus.entity.EstadoProducto.DISPONIBLE) {
+                            // Filtro de precio (¡CRÍTICO!)
+                            double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
+                            if ((precioMin == null || precio >= precioMin) && (precioMax == null || precio <= precioMax)) {
+                                // Filtro básico de query si existe
+                                if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
+                                    // Filtro de categoría si existe
+                                    if (categoria == null || categoria.isBlank() || (p.getCategoria() != null && p.getCategoria().getSlug().equals(categoria))) {
+                                        
+                                        // Filtro geográfico (¡NUEVO!)
+                                        boolean inRange = true;
+                                        if (minLat != null && p.getLatitude() != null && (p.getLatitude() < minLat || p.getLatitude() > maxLat)) inRange = false;
+                                        if (minLng != null && p.getLongitude() != null && (p.getLongitude() < minLng || p.getLongitude() > maxLng)) inRange = false;
+                                        
+                                        if (inRange) {
+                                            sponsored.add(transformToMap(p));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // B. De flag 'patrocinado'
+            List<Producto> pPatrocinados = productoRepository.findByEstado(com.nexus.entity.EstadoProducto.DISPONIBLE);
+            for (Producto p : pPatrocinados) {
+                if (p.getPatrocinado()) {
+                     if (sponsored.size() < 5) { // Un máximo de 5 patrocinados por flag
+                         boolean alreadyIn = sponsored.stream().anyMatch(it -> it.get("id").equals(p.getId()) && "PRODUCTO".equals(it.get("searchType")));
+                         if (!alreadyIn) {
+                             // Filtro de precio (¡CRÍTICO!)
+                             double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
+                             if ((precioMin == null || precio >= precioMin) && (precioMax == null || precio <= precioMax)) {
+                                 if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
+                                     if (categoria == null || categoria.isBlank() || (p.getCategoria() != null && p.getCategoria().getSlug().equals(categoria))) {
+                                         sponsored.add(transformToMap(p));
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                }
+            }
+        } catch (Exception e) {
+            // Log error
+        }
+        return sponsored;
+    }
+
+    private Map<String, Object> transformToMap(Producto p) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("id", p.getId());
+        m.put("titulo", p.getTitulo());
+        m.put("imagenPrincipal", p.getImagenPrincipal());
+        m.put("precio", p.getPrecio() != null ? p.getPrecio() : 0);
+        m.put("fechaPublicacion", p.getFechaPublicacion());
+        m.put("searchType", "PRODUCTO");
+        m.put("sponsored", true);
+        if (p.getCategoria() != null) {
+            Map<String, Object> catMap = new java.util.HashMap<>();
+            catMap.put("nombre", p.getCategoria().getNombre());
+            catMap.put("slug", p.getCategoria().getSlug());
+            m.put("categoria", catMap);
+        }
+        if (p.getVendedor() != null) {
+            Map<String, Object> vendMap = new java.util.HashMap<>();
+            vendMap.put("nombre", p.getVendedor().getNombre() != null ? p.getVendedor().getNombre() : "Usuario");
+            vendMap.put("verificado", p.getVendedor().isCuentaVerificada());
+            m.put("vendedor", vendMap);
+        }
+        return m;
     }
 }

@@ -12,6 +12,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.transaction.annotation.Transactional;
+
+import com.nexus.service.NotificacionService;
+import com.nexus.service.ReporteService;
+import com.nexus.dto.EnvioNotificacionAdminDTO;
+import com.nexus.entity.TipoNotificacion;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -28,6 +33,8 @@ public class AdminPanelController {
     @Autowired private ProductoRepository productoRepo;
     @Autowired private OfertaRepository ofertaRepo;
     @Autowired private AuditLogRepository auditLogRepo;
+    @Autowired private NotificacionService notificacionService;
+    @Autowired private ReporteService reporteService;
 
     // ════════════════════════════════ SISTEMA ════════════════════════════════
 
@@ -46,6 +53,16 @@ public class AdminPanelController {
 
     @GetMapping("/estadisticas")
     public ResponseEntity<Map<String, Object>> kpis() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime firstDayMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime lastDayMonth = now.withDayOfMonth(now.toLocalDate().lengthOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+        LocalDateTime firstDayYear = now.withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime lastDayYear = now.withDayOfYear(now.toLocalDate().lengthOfYear()).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+
+        Double totalRev = compraRepo.getTotalRevenue();
+        Double commMonth = compraRepo.getSumComisiones(firstDayMonth, lastDayMonth);
+        Double commYear = compraRepo.getSumComisiones(firstDayYear, lastDayYear);
+
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("usuariosTotal", usuarioRepo.count());
         res.put("usuariosDelta", 0);
@@ -55,11 +72,24 @@ public class AdminPanelController {
         res.put("ofertasDelta", 0);
         res.put("comprasHoy", 0);
         res.put("comprasDelta", 0);
-        res.put("revenueMes", 0.0);
+        res.put("revenueMes", commMonth != null ? commMonth : 0.0);
         res.put("revenueDelta", 0);
         res.put("reportesPendientes", reporteRepo.countByEstado(EstadoReporte.PENDIENTE));
         res.put("reportesDelta", 0);
+        
+        // Nuevos campos para separar GMV de Ingresos de Nexus
+        res.put("nexusGmvTotal", totalRev != null ? totalRev : 0.0);
+        res.put("nexusComisionTotal", compraRepo.getSumComisionesTotal() != null ? compraRepo.getSumComisionesTotal() : 0.0);
+        res.put("nexusComisionMes", commMonth != null ? commMonth : 0.0);
+        res.put("nexusComisionAnio", commYear != null ? commYear : 0.0);
+        
         return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/estadisticas/comisiones-dia")
+    public ResponseEntity<List<Map<String, Object>>> comisionesDia() {
+        LocalDateTime since = LocalDateTime.now().minusDays(30).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return ResponseEntity.ok(compraRepo.getComisionesPorDia(since));
     }
 
     @GetMapping("/estadisticas/top-vendedores")
@@ -150,6 +180,8 @@ public class AdminPanelController {
         u.setCuentaVerificada(true);
         actorRepo.save(u);
         audit(ud, "VERIFICAR_USUARIO", "USUARIO", id.longValue(), "Usuario verificado", req);
+        notificacionService.notificarAccionAdmin(id, "Cuenta verificada",
+                "Tu cuenta ha sido verificada por el equipo de Nexus.", "/perfil?tab=configuracion");
         return ResponseEntity.ok().build();
     }
 
@@ -163,6 +195,9 @@ public class AdminPanelController {
         u.setMotivoSuspension(body.get("motivo").toString());
         actorRepo.save(u);
         audit(ud, "SUSPENDER_USUARIO", "USUARIO", id.longValue(), horas + "h: " + body.get("motivo"), req);
+        notificacionService.notificarAccionAdmin(id, "Cuenta suspendida temporalmente",
+                "Tu cuenta está suspendida durante " + horas + " h. Motivo: " + body.get("motivo"),
+                "/perfil?tab=configuracion");
         return ResponseEntity.ok().build();
     }
 
@@ -175,6 +210,8 @@ public class AdminPanelController {
         u.setMotivoBan(body.get("motivo").toString());
         actorRepo.save(u);
         audit(ud, "BANEAR_USUARIO", "USUARIO", id.longValue(), body.get("motivo").toString(), req);
+        notificacionService.notificarAccionAdmin(id, "Cuenta bloqueada",
+                "Tu cuenta ha sido bloqueada. Motivo: " + body.get("motivo"), "/perfil?tab=configuracion");
         return ResponseEntity.ok().build();
     }
 
@@ -191,6 +228,8 @@ public class AdminPanelController {
         u.setMotivoSuspension(null);
         actorRepo.save(u);
         audit(ud, "DESBANEAR_USUARIO", "USUARIO", id.longValue(), body.getOrDefault("motivo", "").toString(), req);
+        notificacionService.notificarAccionAdmin(id, "Sanción levantada",
+                "Se han levantado las restricciones en tu cuenta.", "/perfil?tab=configuracion");
         return ResponseEntity.ok().build();
     }
 
@@ -205,8 +244,81 @@ public class AdminPanelController {
     public ResponseEntity<Void> enviarAviso(@RequestBody Map<String, Object> body,
                                              @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         int uid = Integer.parseInt(body.get("usuarioId").toString());
-        audit(ud, "ENVIAR_AVISO", "USUARIO", (long) uid, body.getOrDefault("mensaje", "").toString(), req);
+        String mensaje = body.getOrDefault("mensaje", "").toString();
+        audit(ud, "ENVIAR_AVISO", "USUARIO", (long) uid, mensaje, req);
+        notificacionService.notificarAccionAdmin(uid, "Aviso del equipo Nexus", mensaje, "/perfil?tab=configuracion");
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/notificaciones/plantillas")
+    public ResponseEntity<List<Map<String, Object>>> plantillasNotificaciones() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        plantilla(list, "aviso-general", "SISTEMA", "Aviso del equipo Nexus",
+                "Escribe aquí el mensaje. Los usuarios lo verán en el centro de notificaciones.",
+                "/perfil?tab=configuracion",
+                "Mensaje genérico. La URL abre el perfil del usuario.");
+        plantilla(list, "novedades", "SISTEMA", "Novedades en la aplicación",
+                "Hemos mejorado X e Y. Consulta los detalles en la sección de ayuda.",
+                "/ayuda",
+                "Anuncia cambios de producto sin prometer plazos legales concretos.");
+        plantilla(list, "seguridad", "ACCION_ADMIN", "Recordatorio de seguridad",
+                "No compartas códigos ni enlaces de pago fuera de Nexus. Ante dudas, contacta con soporte.",
+                "/ayuda",
+                "Usa tipo ACCION_ADMIN para avisos que requieran más visibilidad.");
+        plantilla(list, "promo-externa", "SISTEMA", "Información",
+                "Texto breve. Si enlazas fuera, deja claro que el destino es externo a Nexus.",
+                "https://",
+                "Sustituye la URL por un enlace https válido si aplica.");
+        return ResponseEntity.ok(list);
+    }
+
+    private void plantilla(List<Map<String, Object>> list, String id, String tipo, String titulo, String mensaje,
+            String url, String ayuda) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", id);
+        m.put("tipo", tipo);
+        m.put("tituloSugerido", titulo);
+        m.put("mensajeSugerido", mensaje);
+        m.put("urlSugerida", url);
+        m.put("ayuda", ayuda);
+        list.add(m);
+    }
+
+    @PostMapping("/notificaciones/enviar")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> enviarNotificacionesMass(
+            @RequestBody EnvioNotificacionAdminDTO dto,
+            @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
+        if (dto.getTitulo() == null || dto.getTitulo().isBlank()
+                || dto.getMensaje() == null || dto.getMensaje().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "titulo y mensaje son obligatorios"));
+        }
+        TipoNotificacion tipo;
+        try {
+            tipo = TipoNotificacion.valueOf(dto.getTipo() != null ? dto.getTipo().trim() : "SISTEMA");
+        } catch (IllegalArgumentException e) {
+            tipo = TipoNotificacion.SISTEMA;
+        }
+        int enviados = 0;
+        String url = dto.getUrl() != null && !dto.getUrl().isBlank() ? dto.getUrl() : null;
+        if (dto.isBroadcastTodos()) {
+            for (Actor a : actorRepo.findAll()) {
+                if (a instanceof Admin) {
+                    continue;
+                }
+                notificacionService.crear(a.getId(), tipo, dto.getTitulo(), dto.getMensaje(), url);
+                enviados++;
+            }
+        } else if (dto.getActorIds() != null && !dto.getActorIds().isEmpty()) {
+            for (Integer aid : dto.getActorIds()) {
+                notificacionService.crear(aid, tipo, dto.getTitulo(), dto.getMensaje(), url);
+                enviados++;
+            }
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "broadcastTodos o actorIds requerido"));
+        }
+        audit(ud, "ENVIAR_NOTIFICACIONES_MASIVO", "SISTEMA", null, "enviados=" + enviados, req);
+        return ResponseEntity.ok(Map.of("enviados", enviados));
     }
 
     // ════════════════════════════════ REPORTES ════════════════════════════════
@@ -239,6 +351,7 @@ public class AdminPanelController {
         if (body.containsKey("resolucion")) r.setResolucion(body.get("resolucion").toString());
         reporteRepo.save(r);
         audit(ud, "UPDATE_REPORTE", "REPORTE", r.getId() != null ? r.getId().longValue() : null, body.toString(), req);
+        reporteService.notificarResolucionReporte(r);
         return ResponseEntity.ok().build();
     }
 
@@ -259,7 +372,10 @@ public class AdminPanelController {
             r.setEstado(EstadoReporte.RESUELTO);
             r.setResolucion("Suspensión " + dur + "h: " + mot);
             reporteRepo.save(r);
+            reporteService.notificarResolucionReporte(r);
         }
+        notificacionService.notificarAccionAdmin(uid, "Cuenta suspendida",
+                "Suspensión " + dur + " h. Motivo: " + mot, "/perfil?tab=configuracion");
         audit(ud, "SUSPENDER_Y_RESOLVER", "ACTOR", (long) uid, mot, req);
         return ResponseEntity.ok().build();
     }

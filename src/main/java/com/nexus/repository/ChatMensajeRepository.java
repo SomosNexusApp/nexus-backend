@@ -41,6 +41,10 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
        @Query("SELECT COUNT(m) FROM ChatMensaje m WHERE m.receptor.id = ?1 AND m.leido = false")
        long countNoLeidosByReceptor(Integer receptorId);
 
+       // Contar CONVERSACIONES (rooms) con mensajes no leídos
+       @Query("SELECT COUNT(DISTINCT m.roomId) FROM ChatMensaje m WHERE m.receptor.id = ?1 AND m.leido = false")
+       long countNoLeidosConversationsByReceptor(Integer receptorId);
+
        // Marcar como leídos todos los mensajes de una conversación para un usuario
        @Modifying
        @Transactional
@@ -51,6 +55,11 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
        @Transactional
        @Query("UPDATE ChatMensaje m SET m.leido = true WHERE m.roomId = ?1 AND m.receptor.id = ?2")
        void marcarComoLeidosEnRoom(String roomId, Integer receptorId);
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE ChatMensaje m SET m.recibido = true WHERE m.roomId = ?1 AND m.receptor.id = ?2 AND m.recibido = false")
+       void marcarComoRecibidosEnRoom(String roomId, Integer receptorId);
 
        // Último mensaje de cada conversación
        @EntityGraph(attributePaths = { "remitente", "receptor", "producto", "producto.vendedor", "producto.categoria" })

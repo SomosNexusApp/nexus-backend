@@ -15,8 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.nexus.entity.TipoCombustible;
 import com.nexus.entity.TipoVehiculo;
 import com.nexus.entity.Vehiculo;
-import com.nexus.service.StorageService;
 import com.nexus.service.VehiculoService;
+import com.nexus.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -102,6 +102,8 @@ public class VehiculoController {
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria,
             @PathVariable Integer usuarioId) {
         try {
+            // Validation is handled in vehiculoService.publicar/crear
+            
             String url = storageService.subirImagen(img);
             if (url == null) return ResponseEntity.internalServerError().body("Error al subir imagen");
             vehiculo.setImagenPrincipal(url);
@@ -120,6 +122,8 @@ public class VehiculoController {
             @RequestPart(value = "imagenPrincipal", required = false) MultipartFile img,
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria) {
         try {
+            // Validation is handled in vehiculoService.update
+
             Optional<Vehiculo> ov = vehiculoService.findById(id);
             if (ov.isEmpty()) return ResponseEntity.notFound().build();
             if (img != null && !img.isEmpty()) {
@@ -152,6 +156,16 @@ public class VehiculoController {
             return ResponseEntity.ok(vehiculoService.update(id, v));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/renovar")
+    @Operation(summary = "Reactivar vehículo caducado")
+    public ResponseEntity<Object> renovar(@PathVariable Integer id, @RequestParam Integer publicadorId) {
+        try {
+            return ResponseEntity.ok(vehiculoService.renovar(id, publicadorId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

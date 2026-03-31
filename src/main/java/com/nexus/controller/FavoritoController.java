@@ -58,6 +58,16 @@ public class FavoritoController {
                 .body(Map.of("mensaje", "Favorito guardado correctamente"));
     }
     
+    @PostMapping("/vehiculo/{usuarioId}/{vehiculoId}")
+    @Operation(summary = "Guardar vehículo en favoritos")
+    public ResponseEntity<?> guardarVehiculo(
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer vehiculoId) {
+        favoritoService.guardarVehiculo(usuarioId, vehiculoId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("mensaje", "Vehículo guardado correctamente"));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar favorito")
     public ResponseEntity<?> eliminar(@PathVariable Integer id) {
@@ -66,6 +76,15 @@ public class FavoritoController {
     }
     
 
+    @DeleteMapping("/vehiculo/{usuarioId}/{vehiculoId}")
+    @Operation(summary = "Eliminar vehículo de favoritos")
+    public ResponseEntity<?> eliminarPorVehiculo(
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer vehiculoId) {
+        favoritoService.eliminarPorUsuarioYVehiculo(usuarioId, vehiculoId);
+        return ResponseEntity.ok(Map.of("mensaje", "Vehículo eliminado de favoritos"));
+    }
+
     @DeleteMapping("/producto/{usuarioId}/{productoId}")
     @Operation(summary = "Eliminar producto de favoritos")
     public ResponseEntity<?> eliminarPorProducto(
@@ -73,5 +92,14 @@ public class FavoritoController {
             @PathVariable Integer productoId) {
         favoritoService.eliminarPorUsuarioYProducto(usuarioId, productoId);
         return ResponseEntity.ok(Map.of("mensaje", "Favorito eliminado del producto"));
+    }
+
+    @DeleteMapping("/oferta/{usuarioId}/{ofertaId}")
+    @Operation(summary = "Eliminar oferta de favoritos")
+    public ResponseEntity<?> eliminarPorOferta(
+            @PathVariable Integer usuarioId,
+            @PathVariable Integer ofertaId) {
+        favoritoService.eliminarPorUsuarioYOferta(usuarioId, ofertaId);
+        return ResponseEntity.ok(Map.of("mensaje", "Favorito eliminado de la oferta"));
     }
 }

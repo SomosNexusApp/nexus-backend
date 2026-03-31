@@ -34,6 +34,8 @@ public class OfertaService {
     private NotificacionService notificacionService;
     @Autowired
     private BloqueoService bloqueoService;
+    @Autowired
+    private ModerationService moderationService;
 
     /**
      * Traduce campo Java (camelCase) → columna SQL (snake_case).
@@ -114,6 +116,7 @@ public class OfertaService {
 
     @Transactional
     public Oferta save(Oferta oferta) {
+        validarModeracion(oferta);
         if (oferta.getFechaPublicacion() == null)
             oferta.setFechaPublicacion(LocalDateTime.now());
         oferta.actualizarBadge();
@@ -129,6 +132,7 @@ public class OfertaService {
 
     @Transactional
     public Oferta crear(Oferta oferta, Integer actorId, List<MultipartFile> imagenes) {
+        validarModeracion(oferta);
         Actor actor = actorRepository.findById(actorId)
                 .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
         oferta.setActor(actor);
@@ -156,6 +160,11 @@ public class OfertaService {
         return guardada;
     }
 
+    private void validarModeracion(Oferta o) {
+        moderationService.validarYBloquear(o.getTitulo(), "oferta", "el título");
+        moderationService.validarYBloquear(o.getDescripcion(), "oferta", "la descripción");
+    }
+
     @Transactional
     public void setCategoriaByNombre(Oferta oferta, String nombre) {
         if (nombre == null || nombre.isBlank())
@@ -170,6 +179,10 @@ public class OfertaService {
 
     public List<Oferta> obtenerDestacadas() {
         return ofertaRepository.findDestacadas(LocalDateTime.now().minusDays(7), PageRequest.of(0, 20));
+    }
+
+    public List<Oferta> obtenerFlash() {
+        return ofertaRepository.findByEsFlashTrueAndEsActivaTrueOrderByFechaPublicacionDesc();
     }
 
     public List<Oferta> obtenerTrending() {
@@ -210,11 +223,21 @@ public class OfertaService {
             Double precioMin, Double precioMax,
             String busqueda, Boolean soloActivas,
             String sortField, String sortDir,
-            Integer actorId, Integer currentUserId, Pageable pageable) {
+            Integer actorId, Integer currentUserId,
+            Double lat, Double lng, Double radius,
+            Pageable pageable) {
         boolean solo = Boolean.TRUE.equals(soloActivas);
 
-        // Convertir campo Java → columna SQL (nativeQuery no hace conversión
-        // automática)
+        Double minLat = null, maxLat = null, minLng = null, maxLng = null;
+        if (lat != null && lng != null && radius != null && radius > 0) {
+            double deltaLat = radius / 111.1;
+            double deltaLng = radius / (111.1 * Math.cos(Math.toRadians(lat)));
+            minLat = lat - deltaLat;
+            maxLat = lat + deltaLat;
+            minLng = lng - deltaLng;
+            maxLng = lng + deltaLng;
+        }
+
         String columna = sanitizarSort(sortField);
         Sort sort = "asc".equalsIgnoreCase(sortDir)
                 ? Sort.by(Sort.Direction.ASC, columna)
@@ -224,7 +247,7 @@ public class OfertaService {
         return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
                 bloqueoService.getRelacionesBloqueo(currentUserId), 
-                null, null, null, null, pageable);
+                minLat, maxLat, minLng, maxLng, pageable);
     }
 
     public Page<Oferta> buscarConFiltrosGeograficos(String categoria, String tienda,

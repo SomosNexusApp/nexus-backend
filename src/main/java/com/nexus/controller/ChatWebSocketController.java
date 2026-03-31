@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 
 import com.nexus.entity.ChatMensaje;
 import com.nexus.service.ChatService;
+import com.nexus.service.NotificacionService;
 
 import java.util.Map;
 
@@ -79,6 +80,8 @@ public class ChatWebSocketController {
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private NotificacionService notificacionService;
 
     /**
      * Recibe un mensaje desde Angular y lo distribuye a todos los suscriptores
@@ -122,12 +125,10 @@ public class ChatWebSocketController {
         // Publicar al topic del producto → Angular recibe en tiempo real
         messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
 
-        // Notificar al receptor en su cola privada (para el badge de mensajes nuevos)
-        if (receptorId != null) {
-            messagingTemplate.convertAndSendToUser(
-                    receptorId.toString(),
-                    "/queue/notificaciones",
-                    Map.of("tipo", "NUEVO_MENSAJE", "roomId", guardado.getRoomId(), "remitenteId", remitenteId));
+        if (receptorId != null && remitenteId != null) {
+            boolean esOferta = "OFERTA_PRECIO".equals(tipoStr) && precioProp != null;
+            notificacionService.notificarMensajeChatRecibido(
+                    receptorId, remitenteId, productoId, esOferta, precioProp);
         }
     }
 
@@ -144,14 +145,33 @@ public class ChatWebSocketController {
         if (roomId == null && payload.get("productoId") != null) {
             roomId = "P_" + payload.get("productoId");
         }
-        Integer receptorId = (Integer) payload.get("receptorId");
+        Integer usuarioId = (Integer) payload.get("usuarioId");
 
-        chatService.marcarLeidos(roomId, receptorId);
+        chatService.marcarLeidos(roomId, usuarioId);
 
         // Notificar al remitente que sus mensajes fueron leídos (checks azules)
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomId + "/leidos",
-                Map.of("receptorId", receptorId, "leido", true));
+                Map.of("usuarioId", usuarioId, "leido", true));
+    }
+
+    /**
+     * Marcar mensajes como recibidos (doble check gris en Angular).
+     */
+    @MessageMapping("/chat.recibido")
+    public void marcarRecibidos(@Payload Map<String, Object> payload) {
+        String roomId = (String) payload.get("roomId");
+        if (roomId == null && payload.get("productoId") != null) {
+            roomId = "P_" + payload.get("productoId");
+        }
+        Integer usuarioId = (Integer) payload.get("usuarioId");
+
+        chatService.marcarRecibidos(roomId, usuarioId);
+
+        // Notificar al remitente que sus mensajes fueron recibidos (doble check gris)
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId + "/recibidos",
+                Map.of("usuarioId", usuarioId, "recibido", true));
     }
 
     /**

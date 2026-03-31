@@ -54,6 +54,21 @@ public abstract class Actor extends DomainEntity {
 
     private LocalDateTime fechaRegistro;
 
+    @Column(columnDefinition = "TEXT")
+    private String googleAvatarUrl;
+
+    @Column
+    private String googleId;
+
+    @Column
+    private String facebookId;
+
+    @Column
+    private String avatarSource; // "GOOGLE", "INITIALS", "CUSTOM"
+    
+    @Column(columnDefinition = "TEXT")
+    private String customAvatarUrl;
+
     /** Ban permanente */
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean baneado = false;
@@ -197,12 +212,52 @@ public abstract class Actor extends DomainEntity {
         this.fechaRegistro = f;
     }
 
+    public String getGoogleAvatarUrl() {
+        return googleAvatarUrl;
+    }
+
+    public void setGoogleAvatarUrl(String g) {
+        this.googleAvatarUrl = g;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String g) {
+        this.googleId = g;
+    }
+
+    public String getFacebookId() {
+        return facebookId;
+    }
+
+    public void setFacebookId(String f) {
+        this.facebookId = f;
+    }
+
+    public String getAvatarSource() {
+        return avatarSource;
+    }
+
+    public void setAvatarSource(String s) {
+        this.avatarSource = s;
+    }
+
     public String getStripeCustomerId() {
         return stripeCustomerId;
     }
 
     public void setStripeCustomerId(String stripeCustomerId) {
         this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public String getCustomAvatarUrl() {
+        return customAvatarUrl;
+    }
+
+    public void setCustomAvatarUrl(String c) {
+        this.customAvatarUrl = c;
     }
 
     public ActorNotificacionConfig getNotificacionConfig() {

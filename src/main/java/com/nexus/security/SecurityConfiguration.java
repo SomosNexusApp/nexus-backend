@@ -94,7 +94,8 @@ public class SecurityConfiguration {
                                                 .requestMatchers(
                                                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                                                 "/actuator/health", "/error", "/favicon.ico",
-                                                                "/api/webhooks/**")
+                                                                "/api/webhooks/**",
+                                                                "/envio/correos/evento")
                                                 .permitAll()
 
                                                 // BLOQUE 2 – WEBSOCKET

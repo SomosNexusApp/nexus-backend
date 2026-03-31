@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +18,7 @@ import com.nexus.entity.Actor;
 import com.nexus.entity.Empresa;
 import com.nexus.entity.SesionDispositivo;
 import com.nexus.entity.Usuario;
+import com.nexus.entity.TipoCuenta;
 import com.nexus.security.JWTUtils;
 import com.nexus.service.EmpresaService;
 import com.nexus.service.StorageService;
@@ -48,6 +48,9 @@ public class UsuarioController {
     @Autowired
     private com.nexus.repository.SesionDispositivoRepository sesionDispositivoRepository;
 
+    @Autowired
+    private com.nexus.repository.ActorRepository actorRepository;
+
     @GetMapping
     @Operation(summary = "Obtener todos los usuarios")
     public List<Usuario> getAllUsuarios() {
@@ -66,8 +69,6 @@ public class UsuarioController {
         }
     }
 
-    @Autowired
-    private com.nexus.repository.ActorRepository actorRepository;
 
     @GetMapping("/username/{username}")
     @Operation(summary = "Obtener perfil público por nombre de usuario")
@@ -89,6 +90,8 @@ public class UsuarioController {
             perfilPublico.put("nombre", actor.getNombre());
             perfilPublico.put("apellidos", actor.getApellidos());
             perfilPublico.put("avatar", actor.getAvatar());
+            perfilPublico.put("googleAvatarUrl", actor.getGoogleAvatarUrl());
+            perfilPublico.put("avatarSource", actor.getAvatarSource());
             perfilPublico.put("fechaRegistro", actor.getFechaRegistro());
             perfilPublico.put("tipoCuenta", actor instanceof Empresa ? "EMPRESA" : "USUARIO");
 
@@ -131,6 +134,8 @@ public class UsuarioController {
         perfilPublico.put("username", usuario.getUser());
         perfilPublico.put("nombre", usuario.getNombre());
         perfilPublico.put("avatar", usuario.getAvatar());
+        perfilPublico.put("googleAvatarUrl", usuario.getGoogleAvatarUrl());
+        perfilPublico.put("avatarSource", usuario.getAvatarSource());
         perfilPublico.put("biografia", usuario.getBiografia());
         perfilPublico.put("reputacion", usuario.getReputacion());
         perfilPublico.put("totalVentas", usuario.getTotalVentas());
@@ -181,8 +186,10 @@ public class UsuarioController {
                 storageService.eliminarImagen(avatarActual);
             }
 
-            // Guardar nueva URL en BD
+            // Guardar nueva URL en BD e indicar que es personalizada
             usuario.setAvatar(url);
+            usuario.setCustomAvatarUrl(url);
+            usuario.setAvatarSource("CUSTOM");
             usuarioService.save(usuario);
 
             return ResponseEntity.ok(Map.of("mensaje", "Avatar actualizado", "url", url));
@@ -224,19 +231,30 @@ public class UsuarioController {
 
             if ("EMPRESA".equals(tipoCuenta)) {
                 // Lógica de migración de Usuario a Empresa
-                // NOTA: Como la jerarquía de herencia (Actor -> Usuario/Empresa) no permite
-                // casteos directos ni "transformaciones" mágicas en Hibernate, la forma más
-                // segura
-                // es crear una entidad Empresa, copiar los datos base, eliminar el Usuario y
-                // guardar la Empresa.
-
                 Empresa nuevaEmpresa = new Empresa();
+                
+                // Copiar campos de Actor
                 nuevaEmpresa.setUser(usuario.getUser());
                 nuevaEmpresa.setEmail(usuario.getEmail());
-                nuevaEmpresa.setPassword(usuario.getPassword()); // Ya está hasheada
-                nuevaEmpresa.setAvatar(usuario.getAvatar());
+                nuevaEmpresa.setPassword(usuario.getPassword());
+                nuevaEmpresa.setNombre(usuario.getNombre());
+                nuevaEmpresa.setApellidos(usuario.getApellidos());
+                nuevaEmpresa.setTelefono(usuario.getTelefono());
                 nuevaEmpresa.setCuentaVerificada(usuario.isCuentaVerificada());
-                // ... copiar otros campos comunes
+                nuevaEmpresa.setTwoFactorEnabled(usuario.isTwoFactorEnabled());
+                nuevaEmpresa.setTwoFactorMethod(usuario.getTwoFactorMethod());
+                nuevaEmpresa.setTwoFactorSecret(usuario.getTwoFactorSecret());
+                nuevaEmpresa.setGoogleId(usuario.getGoogleId());
+                nuevaEmpresa.setGoogleAvatarUrl(usuario.getGoogleAvatarUrl());
+                nuevaEmpresa.setNotificacionConfig(usuario.getNotificacionConfig());
+                nuevaEmpresa.setFechaRegistro(usuario.getFechaRegistro());
+
+                // Campos específicos de Empresa
+                nuevaEmpresa.setCif((String) payload.get("cif"));
+                nuevaEmpresa.setNombreComercial((String) payload.get("nombreComercial"));
+                nuevaEmpresa.setDescripcion((String) payload.get("descripcion"));
+                nuevaEmpresa.setWeb((String) payload.get("web"));
+                nuevaEmpresa.setVerificada(false);
 
                 // Borramos el usuario (con cuidado de dependencias) y guardamos la empresa
                 usuarioService.delete(usuario.getId());
@@ -245,8 +263,11 @@ public class UsuarioController {
                 return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa con éxito"));
             }
 
-            // Si es 'USUARIO', simplemente guardamos (los términos se asumen aceptados por
-            // el simple hecho de llamar al endpoint)
+            // Si es 'PERSONAL' o 'USUARIO', simplemente guardamos lo que hay
+            if ("PERSONAL".equals(tipoCuenta)) {
+                usuario.setTipoCuenta(TipoCuenta.PERSONAL);
+            }
+            
             usuarioService.save(usuario);
             return ResponseEntity.ok(Map.of("mensaje", "Preferencias actualizadas con éxito"));
 
@@ -344,6 +365,7 @@ public class UsuarioController {
         }
     }
 
+
     @PatchMapping("/me/direccion")
     @Operation(summary = "Actualizar dirección de envío por defecto")
     public ResponseEntity<?> updateDireccion(@RequestBody com.nexus.entity.DireccionEnvio direccion) {
@@ -393,8 +415,14 @@ public class UsuarioController {
             Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
             String pwd = (String) payload.get("password");
 
-            if (!passwordEncoder.matches(pwd, u.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña incorrecta"));
+            // Si el usuario es social (Google/Facebook), no tiene contraseña local.
+            // Permitimos el borrado si están logueados (ya verificado por Spring Security).
+            boolean isSocial = u.getGoogleId() != null || u.getFacebookId() != null;
+
+            if (!isSocial) {
+                if (pwd == null || !passwordEncoder.matches(pwd, u.getPassword())) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña incorrecta"));
+                }
             }
 
             usuarioService.delete(u.getId());
@@ -452,6 +480,25 @@ public class UsuarioController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Transición no válida o ya estás en este tipo de cuenta."));
 
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/me/avatar-choice")
+    @Operation(summary = "Elegir entre foto de Google o iniciales")
+    public ResponseEntity<?> actualizarAvatarChoice(@RequestBody Map<String, String> body, Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        String choice = body.get("choice"); // "GOOGLE", "INITIALS" o "CUSTOM"
+        if (choice == null || (!choice.equals("GOOGLE") && !choice.equals("INITIALS") && !choice.equals("CUSTOM"))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Opción no válida. Debe ser GOOGLE, INITIALS o CUSTOM."));
+        }
+
+        try {
+            usuarioService.actualizarAvatarChoice(actor.getId(), choice);
+            return ResponseEntity.ok(Map.of("mensaje", "Preferencia de avatar actualizada correctamente"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }

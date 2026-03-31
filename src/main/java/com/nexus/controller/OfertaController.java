@@ -18,7 +18,6 @@ import com.nexus.entity.Actor;
 import com.nexus.entity.EstadoOferta;
 import com.nexus.entity.Oferta;
 import com.nexus.repository.ActorRepository;
-import com.nexus.service.ModerationService;
 import com.nexus.service.OfertaService;
 import com.nexus.service.StorageService;
 
@@ -30,8 +29,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Ofertas", description = "Sistema de chollos con Spark")
 public class OfertaController {
 
-    @Autowired
-    private ModerationService moderationService;
     @Autowired
     private OfertaService ofertaService;
     @Autowired
@@ -74,6 +71,9 @@ public class OfertaController {
             @RequestParam(required = false, defaultValue = "true") Boolean soloActivas,
             @RequestParam(required = false, defaultValue = "fechaPublicacion") String ordenarPor,
             @RequestParam(required = false, defaultValue = "desc") String direccion,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radius,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer size,
             @RequestParam(required = false) Integer usuarioId,
@@ -84,7 +84,8 @@ public class OfertaController {
 
             Page<Oferta> paginaOfertas = ofertaService.buscarConFiltros(
                     categoria, tienda, precioMin, precioMax, busqueda,
-                    soloActivas, ordenarPor, direccion, vendedorId, usuarioId, pageable);
+                    soloActivas, ordenarPor, direccion, vendedorId, usuarioId,
+                    lat, lng, radius, pageable);
 
             ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);
 
@@ -104,6 +105,14 @@ public class OfertaController {
     @Operation(summary = "Ofertas destacadas (Spark + Descuento + Reciente)")
     public ResponseEntity<List<Oferta>> destacadas(@RequestParam(required = false) Integer usuarioId) {
         List<Oferta> ofertas = ofertaService.obtenerDestacadas();
+        ofertaService.poblarVotos(ofertas, usuarioId);
+        return ResponseEntity.ok(ofertas);
+    }
+
+    @GetMapping("/flash")
+    @Operation(summary = "Ofertas Flash activas")
+    public ResponseEntity<List<Oferta>> flash(@RequestParam(required = false) Integer usuarioId) {
+        List<Oferta> ofertas = ofertaService.obtenerFlash();
         ofertaService.poblarVotos(ofertas, usuarioId);
         return ResponseEntity.ok(ofertas);
     }
@@ -175,12 +184,7 @@ public class OfertaController {
                         .body(Map.of("error", "Actor no encontrado"));
             }
 
-            String textoCompleto = (oferta.getTitulo() != null ? oferta.getTitulo() : "") + " "
-                    + (oferta.getDescripcion() != null ? oferta.getDescripcion() : "");
-            if (!moderationService.esContenidoApropiado(textoCompleto)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
-            }
+            // Validation is handled in ofertaService.save
 
             oferta.setActor(actor.get());
             String urlPrincipal = storageService.subirImagen(imagenPrincipal);
@@ -217,12 +221,7 @@ public class OfertaController {
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria) {
 
         try {
-            String textoCompleto = (nuevosDatos.getTitulo() != null ? nuevosDatos.getTitulo() : "") + " "
-                    + (nuevosDatos.getDescripcion() != null ? nuevosDatos.getDescripcion() : "");
-            if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "El contenido no cumple las normas de la comunidad."));
-            }
+            // Validation is handled in ofertaService.save
 
             return ofertaService.findById(id).map(oferta -> {
                 if (nuevosDatos.getTitulo() != null)

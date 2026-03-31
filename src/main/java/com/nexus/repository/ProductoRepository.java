@@ -1,5 +1,7 @@
 package com.nexus.repository;
 
+import java.util.Collection;
+import java.util.Optional;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,11 +16,17 @@ import com.nexus.entity.Producto;
 @Repository
 public interface ProductoRepository
         extends JpaRepository<Producto, Integer>,
-                JpaSpecificationExecutor<Producto> {   // ← NUEVO
+                JpaSpecificationExecutor<Producto> {
+
+    Optional<Producto> findByTitulo(String titulo);
 
     List<Producto> findByVendedorIdOrderByFechaPublicacionDesc(Integer id);
 
     List<Producto> findByEstado(EstadoProducto estado);
+
+    List<Producto> findByEstadoOrderByPatrocinadoDescFechaPublicacionDesc(EstadoProducto estado);
+
+    List<Producto> findByEstadoIn(Collection<EstadoProducto> estados);
     long countByEstado(EstadoProducto estado);
 
     /**
@@ -64,4 +72,4 @@ public interface ProductoRepository
     List<String> findCategoriasDistintas();
 
     long countByCategoriaId(Integer categoriaId);
-}
+}

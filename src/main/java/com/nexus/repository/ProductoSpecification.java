@@ -4,6 +4,7 @@ import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,6 +81,55 @@ public class ProductoSpecification {
             }
             if (minLng != null && maxLng != null) {
                 where.add(cb.between(root.get("longitude"), minLng, maxLng));
+            }
+
+            return cb.and(where.toArray(new Predicate[0]));
+        };
+    }
+
+    public static Specification<Producto> buscarComoAdmin(
+            String q,
+            Integer categoriaId,
+            EstadoProducto estado,
+            Integer vendedorId,
+            Double precioMin,
+            Double precioMax,
+            LocalDateTime fechaDesde) {
+        return (root, query, cb) -> {
+            boolean isCount = Long.class.equals(query.getResultType())
+                    || long.class.equals(query.getResultType());
+            if (!isCount) {
+                root.fetch("vendedor", JoinType.INNER);
+                root.fetch("categoria", JoinType.LEFT);
+            }
+
+            List<Predicate> where = new ArrayList<>();
+
+            if (q != null && !q.isBlank()) {
+                String pattern = "%" + q.trim().toLowerCase() + "%";
+                where.add(cb.or(
+                        cb.like(cb.lower(root.get("titulo")), pattern),
+                        cb.like(cb.lower(root.get("descripcion")), pattern)
+                ));
+            }
+
+            if (categoriaId != null) {
+                where.add(cb.equal(root.get("categoria").get("id"), categoriaId));
+            }
+            if (estado != null) {
+                where.add(cb.equal(root.get("estado"), estado));
+            }
+            if (vendedorId != null) {
+                where.add(cb.equal(root.get("vendedor").get("id"), vendedorId));
+            }
+            if (precioMin != null) {
+                where.add(cb.greaterThanOrEqualTo(root.get("precio"), precioMin));
+            }
+            if (precioMax != null) {
+                where.add(cb.lessThanOrEqualTo(root.get("precio"), precioMax));
+            }
+            if (fechaDesde != null) {
+                where.add(cb.greaterThanOrEqualTo(root.get("fechaPublicacion"), fechaDesde));
             }
 
             return cb.and(where.toArray(new Predicate[0]));

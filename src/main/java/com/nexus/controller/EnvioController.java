@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.nexus.entity.Envio;
+import com.nexus.entity.EstadoEnvio;
 import com.nexus.service.EnvioService;
+import com.nexus.service.PuntoRecogidaService;
 import com.nexus.service.ShippingPriceService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +28,12 @@ public class EnvioController {
     @Autowired
     private ShippingPriceService shippingPriceService;
     @Autowired
+    private PuntoRecogidaService puntoRecogidaService;
+    @Autowired
     private com.nexus.repository.EnvioRepository envioRepository;
+
+    @org.springframework.beans.factory.annotation.Value("${nexus.shipping.carrier-webhook-secret:}")
+    private String carrierWebhookSecret;
 
     // ── PRECIO DE ENVÍO ─────────────────────────────────────────────────
 
@@ -35,6 +42,16 @@ public class EnvioController {
      * real).
      * GET /envio/shipping-price?pesoKg=1.5
      */
+    /**
+     * Oficinas / puntos de entrega orientativos según ciudad o CP (España).
+     * GET /envio/puntos-recogida?ciudad=Madrid
+     */
+    @GetMapping("/puntos-recogida")
+    @Operation(summary = "Listado orientativo de puntos de recogida por ciudad")
+    public ResponseEntity<?> puntosRecogida(@RequestParam(required = false) String ciudad) {
+        return ResponseEntity.ok(Map.of("puntos", puntoRecogidaService.buscarPorCiudadOCp(ciudad)));
+    }
+
     @GetMapping("/shipping-price")
     @Operation(summary = "Calcular precio de envío según peso (sin margen)")
     public ResponseEntity<?> calcularPrecio(@RequestParam double pesoKg) {
@@ -120,6 +137,41 @@ public class EnvioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{envioId}/refresh-tracking")
+    @Operation(summary = "Forzar actualización del tracking del transportista")
+    public ResponseEntity<?> refreshTracking(@PathVariable Integer envioId) {
+        try {
+            return envioService.refrescarTrackingEnvio(envioId)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.ok(Map.of("mensaje", "Sin cambios de tracking")));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/correos/evento")
+    @Operation(summary = "Webhook de transportista para actualizar estado del envío")
+    public ResponseEntity<?> eventoTransportista(
+            @RequestHeader(value = "X-Carrier-Secret", required = false) String secret,
+            @RequestBody Map<String, String> body) {
+        try {
+            if (carrierWebhookSecret != null && !carrierWebhookSecret.isBlank()
+                    && !carrierWebhookSecret.equals(secret)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Secret inválido"));
+            }
+            String codigoEnvio = body.get("codigoEnvio");
+            String estadoRaw = body.get("estado");
+            if (codigoEnvio == null || estadoRaw == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "codigoEnvio y estado son obligatorios"));
+            }
+            EstadoEnvio estado = EstadoEnvio.valueOf(estadoRaw.toUpperCase());
+            Envio actualizado = envioService.registrarEventoTransportista(codigoEnvio, estado);
+            return ResponseEntity.ok(actualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

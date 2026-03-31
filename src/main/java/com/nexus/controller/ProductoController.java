@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
-import com.nexus.service.ModerationService;
 import com.nexus.service.ProductoService;
 import com.nexus.service.StorageService;
 
@@ -31,8 +30,6 @@ public class ProductoController {
     private ProductoService productoService;
     @Autowired
     private StorageService storageService;
-    @Autowired
-    private ModerationService moderationService;
     @Autowired
     private com.nexus.service.BloqueoService bloqueoService;
 
@@ -78,15 +75,28 @@ public class ProductoController {
             @RequestParam(required = false) String orden,
             @RequestParam(required = false) Boolean garantia,
             @RequestParam(required = false) Boolean itv,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radius,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+
+        Double minLat = null, maxLat = null, minLng = null, maxLng = null;
+        if (lat != null && lng != null && radius != null && radius > 0) {
+            double deltaLat = radius / 111.1;
+            double deltaLng = radius / (111.1 * Math.cos(Math.toRadians(lat)));
+            minLat = lat - deltaLat;
+            maxLat = lat + deltaLat;
+            minLng = lng - deltaLng;
+            maxLng = lng + deltaLng;
+        }
 
         org.springframework.data.domain.Sort sort = getSort(orden);
 
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
                 categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
                 vendedorId != null ? vendedorId : 0, 
-                null, null, null, null,
+                minLat, maxLat, minLng, maxLng,
                 PageRequest.of(page, size, sort));
 
         return ResponseEntity.ok(Map.of(
@@ -139,17 +149,7 @@ public class ProductoController {
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria,
             @PathVariable Integer usuarioId) {
         try {
-            // --- VALIDACIÓN DE MODERACIÓN (CREAR) ---
-            String tituloAValidar = producto.getTitulo() != null ? producto.getTitulo() : "";
-            String descAValidar = producto.getDescripcion() != null ? producto.getDescripcion() : "";
-            String textoCompleto = tituloAValidar + " " + descAValidar;
-
-            if (!moderationService.esContenidoApropiado(textoCompleto)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error",
-                                "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
-            }
-            // ----------------------------------------
+            // Validation is now handled inside productoService.publicar
 
             String url = storageService.subirImagen(imagenPrincipal);
             if (url == null)
@@ -180,17 +180,7 @@ public class ProductoController {
             @RequestPart(value = "imagenPrincipal", required = false) MultipartFile imagenPrincipal,
             @RequestPart(value = "galeria", required = false) List<MultipartFile> galeria) {
         try {
-            // --- VALIDACIÓN DE MODERACIÓN (ACTUALIZAR) ---
-            String tituloAValidar = detalles.getTitulo() != null ? detalles.getTitulo() : "";
-            String descAValidar = detalles.getDescripcion() != null ? detalles.getDescripcion() : "";
-            String textoCompleto = tituloAValidar + " " + descAValidar;
-
-            if (!textoCompleto.trim().isEmpty() && !moderationService.esContenidoApropiado(textoCompleto)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error",
-                                "El título o descripción contiene lenguaje inapropiado y no cumple las normas de la comunidad."));
-            }
-            // ---------------------------------------------
+            // Validation is now handled inside productoService.update
 
             Optional<Producto> op = productoService.findById(id);
             if (op.isEmpty())
@@ -257,6 +247,16 @@ public class ProductoController {
             @RequestParam Boolean esSpark) {
         try {
             return ResponseEntity.ok(productoService.votarProducto(usuarioId, id, esSpark));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/renovar")
+    @Operation(summary = "Reactivar producto caducado (nueva vigencia)")
+    public ResponseEntity<?> renovar(@PathVariable Integer id, @RequestParam Integer vendedorId) {
+        try {
+            return ResponseEntity.ok(productoService.renovar(id, vendedorId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

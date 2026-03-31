@@ -163,6 +163,12 @@ public class AuthController {
         perfil.put("user", actor.getUser());
         perfil.put("username", actor.getUser());
         perfil.put("email", actor.getEmail());
+        perfil.put("nombre", actor.getNombre());
+        perfil.put("apellidos", actor.getApellidos());
+        perfil.put("avatar", actor.getAvatar());
+        perfil.put("avatarSource", actor.getAvatarSource());
+        perfil.put("googleAvatarUrl", actor.getGoogleAvatarUrl());
+        perfil.put("customAvatarUrl", actor.getCustomAvatarUrl());
         perfil.put("rol", (actor instanceof Admin) ? "ROLE_ADMIN" : "ROLE_USER");
         perfil.put("twoFactorActivo", actor.isTwoFactorEnabled());
         

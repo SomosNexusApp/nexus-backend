@@ -12,6 +12,7 @@ import com.nexus.entity.NewsletterSuscripcion;
 public interface NewsletterRepository extends JpaRepository<NewsletterSuscripcion, Integer> {
 
     Optional<NewsletterSuscripcion> findByEmail(String email);
+    long countByEstado(EstadoSuscripcion estado);
     Optional<NewsletterSuscripcion> findByTokenConfirmacion(String token);
     Optional<NewsletterSuscripcion> findByTokenBaja(String token);
 
