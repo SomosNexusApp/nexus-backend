@@ -36,6 +36,9 @@ public class ContratoService {
     private NotificacionService notificacionService;
 
     @Autowired
+    private EmailService emailService;
+
+    @Autowired
     private ProductoRepository productoRepository;
 
     @Autowired
@@ -67,7 +70,17 @@ public class ContratoService {
         contrato.setFecha(contrato.getFecha() != null ? contrato.getFecha() : LocalDateTime.now());
         Contrato guardado = this.contratoRepository.save(contrato);
         String resumen = guardado.getDescripcion() != null ? guardado.getDescripcion() : "";
+        // Notificación in-app
         notificacionService.notificarContratoPropuesta(emp.getId(), guardado.getId(), guardado.getMonto(), resumen);
+        // Email a la empresa
+        if (emp.getEmail() != null && !emp.getEmail().isBlank()) {
+            String nombreEmpresa = emp.getNombreComercial() != null ? emp.getNombreComercial() : emp.getUser();
+            String urlContratos = frontendUrl + "/publicidad/contratos";
+            emailService.enviarContratoNuevaPropuesta(
+                    emp.getEmail(), nombreEmpresa,
+                    guardado.getMonto() != null ? guardado.getMonto() : 0.0,
+                    resumen, urlContratos);
+        }
         return guardado;
     }
 
@@ -169,6 +182,14 @@ public class ContratoService {
         }
 
         contratoRepository.save(c);
+
+        // Email de confirmación de activación a la empresa
+        if (c.getEmpresa() != null && c.getEmpresa().getEmail() != null) {
+            String nombreEmpresa = c.getEmpresa().getNombreComercial() != null
+                    ? c.getEmpresa().getNombreComercial() : c.getEmpresa().getUser();
+            emailService.enviarContratoActivado(c.getEmpresa().getEmail(), nombreEmpresa,
+                    c.getTipoContrato() != null ? c.getTipoContrato().name() : "BANNER");
+        }
     }
 
     public List<BannerPublicDTO> listarBannersActivosPublicos() {

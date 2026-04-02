@@ -16,178 +16,157 @@ public class EmailService {
     @Value("${nexus.mail.from:somosnexusapp@gmail.com}") private String fromEmail;
     @Value("${nexus.frontend.url:http://localhost:4200}") private String frontendUrl;
 
-    // --- PLANTILLA MAESTRA HTML (Diseño Premium Nexus Elite) ---
-    private final String HTML_WRAPPER = """
-        <!DOCTYPE html>
-        <html lang="es">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Nexus Elite</title>
-            <style>
-                body {
-                    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                    background-color: #0f172a;
-                    margin: 0;
-                    padding: 40px 20px;
-                    -webkit-font-smoothing: antialiased;
-                }
-                .wrapper {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #ffffff;
-                    border-radius: 20px;
-                    overflow: hidden;
-                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-                }
-                .header {
-                    background-color: #000000;
-                    padding: 40px;
-                    text-align: center;
-                    border-bottom: 4px solid #7c3aed;
-                }
-                .header img {
-                    height: 60px;
-                    margin: 0 auto;
-                }
-                .header h1 {
-                    margin: 0;
-                    color: #ffffff;
-                    font-size: 26px;
-                    letter-spacing: 4px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                }
-                .content {
-                    padding: 40px;
-                    color: #1e293b;
-                    line-height: 1.8;
-                    font-size: 16px;
-                }
-                .content h2 {
-                    color: #0f172a;
-                    font-size: 24px;
-                    margin-top: 0;
-                    margin-bottom: 24px;
-                    font-weight: 800;
-                }
-                .code-container {
-                    background-color: #f5f3ff;
-                    border: 1px solid #ddd6fe;
-                    border-radius: 16px;
-                    padding: 30px;
-                    text-align: center;
-                    margin: 32px 0;
-                }
-                .code-box {
-                    font-family: 'Fira Code', monospace;
-                    font-size: 42px;
-                    font-weight: 800;
-                    color: #7c3aed;
-                    letter-spacing: 10px;
-                    margin: 0;
-                }
-                .btn {
-                    display: inline-block;
-                    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
-                    color: #ffffff !important;
-                    text-decoration: none;
-                    padding: 18px 36px;
-                    border-radius: 12px;
-                    font-weight: 700;
-                    font-size: 16px;
-                    text-align: center;
-                    margin: 24px 0;
-                    box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
-                }
-                .data-card {
-                    background-color: #f8fafc;
-                    border-radius: 16px;
-                    padding: 24px;
-                    margin: 24px 0;
-                    border: 1px solid #e2e8f0;
-                }
-                .data-row {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 14px;
-                    border-bottom: 1px solid #e2e8f0;
-                    padding-bottom: 14px;
-                }
-                .data-row:last-child {
-                    margin-bottom: 0;
-                    border-bottom: none;
-                    padding-bottom: 0;
-                }
-                .footer {
-                    background-color: #f1f5f9;
-                    padding: 40px;
-                    text-align: center;
-                    font-size: 13px;
-                    color: #64748b;
-                    border-top: 1px solid #e2e8f0;
-                }
-                .footer p { margin: 10px 0; }
-                .text-muted { color: #64748b; font-size: 14px; }
-            </style>
-        </head>
-        <body>
-            <div class="wrapper">
-                <div class="header">
-                    <img src="%s/logo.webp" alt="Nexus Elite">
-                </div>
-                <div class="content">
-                    %%s
-                </div>
-                <div class="footer">
-                    <p>Has recibido este correo electrónico porque eres parte de la comunidad de <b>Nexus Elite</b>.</p>
-                    <p>Por favor, no respondas a este mensaje, es un envío automático de nuestro sistema.</p>
-                    <p style="margin-top: 20px; font-weight: 600;">&copy; 2026 Nexus App S.L. · Todos los derechos reservados.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """;
+    // ─── PLANTILLA MAESTRA ─────────────────────────────────────────────────────
+    // IMPORTANTE: NO usar String.format() con esta plantilla porque cualquier
+    // carácter '%' en el htmlContent causaría MissingFormatArgumentException.
+    // En su lugar se usa concatenación directa entre HTML_HEADER y HTML_FOOTER.
+
+    private String buildHtmlEmail(String htmlContent) {
+        return "<!DOCTYPE html>" +
+            "<html lang=\"es\">" +
+            "<head>" +
+            "  <meta charset=\"UTF-8\">" +
+            "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+            "  <title>Nexus Elite</title>" +
+            "  <style>" +
+            "    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" +
+            "           background-color: #0f172a; margin: 0; padding: 40px 20px; -webkit-font-smoothing: antialiased; }" +
+            "    .wrapper { max-width: 620px; margin: 0 auto; background-color: #ffffff;" +
+            "               border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }" +
+            "    .header { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);" +
+            "              padding: 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
+            "    .header-logo { width: 48px; height: 48px; background: linear-gradient(135deg,#7c3aed,#4f46e5);" +
+            "                   border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;" +
+            "                   margin-bottom: 16px; }" +
+            "    .header h1 { margin: 0; color: #ffffff; font-size: 28px; letter-spacing: 6px;" +
+            "                 font-weight: 900; text-transform: uppercase; }" +
+            "    .header p { margin: 8px 0 0; color: #a5b4fc; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }" +
+            "    .content { padding: 48px 40px; color: #1e293b; line-height: 1.8; font-size: 16px; }" +
+            "    .content h2 { color: #0f172a; font-size: 26px; margin-top: 0; margin-bottom: 8px; font-weight: 800; }" +
+            "    .content h3 { color: #1e293b; font-size: 19px; margin-top: 28px; margin-bottom: 12px; font-weight: 700; }" +
+            "    .lead { font-size: 17px; color: #334155; margin-bottom: 24px; }" +
+            "    .code-container { background: linear-gradient(135deg, #f5f3ff, #ede9fe);" +
+            "                      border: 1px solid #c4b5fd; border-radius: 16px; padding: 32px;" +
+            "                      text-align: center; margin: 32px 0; }" +
+            "    .code-label { margin:0; color: #7c3aed; font-size: 12px; letter-spacing: 3px;" +
+            "                  text-transform: uppercase; font-weight: 700; margin-bottom: 12px; }" +
+            "    .code-box { font-family: 'Fira Code', monospace; font-size: 44px; font-weight: 900;" +
+            "                color: #4f46e5; letter-spacing: 12px; margin: 0; }" +
+            "    .btn { display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);" +
+            "           color: #ffffff !important; text-decoration: none; padding: 18px 40px;" +
+            "           border-radius: 12px; font-weight: 700; font-size: 16px; text-align: center;" +
+            "           margin: 24px 0; box-shadow: 0 8px 24px rgba(124,58,237,0.3);" +
+            "           letter-spacing: 0.5px; }" +
+            "    .btn-success { background: linear-gradient(135deg, #059669 0%, #047857 100%);" +
+            "                   box-shadow: 0 8px 24px rgba(5,150,105,0.3); }" +
+            "    .btn-warning { background: linear-gradient(135deg, #d97706 0%, #b45309 100%);" +
+            "                   box-shadow: 0 8px 24px rgba(217,119,6,0.3); }" +
+            "    .data-card { background-color: #f8fafc; border-radius: 16px; padding: 28px;" +
+            "                 margin: 24px 0; border: 1px solid #e2e8f0; }" +
+            "    .data-row { display: flex; justify-content: space-between; align-items: center;" +
+            "                margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; }" +
+            "    .data-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }" +
+            "    .data-label { color: #64748b; font-size: 14px; }" +
+            "    .data-value { font-weight: 600; color: #1e293b; font-size: 15px; }" +
+            "    .data-value.highlight { color: #7c3aed; font-size: 20px; font-weight: 800; }" +
+            "    .data-value.green { color: #059669; }" +
+            "    .alert-box { border-radius: 12px; padding: 20px 24px; margin: 24px 0; display: flex; gap: 12px; }" +
+            "    .alert-info { background: #eff6ff; border-left: 4px solid #3b82f6; }" +
+            "    .alert-success { background: #f0fdf4; border-left: 4px solid #22c55e; }" +
+            "    .alert-warning { background: #fffbeb; border-left: 4px solid #f59e0b; }" +
+            "    .steps-list { padding: 0; list-style: none; margin: 20px 0; }" +
+            "    .steps-list li { display: flex; gap: 14px; align-items: flex-start;" +
+            "                     padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #334155; }" +
+            "    .steps-list li:last-child { border-bottom: none; }" +
+            "    .step-num { background: #7c3aed; color: white; border-radius: 50%; width: 26px; height: 26px;" +
+            "                display: inline-flex; align-items: center; justify-content: center;" +
+            "                font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }" +
+            "    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }" +
+            "    .text-muted { color: #64748b; font-size: 14px; line-height: 1.7; }" +
+            "    .text-center { text-align: center; }" +
+            "    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px;" +
+            "             font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }" +
+            "    .badge-purple { background: #f5f3ff; color: #7c3aed; }" +
+            "    .badge-green { background: #f0fdf4; color: #15803d; }" +
+            "    .badge-orange { background: #fff7ed; color: #c2410c; }" +
+            "    .footer { background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 40px;" +
+            "              text-align: center; font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0; }" +
+            "    .footer-brand { font-size: 15px; font-weight: 800; color: #0f172a; letter-spacing: 2px;" +
+            "                    text-transform: uppercase; margin-bottom: 8px; }" +
+            "    .footer p { margin: 6px 0; }" +
+            "    .footer a { color: #7c3aed; text-decoration: none; }" +
+            "  </style>" +
+            "</head>" +
+            "<body>" +
+            "  <div class=\"wrapper\">" +
+            "    <div class=\"header\">" +
+            "      <div class=\"header-logo\">" +
+            "        <svg width=\"28\" height=\"28\" fill=\"none\" viewBox=\"0 0 24 24\">" +
+            "          <path d=\"M13 2L3 14h9l-1 8 10-12h-9l1-8z\" fill=\"white\"/>" +
+            "        </svg>" +
+            "      </div>" +
+            "      <h1>Nexus</h1>" +
+            "      <p>Marketplace de confianza</p>" +
+            "    </div>" +
+            "    <div class=\"content\">" +
+            htmlContent +
+            "    </div>" +
+            "    <div class=\"footer\">" +
+            "      <p class=\"footer-brand\">Nexus &nbsp;·&nbsp; Elite Marketplace</p>" +
+            "      <p>Has recibido este email porque tienes una cuenta en <strong>Nexus</strong>.</p>" +
+            "      <p>Por favor, no respondas a este mensaje. Es un envío automático de nuestro sistema.</p>" +
+            "      <p style=\"margin-top: 16px;\">" +
+            "        <a href=\"" + frontendUrl + "/legal/privacidad\">Privacidad</a> &nbsp;·&nbsp; " +
+            "        <a href=\"" + frontendUrl + "/legal/terminos\">Condiciones</a> &nbsp;·&nbsp; " +
+            "        <a href=\"" + frontendUrl + "/ayuda\">Soporte</a>" +
+            "      </p>" +
+            "      <p style=\"margin-top: 16px; font-weight: 600; color: #94a3b8;\">" +
+            "        &copy; 2026 Nexus App S.L. &nbsp;·&nbsp; Todos los derechos reservados." +
+            "      </p>" +
+            "    </div>" +
+            "  </div>" +
+            "</body>" +
+            "</html>";
+    }
 
     @Async
     public void enviarEmail(String to, String subject, String body) {
-        try { 
-            SimpleMailMessage m = new SimpleMailMessage(); 
-            m.setFrom(fromEmail); 
-            m.setTo(to); 
-            m.setSubject(subject); 
-            m.setText(body); 
-            mailSender.send(m); 
-            System.out.println("✅ [NEXUS EMAIL] Correo texto plano enviado a: " + to);
-        } catch(Exception e) {
-            System.err.println("❌ [NEXUS EMAIL] Error enviando a " + to + ": " + e.getMessage());
+        try {
+            SimpleMailMessage m = new SimpleMailMessage();
+            m.setFrom(fromEmail);
+            m.setTo(to);
+            m.setSubject(subject);
+            m.setText(body);
+            mailSender.send(m);
+            System.out.println("✅ [NEXUS EMAIL] Texto plano enviado a: " + to);
+        } catch (Exception e) {
+            System.err.println("❌ [NEXUS EMAIL] Error enviando texto plano a " + to + ": " + e.getMessage());
         }
     }
 
     @Async
     public void enviarEmailHtml(String to, String subject, String htmlContent) {
-        try { 
-            MimeMessage m = mailSender.createMimeMessage(); 
-            MimeMessageHelper h = new MimeMessageHelper(m, true, "UTF-8"); 
-            h.setFrom(fromEmail); 
-            h.setTo(to); 
-            h.setSubject(subject); 
-            
-            // Inyectamos el contenido específico dentro de la plantilla maestra
-            String finalHtml = String.format(HTML_WRAPPER, frontendUrl, htmlContent);
-            h.setText(finalHtml, true); 
-            
-            mailSender.send(m); 
-            System.out.println("✅ [NEXUS EMAIL] Correo HTML enviado con éxito a: " + to);
-        } catch(Exception e) {
-            System.err.println("❌ [NEXUS EMAIL] Falla crítica al enviar a " + to + ". Causa: " + e.getMessage());
+        try {
+            MimeMessage m = mailSender.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(m, true, "UTF-8");
+            h.setFrom(fromEmail);
+            h.setTo(to);
+            h.setSubject(subject);
+            // IMPORTANTE: usar buildHtmlEmail() en vez de String.format para evitar
+            // MissingFormatArgumentException cuando htmlContent tiene caracteres '%'
+            String finalHtml = buildHtmlEmail(htmlContent);
+            h.setText(finalHtml, true);
+            mailSender.send(m);
+            System.out.println("✅ [NEXUS EMAIL] HTML enviado a: " + to + " | Asunto: " + subject);
+        } catch (Exception e) {
+            System.err.println("❌ [NEXUS EMAIL] Error HTML a " + to + " [" + subject + "]: " + e.getMessage());
             e.printStackTrace();
-            // Fallback: enviar texto plano para no perder el evento transaccional.
+            // Fallback a texto plano
             try {
                 SimpleMailMessage fallback = new SimpleMailMessage();
                 fallback.setFrom(fromEmail);
                 fallback.setTo(to);
-                fallback.setSubject(subject + " (fallback)");
+                fallback.setSubject(subject);
                 fallback.setText(stripHtml(htmlContent));
                 mailSender.send(fallback);
                 System.out.println("✅ [NEXUS EMAIL] Fallback texto plano enviado a: " + to);
@@ -200,261 +179,587 @@ public class EmailService {
     // ── 1. REGISTRO (Verificación de correo) ──────────────────────────────────
     @Async
     public void enviarVerificacion(String to, String username, String codigo) {
-        String contenido = 
-            "<h2>¡Te damos la bienvenida a Nexus!</h2>" +
-            "<p>Hola <b>" + username + "</b>,</p>" +
-            "<p>Estamos encantados de tenerte con nosotros. Para empezar a comprar y vender con total seguridad, necesitamos verificar tu dirección de correo electrónico.</p>" +
-            "<div class='code-container'>" +
-            "   <p style='margin-top:0; color:#6b7280; font-size:14px; text-transform:uppercase;'>TU CÓDIGO DE VERIFICACIÓN</p>" +
-            "   <p class='code-box'>" + codigo + "</p>" +
+        String contenido =
+            "<h2>¡Bienvenido a Nexus! 🎉</h2>" +
+            "<p class=\"lead\">Hola <strong>" + escapeHtml(username) + "</strong>, nos alegra que estés aquí.</p>" +
+            "<p>Para completar tu registro y empezar a comprar y vender en nuestra comunidad, necesitamos " +
+            "verificar tu dirección de correo electrónico. Es un proceso rápido y seguro.</p>" +
+            "<div class=\"code-container\">" +
+            "  <p class=\"code-label\">Tu código de verificación</p>" +
+            "  <p class=\"code-box\">" + escapeHtml(codigo) + "</p>" +
+            "  <p class=\"text-muted\" style=\"margin-top: 16px;\">Este código caduca en <strong>30 minutos</strong>.</p>" +
             "</div>" +
-            "<p class='text-muted'>Este código caducará en 30 minutos por motivos de seguridad.</p>";
-            
-        enviarEmailHtml(to, "Verifica tu cuenta en Nexus", contenido);
+            "<p class=\"text-muted\">Si no has creado esta cuenta, puedes ignorar este mensaje de forma segura. " +
+            "Nadie podrá acceder a tu cuenta sin el código.</p>" +
+            "<hr class=\"divider\">" +
+            "<h3>¿Qué puedes hacer en Nexus?</h3>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">1</span> <span>Compra y vende artículos de segunda mano de forma segura con pagos escrow.</span></li>" +
+            "  <li><span class=\"step-num\">2</span> <span>Descubre las mejores chollos y ofertas de la comunidad Nexus.</span></li>" +
+            "  <li><span class=\"step-num\">3</span> <span>Chatea con vendedores, negocia precios y sigue el estado de tus envíos en tiempo real.</span></li>" +
+            "</ul>";
+        enviarEmailHtml(to, "✅ Verifica tu cuenta en Nexus — " + username, contenido);
     }
 
     // ── 2. RESETEAR CONTRASEÑA ────────────────────────────────────────────────
     @Async
     public void enviarResetPassword(String to, String token) {
         String link = frontendUrl + "/auth/reset-password?token=" + token;
-        String contenido = 
-            "<h2>Restablecimiento de contraseña</h2>" +
-            "<p>Hemos recibido una solicitud para cambiar la contraseña de tu cuenta de Nexus asociada a este correo.</p>" +
-            "<div style='text-align: center;'>" +
-            "   <a href='" + link + "' class='btn'>Cambiar mi contraseña</a>" +
+        String contenido =
+            "<h2>Restablecimiento de contraseña 🔐</h2>" +
+            "<p class=\"lead\">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en Nexus.</p>" +
+            "<p>Si fuiste tú, haz clic en el botón de abajo para crear una nueva contraseña. " +
+            "El enlace es válido únicamente durante <strong>15 minutos</strong> por razones de seguridad.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + link + "\" class=\"btn\">Cambiar mi contraseña</a>" +
             "</div>" +
-            "<p>Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>" +
-            "<p style='word-break: break-all; font-size: 13px; color: #0a84ff;'>" + link + "</p>" +
-            "<p class='text-muted' style='margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;'>" +
-            "Si no has solicitado este cambio, tu cuenta sigue siendo segura y puedes ignorar este mensaje.</p>";
-
-        enviarEmailHtml(to, "Restablece tu contraseña - Nexus", contenido);
+            "<div class=\"alert-box alert-info\">" +
+            "  <div>" +
+            "    <strong>¿El botón no funciona?</strong><br>" +
+            "    Copia y pega el siguiente enlace en tu navegador:<br>" +
+            "    <span style=\"word-break: break-all; font-size: 13px; color: #3b82f6;\">" + link + "</span>" +
+            "  </div>" +
+            "</div>" +
+            "<hr class=\"divider\">" +
+            "<div class=\"alert-box alert-warning\">" +
+            "  <div>" +
+            "    <strong>⚠️ No has solicitado este cambio?</strong><br>" +
+            "    Si no has iniciado esta solicitud, tu cuenta sigue siendo segura. Puedes ignorar este mensaje. " +
+            "    Si sospechas actividad no autorizada, contacta con nuestro soporte inmediatamente desde " +
+            "    <a href=\"" + frontendUrl + "/ayuda\" style=\"color: #d97706;\">nexus.app/ayuda</a>." +
+            "  </div>" +
+            "</div>";
+        enviarEmailHtml(to, "Restablece tu contraseña — Nexus", contenido);
     }
 
     // ── 3. AUTENTICACIÓN EN DOS PASOS (2FA) ───────────────────────────────────
     @Async
     public void enviarOtp2FA(String to, String otp, String motivo) {
-        String contenido = 
-            "<h2>Alerta de Seguridad (2FA)</h2>" +
-            "<p>Se ha detectado un intento de <b>" + motivo + "</b>.</p>" +
+        String contenido =
+            "<h2>Código de seguridad 2FA 🛡️</h2>" +
+            "<p class=\"lead\">Se ha detectado un intento de <strong>" + escapeHtml(motivo) + "</strong> en tu cuenta.</p>" +
             "<p>Para confirmar que eres tú, introduce el siguiente código de un solo uso en la aplicación:</p>" +
-            "<div class='code-container'>" +
-            "   <p class='code-box'>" + otp + "</p>" +
+            "<div class=\"code-container\">" +
+            "  <p class=\"code-label\">Código de verificación de un solo uso</p>" +
+            "  <p class=\"code-box\">" + escapeHtml(otp) + "</p>" +
+            "  <p class=\"text-muted\" style=\"margin-top: 16px;\">Expira en <strong>10 minutos</strong>.</p>" +
             "</div>" +
-            "<p class='text-muted'>Este código expirará en 10 minutos. <b>IMPORTANTE: Nunca compartas este código con nadie</b>, ni siquiera con empleados de Nexus.</p>";
-
-        enviarEmailHtml(to, "Código de seguridad 2FA - Nexus", contenido);
+            "<div class=\"alert-box alert-warning\">" +
+            "  <div>" +
+            "    <strong>⚠️ IMPORTANTE</strong>: Nunca compartas este código con nadie, ni siquiera con " +
+            "    empleados de Nexus. Nuestro equipo jamás te pedirá este código." +
+            "  </div>" +
+            "</div>" +
+            "<p class=\"text-muted\">Si no has iniciado este acceso, te recomendamos cambiar tu contraseña " +
+            "inmediatamente desde <a href=\"" + frontendUrl + "/ajustes\">Ajustes de cuenta</a>.</p>";
+        enviarEmailHtml(to, "🔐 Código seguridad 2FA — Nexus", contenido);
     }
 
-    @Async 
-    public void enviarOtpDosFactores(String to, String otp) { 
-        enviarOtp2FA(to, otp, "iniciar sesión en tu cuenta"); 
+    @Async
+    public void enviarOtpDosFactores(String to, String otp) {
+        enviarOtp2FA(to, otp, "iniciar sesión en tu cuenta");
     }
 
     // ── 4. CONFIRMACIÓN DE COMPRA ─────────────────────────────────────────────
     @Async
     public void enviarConfirmacionCompra(String to, String titulo, Double precio) {
-        String contenido = 
-            "<h2>¡Pago confirmado! 🎉</h2>" +
-            "<p>Tu compra se ha procesado correctamente y el pago ya está validado por Nexus.</p>" +
-            "<p>El vendedor ha sido notificado y debe preparar el paquete dentro del plazo establecido. " +
-            "Recibirás correos automáticos cada vez que cambie el estado del envío.</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'>" +
-            "       <span style='color:#6b7280'>Artículo:</span>" +
-            "       <span style='font-weight:600'>" + titulo + "</span>" +
-            "   </div>" +
-            "   <div class='data-row'>" +
-            "       <span style='color:#6b7280'>Total pagado:</span>" +
-            "       <span style='font-weight:700; color:#0a84ff; font-size:18px'>" + String.format("%.2f €", precio) + "</span>" +
-            "   </div>" +
+        String contenido =
+            "<h2>¡Compra confirmada! 🎉</h2>" +
+            "<p class=\"lead\">Tu pago ha sido procesado y verificado con éxito. ¡Enhorabuena por tu compra!</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Artículo comprado</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(titulo) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Total pagado</span>" +
+            "    <span class=\"data-value highlight\">" + String.format("%.2f €", precio) + "</span>" +
+            "  </div>" +
             "</div>" +
-            "<p>Podrás seguir el pedido desde <b>Mis Compras</b> y también en la conversación del chat con el vendedor.</p>" +
-            "<p class='text-muted'>Si detectas cualquier incidencia, contacta con soporte desde la app y podremos intervenir la operación.</p>";
-
-        enviarEmailHtml(to, "Recibo de tu compra: " + titulo, contenido);
+            "<div class=\"alert-box alert-success\">" +
+            "  <div>" +
+            "    <strong>✅ Pago en escrow seguro</strong><br>" +
+            "    El vendedor ha recibido la notificación y tiene un plazo para enviar el producto. " +
+            "    Tu dinero permanece protegido en Nexus hasta que confirmes la entrega." +
+            "  </div>" +
+            "</div>" +
+            "<h3>¿Qué ocurre ahora?</h3>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">1</span><span>El vendedor preparará el paquete y lo enviará al transportista.</span></li>" +
+            "  <li><span class=\"step-num\">2</span><span>Recibirás un email con el número de seguimiento cuando el envío esté registrado.</span></li>" +
+            "  <li><span class=\"step-num\">3</span><span>Nexus actualizará el estado del envío automáticamente y te avisará en cada hito.</span></li>" +
+            "  <li><span class=\"step-num\">4</span><span>Una vez recibido, podrás dejar tu valoración al vendedor.</span></li>" +
+            "</ul>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mis compras</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Si detectas cualquier incidencia o el vendedor no envía en el plazo establecido, " +
+            "nuestro equipo de soporte intervendrá para protegerte.</p>";
+        enviarEmailHtml(to, "✅ Compra confirmada: " + titulo + " — Nexus", contenido);
     }
 
     @Async
     public void enviarResumenPagoComprador(String to, Integer compraId, String titulo, Double totalPagado,
             Double precioProducto, Double costeEnvio, Double comisionNexus) {
         String contenido =
-            "<h2>Resumen de pago de tu compra</h2>" +
-            "<p>Tu operación se ha registrado correctamente. Aquí tienes el detalle completo:</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Pedido:</span><span style='font-weight:600'>#" + compraId + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Artículo:</span><span style='font-weight:600'>" + escapeHtml(titulo) + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Producto:</span><span>" + String.format("%.2f €", precioProducto != null ? precioProducto : 0.0) + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Envío:</span><span>" + String.format("%.2f €", costeEnvio != null ? costeEnvio : 0.0) + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Comisión Nexus:</span><span>" + String.format("%.2f €", comisionNexus != null ? comisionNexus : 0.0) + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'><b>Total:</b></span><span style='font-weight:700; color:#0a84ff;'>" + String.format("%.2f €", totalPagado != null ? totalPagado : 0.0) + "</span></div>" +
+            "<h2>Resumen detallado de tu compra</h2>" +
+            "<p class=\"lead\">Tu pedido <strong>#" + compraId + "</strong> ha sido registrado. " +
+            "Aquí tienes el desglose completo de los costes:</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Nº de pedido</span>" +
+            "    <span class=\"data-value\">#" + compraId + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Artículo</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(titulo) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Precio del producto</span>" +
+            "    <span class=\"data-value\">" + String.format("%.2f €", precioProducto != null ? precioProducto : 0.0) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Coste de envío</span>" +
+            "    <span class=\"data-value\">" + String.format("%.2f €", costeEnvio != null ? costeEnvio : 0.0) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Comisión de servicio Nexus</span>" +
+            "    <span class=\"data-value\">" + String.format("%.2f €", comisionNexus != null ? comisionNexus : 0.0) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\" style=\"font-weight: 700;\">TOTAL pagado</span>" +
+            "    <span class=\"data-value highlight\">" + String.format("%.2f €", totalPagado != null ? totalPagado : 0.0) + "</span>" +
+            "  </div>" +
             "</div>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=compras&compraId=" + compraId + "' class='btn'>Ver mi compra</a></div>";
-        enviarEmailHtml(to, "Detalle de pago pedido #" + compraId, contenido);
-    }
-
-    // ── 5. NOTIFICACIÓN DE ENVÍO ──────────────────────────────────────────────
-    @Async
-    public void enviarNotificacionEnvio(String to, String titulo, String tracking, String transportista) {
-        String trackingInfo = "";
-        if (tracking != null && !tracking.isEmpty()) {
-            trackingInfo = 
-            "<div class='data-row'>" +
-            "   <span style='color:#6b7280'>Transportista:</span>" +
-            "   <span style='font-weight:600'>" + transportista + "</span>" +
-            "</div>" +
-            "<div class='data-row'>" +
-            "   <span style='color:#6b7280'>Nº Seguimiento:</span>" +
-            "   <span style='font-weight:600; font-family:monospace'>" + tracking + "</span>" +
+            "<p class=\"text-muted\">La comisión de servicio cubre la protección de pago en escrow, el seguro de la " +
+            "transacción y el soporte de Nexus durante todo el proceso de compra-venta.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=compras&compraId=" + compraId + "\" class=\"btn\">Seguir mi pedido</a>" +
             "</div>";
-        }
-            
-        String contenido = 
-            "<h2>Tu paquete está en camino 📦</h2>" +
-            "<p>¡Buenas noticias! El vendedor acaba de registrar el envío de tu artículo.</p>" +
-            "<p>Desde este momento, Nexus actualizará automáticamente el seguimiento y te avisará por correo " +
-            "en cada hito importante: en tránsito, en reparto y entregado.</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'>" +
-            "       <span style='color:#6b7280'>Artículo:</span>" +
-            "       <span style='font-weight:600'>" + titulo + "</span>" +
-            "   </div>" + trackingInfo +
-            "</div>" +
-            "<p>Revisa también tu chat de compra: allí verás los mensajes de sistema del flujo de envío.</p>" +
-            "<p>Gracias por confiar en la comunidad de Nexus.</p>";
-
-        enviarEmailHtml(to, "Tu pedido ha sido enviado", contenido);
+        enviarEmailHtml(to, "📋 Detalle de pago — Pedido #" + compraId + " — Nexus", contenido);
     }
 
-    /**
-     * Vendedor: venta confirmada — pasos para preparar el envío (misma plantilla HTML).
-     */
+    // ── 5. NUEVA VENTA (VENDEDOR) ─────────────────────────────────────────────
     @Async
     public void enviarNuevaVentaVendedor(String to, String tituloProducto, Integer compraId, String nombreComprador) {
         String linkVentas = frontendUrl + "/perfil?tab=ventas";
         String contenido =
             "<h2>¡Has vendido un artículo! 🎉</h2>" +
-            "<p>El comprador <b>" + escapeHtml(nombreComprador) + "</b> ha pagado <b>" + escapeHtml(tituloProducto) + "</b>.</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Pedido</span><span style='font-weight:600'>#" + compraId + "</span></div>" +
+            "<p class=\"lead\"><strong>" + escapeHtml(nombreComprador) + "</strong> ha comprado tu artículo " +
+            "<strong>\"" + escapeHtml(tituloProducto) + "\"</strong>. ¡Enhorabuena!</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Pedido</span>" +
+            "    <span class=\"data-value\">#" + compraId + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Artículo</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(tituloProducto) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Comprador</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(nombreComprador) + "</span>" +
+            "  </div>" +
             "</div>" +
-            "<h3 style='font-size:18px;margin-top:28px;'>Siguientes pasos</h3>" +
-            "<ol style='padding-left:20px;line-height:1.9;'>" +
-            "<li>Entra en <b>Mis ventas</b> y abre el pedido.</li>" +
-            "<li>Empaqueta el producto con cuidado.</li>" +
-            "<li>Genera o registra el envío y añade el número de seguimiento.</li>" +
-            "<li>Marca el pedido como enviado antes de que venza el plazo.</li>" +
-            "</ol>" +
-            "<div style='text-align:center;'>" +
-            "<a href='" + linkVentas + "' class='btn'>Ir a mis ventas</a>" +
+            "<div class=\"alert-box alert-warning\">" +
+            "  <div>" +
+            "    <strong>⏰ Tienes un plazo para enviar</strong><br>" +
+            "    Debes preparar y enviar el paquete antes de que venza el plazo. Si no envías a tiempo, " +
+            "    la compra se cancelará automáticamente y el comprador recibirá un reembolso." +
+            "  </div>" +
             "</div>" +
-            "<p class='text-muted'>Si no envías en el plazo indicado, la compra puede cancelarse y el comprador recibirá un reembolso.</p>";
-
-        enviarEmailHtml(to, "Nueva venta: " + tituloProducto, contenido);
+            "<h3>Pasos a seguir ahora</h3>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">1</span><span>Entra en <strong>Mis Ventas</strong> y abre el pedido #" + compraId + ".</span></li>" +
+            "  <li><span class=\"step-num\">2</span><span>Empaqueta el artículo con cuidado para evitar daños durante el transporte.</span></li>" +
+            "  <li><span class=\"step-num\">3</span><span>Genera o registra el envío en Nexus para activar el seguimiento automático.</span></li>" +
+            "  <li><span class=\"step-num\">4</span><span>El comprador recibirá una notificación y podrá seguir el estado en tiempo real.</span></li>" +
+            "  <li><span class=\"step-num\">5</span><span>Una vez entregado, recibirás tu dinero descontando la comisión de Nexus.</span></li>" +
+            "</ul>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + linkVentas + "\" class=\"btn\">Ir a Mis Ventas</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Ante cualquier problema con el envío o el comprador, nuestro equipo de soporte " +
+            "está disponible 24/7 desde <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>.</p>";
+        enviarEmailHtml(to, "🛍️ Nueva venta: " + tituloProducto + " — Nexus", contenido);
     }
 
+    // ── 6. NOTIFICACIÓN DE ENVÍO (COMPRADOR) ─────────────────────────────────
+    @Async
+    public void enviarNotificacionEnvio(String to, String titulo, String tracking, String transportista) {
+        String trackingRows = "";
+        String trackingCta = "";
+        if (tracking != null && !tracking.isEmpty()) {
+            trackingRows =
+                "  <div class=\"data-row\">" +
+                "    <span class=\"data-label\">Transportista</span>" +
+                "    <span class=\"data-value\">" + escapeHtml(transportista != null ? transportista : "Estándar") + "</span>" +
+                "  </div>" +
+                "  <div class=\"data-row\">" +
+                "    <span class=\"data-label\">Número de seguimiento</span>" +
+                "    <span class=\"data-value\" style=\"font-family: monospace;\">" + escapeHtml(tracking) + "</span>" +
+                "  </div>";
+            trackingCta = "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver seguimiento en Nexus</a></div>";
+        }
+        String contenido =
+            "<h2>Tu paquete está en camino 📦</h2>" +
+            "<p class=\"lead\">¡Buenas noticias! El vendedor ha registrado el envío de <strong>\"" + escapeHtml(titulo) + "\"</strong>.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Artículo</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(titulo) + "</span>" +
+            "  </div>" +
+            trackingRows +
+            "</div>" +
+            "<div class=\"alert-box alert-info\">" +
+            "  <div>" +
+            "    <strong>📡 Seguimiento automático activado</strong><br>" +
+            "    Nexus monitorizará el estado del envío y te avisará por email en cada hito importante: " +
+            "    <em>En tránsito</em>, <em>En reparto</em> y <em>Entregado</em>." +
+            "  </div>" +
+            "</div>" +
+            trackingCta +
+            "<p class=\"text-muted\" style=\"margin-top: 24px;\">Si tienes algún problema con el envío, " +
+            "puedes abrir una incidencia desde el chat del pedido o contactar con soporte.</p>";
+        enviarEmailHtml(to, "📦 Tu pedido ha sido enviado: " + titulo + " — Nexus", contenido);
+    }
+
+    // ── 7. GUÍA DE ENVÍO QR (VENDEDOR) ───────────────────────────────────────
     @Async
     public void enviarGuiaEnvioConQrVendedor(String to, String tituloProducto, Integer compraId, String codigoEnvio,
             String qrBase64, String transportista, String ciudad, int plazoDias) {
         String qrHtml = (qrBase64 != null && !qrBase64.isBlank())
-                ? "<div style='text-align:center; margin:20px 0;'><img style='width:220px;height:220px;border:1px solid #ddd;border-radius:12px;padding:8px;' src='data:image/png;base64,"
-                        + qrBase64 + "' alt='QR Envío' /></div>"
+                ? "<div class=\"text-center\" style=\"margin: 28px 0;\">" +
+                  "<img style=\"width: 200px; height: 200px; border: 2px solid #e2e8f0; border-radius: 16px; padding: 10px;\" " +
+                  "src=\"data:image/png;base64," + qrBase64 + "\" alt=\"QR de envío\" />" +
+                  "<p class=\"text-muted\" style=\"margin-top: 8px;\">Muestra este QR en el punto de entrega</p>" +
+                  "</div>"
                 : "";
         String contenido =
-            "<h2>Guía de envío de tu venta</h2>" +
-            "<p>Has vendido <b>" + escapeHtml(tituloProducto) + "</b>. Sigue estos pasos para enviar correctamente:</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Pedido</span><span>#"+ compraId +"</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Código de envío</span><span style='font-family:monospace;font-weight:700;'>" + escapeHtml(codigoEnvio) + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Transportista</span><span>" + escapeHtml(transportista != null ? transportista : "Correos") + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Zona recomendada</span><span>" + escapeHtml(ciudad != null ? ciudad : "tu zona") + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Plazo máximo</span><span>" + plazoDias + " días</span></div>" +
+            "<h2>Guía de envío — Pedido #" + compraId + " 🚚</h2>" +
+            "<p class=\"lead\">Has vendido <strong>\"" + escapeHtml(tituloProducto) + "\"</strong>. " +
+            "Sigue estos pasos para completar el envío correctamente.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Pedido</span>" +
+            "    <span class=\"data-value\">#" + compraId + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Código de envío Nexus</span>" +
+            "    <span class=\"data-value\" style=\"font-family: monospace; font-size: 18px; color: #7c3aed;\">" + escapeHtml(codigoEnvio) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Transportista</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(transportista != null ? transportista : "Correos") + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Zona recomendada</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(ciudad != null ? ciudad : "Tu zona") + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Plazo máximo de entrega</span>" +
+            "    <span class=\"data-value\" style=\"color: #d97706; font-weight: 800;\">" + plazoDias + " días hábiles</span>" +
+            "  </div>" +
             "</div>" +
             qrHtml +
-            "<ol style='padding-left:20px;line-height:1.9;'>" +
-            "<li>Empaqueta bien el artículo.</li>" +
-            "<li>Acude a la oficina de Correos y muestra este QR/código.</li>" +
-            "<li>Introduce el tracking real en Nexus para activar seguimiento automático.</li>" +
-            "</ol>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/compras/" + compraId + "/enviar' class='btn'>Ir a pantalla de envío</a></div>";
-        enviarEmailHtml(to, "Guía de envío + QR pedido #" + compraId, contenido);
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">1</span><span>Empaqueta el artículo de forma segura. Usa material de relleno si es frágil.</span></li>" +
+            "  <li><span class=\"step-num\">2</span><span>Acude a la oficina del transportista <strong>" + escapeHtml(transportista != null ? transportista : "Correos") + "</strong> más cercana.</span></li>" +
+            "  <li><span class=\"step-num\">3</span><span>Muestra el QR/código al empleado. Guarda el resguardo del envío.</span></li>" +
+            "  <li><span class=\"step-num\">4</span><span>Introduce el número de seguimiento real en Nexus para activar el tracking automático.</span></li>" +
+            "</ul>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ir a la pantalla de envío</a>" +
+            "</div>";
+        enviarEmailHtml(to, "🚚 Guía de envío + QR — Pedido #" + compraId + " — Nexus", contenido);
     }
 
+    // ── 8. ACTUALIZACIÓN DE TRACKING ──────────────────────────────────────────
     @Async
     public void enviarActualizacionTracking(String to, String tituloProducto, String tracking, String estado, String urlSeguimiento) {
-        String cta = (urlSeguimiento != null && !urlSeguimiento.isBlank())
-                ? "<div style='text-align:center;'><a href='" + urlSeguimiento + "' class='btn'>Ver seguimiento</a></div>"
-                : "";
+        String ctaHtml = (urlSeguimiento != null && !urlSeguimiento.isBlank())
+                ? "<div class=\"text-center\"><a href=\"" + urlSeguimiento + "\" class=\"btn\">Ver seguimiento en tiempo real</a></div>"
+                : "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mis pedidos</a></div>";
         String contenido =
-            "<h2>Actualización de seguimiento</h2>" +
-            "<p>Tu pedido de <b>" + escapeHtml(tituloProducto) + "</b> cambió de estado a <b>" + escapeHtml(estado) + "</b>.</p>" +
-            "<div class='data-card'>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Tracking</span><span style='font-family:monospace;font-weight:700;'>" + escapeHtml(tracking != null ? tracking : "—") + "</span></div>" +
-            "   <div class='data-row'><span style='color:#6b7280'>Estado</span><span>" + escapeHtml(estado) + "</span></div>" +
-            "</div>" + cta;
-        enviarEmailHtml(to, "Seguimiento actualizado: " + estado, contenido);
+            "<h2>Actualización de seguimiento 📡</h2>" +
+            "<p class=\"lead\">Tu pedido de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> ha cambiado de estado.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Artículo</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(tituloProducto) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Número de seguimiento</span>" +
+            "    <span class=\"data-value\" style=\"font-family: monospace;\">" + escapeHtml(tracking != null ? tracking : "—") + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Nuevo estado</span>" +
+            "    <span class=\"data-value\" style=\"color: #059669; font-size: 17px;\">" + escapeHtml(estado) + "</span>" +
+            "  </div>" +
+            "</div>" +
+            ctaHtml +
+            "<p class=\"text-muted\" style=\"margin-top: 24px;\">Nexus monitoriza automáticamente el estado de tu envío " +
+            "y te notificará en cada cambio importante.</p>";
+        enviarEmailHtml(to, "📍 Seguimiento actualizado: " + estado + " — Nexus", contenido);
     }
 
+    // ── 9. ENTREGA CONFIRMADA ── ──────────────────────────────────────────────
     @Async
     public void enviarEntregaConfirmada(String to, String tituloProducto, boolean paraComprador) {
         String contenido =
-            "<h2>Entrega confirmada</h2>" +
-            "<p>El pedido de <b>" + escapeHtml(tituloProducto) + "</b> figura como entregado por el transportista.</p>" +
+            "<h2>¡Entrega confirmada! ✅</h2>" +
+            "<p class=\"lead\">El pedido de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> figura como entregado.</p>" +
             (paraComprador
-                ? "<p>Ahora puedes dejar tu reseña al vendedor desde Mis Compras.</p>"
-                : "<p>La venta se ha completado y el proceso de cobro queda cerrado.</p>") +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=compras' class='btn'>Abrir Nexus</a></div>";
-        enviarEmailHtml(to, "Pedido entregado: " + tituloProducto, contenido);
+                ? "<div class=\"alert-box alert-success\">" +
+                  "  <div><strong>¡El artículo ha llegado!</strong><br>" +
+                  "  Esperamos que estés contento con tu compra. " +
+                  "  Ahora puedes dejar tu valoración al vendedor y compartir tu experiencia con la comunidad Nexus." +
+                  "  </div>" +
+                  "</div>" +
+                  "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Valorar al vendedor</a></div>"
+                : "<div class=\"alert-box alert-success\">" +
+                  "  <div><strong>¡Venta completada!</strong><br>" +
+                  "  Tu venta de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> ha sido completada con éxito. " +
+                  "  La transacción ha finalizado y el proceso de cobro quedará cerrado en breve." +
+                  "  </div>" +
+                  "</div>" +
+                  "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ver mis ventas</a></div>") +
+            "<p class=\"text-muted\" style=\"margin-top: 24px;\">Gracias por ser parte de la comunidad Nexus. " +
+            "¡Esperamos verte de nuevo pronto!</p>";
+        enviarEmailHtml(to, "✅ Pedido entregado: " + tituloProducto + " — Nexus", contenido);
     }
 
+    // ── 10. REEMBOLSOS Y CANCELACIONES ────────────────────────────────────────
     @Async
     public void enviarAdminReembolsoComprador(String to, Integer compraId, String tituloProducto, String motivo) {
         String contenido =
-            "<h2>Reembolso procesado por soporte/admin</h2>" +
-            "<p>Se ha reembolsado tu pedido <b>#" + compraId + "</b> del artículo <b>" + escapeHtml(tituloProducto) + "</b>.</p>" +
-            "<p>Motivo: " + escapeHtml(motivo != null ? motivo : "Incidencia de operación") + "</p>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=compras&compraId=" + compraId + "' class='btn'>Ver compra</a></div>";
-        enviarEmailHtml(to, "Reembolso de pedido #" + compraId, contenido);
+            "<h2>Reembolso procesado 💰</h2>" +
+            "<p class=\"lead\">Tu pedido <strong>#" + compraId + "</strong> de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> " +
+            "ha sido reembolsado por el equipo de soporte de Nexus.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Pedido reembolsado</span>" +
+            "    <span class=\"data-value\">#" + compraId + " — " + escapeHtml(tituloProducto) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Motivo del reembolso</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(motivo != null ? motivo : "Incidencia de operación resuelta por soporte") + "</span>" +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"alert-box alert-info\">" +
+            "  <div><strong>💳 Plazo de devolución</strong><br>" +
+            "  El importe se devolverá a tu método de pago original en un plazo de <strong>5-10 días hábiles</strong>, " +
+            "  dependiendo de tu entidad bancaria." +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=compras&compraId=" + compraId + "\" class=\"btn\">Ver detalle del pedido</a></div>";
+        enviarEmailHtml(to, "💰 Reembolso de pedido #" + compraId + " — Nexus", contenido);
     }
 
     @Async
     public void enviarAdminReembolsoVendedor(String to, Integer compraId, String tituloProducto, String motivo) {
         String contenido =
-            "<h2>Venta anulada con reembolso</h2>" +
-            "<p>La compra <b>#" + compraId + "</b> de <b>" + escapeHtml(tituloProducto) + "</b> fue reembolsada al comprador.</p>" +
-            "<p>Motivo: " + escapeHtml(motivo != null ? motivo : "Incidencia de operación") + "</p>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=ventas&compraId=" + compraId + "' class='btn'>Ver venta</a></div>";
-        enviarEmailHtml(to, "Venta anulada pedido #" + compraId, contenido);
+            "<h2>Venta anulada — Reembolso procesado</h2>" +
+            "<p class=\"lead\">La compra <strong>#" + compraId + "</strong> de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> " +
+            "ha sido reembolsada al comprador por el equipo de soporte.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Pedido afectado</span>" +
+            "    <span class=\"data-value\">#" + compraId + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Motivo</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(motivo != null ? motivo : "Incidencia de operación") + "</span>" +
+            "  </div>" +
+            "</div>" +
+            "<p class=\"text-muted\">Esta operación ya no requiere más acciones por tu parte. " +
+            "Si tienes alguna duda, contacta con nuestro soporte en <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>.</p>" +
+            "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ver mis ventas</a></div>";
+        enviarEmailHtml(to, "❌ Venta anulada — Pedido #" + compraId + " — Nexus", contenido);
     }
 
     @Async
     public void enviarAdminCancelacion(String to, Integer compraId, String tituloProducto, boolean paraComprador) {
         String contenido =
             "<h2>Pedido cancelado por administración</h2>" +
-            "<p>El pedido <b>#" + compraId + "</b> de <b>" + escapeHtml(tituloProducto) + "</b> ha sido cancelado.</p>" +
+            "<p class=\"lead\">El pedido <strong>#" + compraId + "</strong> de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> " +
+            "ha sido cancelado por el equipo de Nexus.</p>" +
             (paraComprador
-                ? "<p>Si procede, el importe se te devolverá automáticamente.</p>"
-                : "<p>La operación ya no está activa y no requiere más acciones por tu parte.</p>") +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=" + (paraComprador ? "compras" : "ventas") + "&compraId=" + compraId + "' class='btn'>Abrir detalle</a></div>";
-        enviarEmailHtml(to, "Cancelación pedido #" + compraId, contenido);
+                ? "<div class=\"alert-box alert-info\">" +
+                  "  <div><strong>💳 Reembolso automático</strong><br>" +
+                  "  Si el pago fue procesado, recibirás el importe íntegro de vuelta en tu método de pago en 5-10 días hábiles." +
+                  "  </div>" +
+                  "</div>"
+                : "<div class=\"alert-box alert-info\">" +
+                  "  <div>La operación ya no está activa. No se requiere ninguna acción adicional por tu parte.</div>" +
+                  "</div>") +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=" + (paraComprador ? "compras" : "ventas") + "&compraId=" + compraId + "\" class=\"btn\">Ver detalle</a>" +
+            "</div>";
+        enviarEmailHtml(to, "❌ Cancelación de pedido #" + compraId + " — Nexus", contenido);
     }
 
+    // ── 11. NUEVA ETIQUETA VENDEDOR ───────────────────────────────────────────
     @Async
     public void enviarNuevaEtiquetaVendedor(String to, Integer compraId, String tituloProducto, String nuevoCodigo, String qrBase64) {
         String qrHtml = (qrBase64 != null && !qrBase64.isBlank())
-                ? "<div style='text-align:center; margin:20px 0;'><img style='width:200px;height:200px;border:1px solid #ddd;border-radius:12px;padding:8px;' src='data:image/png;base64,"
-                        + qrBase64 + "' alt='QR Envío' /></div>"
+                ? "<div class=\"text-center\" style=\"margin: 24px 0;\">" +
+                  "<img style=\"width: 180px; height: 180px; border: 2px solid #e2e8f0; border-radius: 12px; padding: 8px;\" " +
+                  "src=\"data:image/png;base64," + qrBase64 + "\" alt=\"QR de envío\" /></div>"
                 : "";
         String contenido =
-            "<h2>Nueva etiqueta de envío</h2>" +
-            "<p>Para el pedido <b>#" + compraId + "</b> de <b>" + escapeHtml(tituloProducto) + "</b> se ha generado un nuevo código de envío.</p>" +
-            "<div class='data-card'><div class='data-row'><span style='color:#6b7280'>Nuevo código</span><span style='font-family:monospace;font-weight:700;'>"
-            + escapeHtml(nuevoCodigo) + "</span></div></div>" +
+            "<h2>Nueva etiqueta de envío 🏷️</h2>" +
+            "<p class=\"lead\">Para el pedido <strong>#" + compraId + "</strong> de <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> " +
+            "se ha generado una nueva etiqueta de envío.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Nuevo código de envío</span>" +
+            "    <span class=\"data-value\" style=\"font-family: monospace; font-size: 18px; color: #7c3aed;\">" + escapeHtml(nuevoCodigo) + "</span>" +
+            "  </div>" +
+            "</div>" +
             qrHtml +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/compras/" + compraId + "/enviar' class='btn'>Ir a envío</a></div>";
-        enviarEmailHtml(to, "Nueva etiqueta pedido #" + compraId, contenido);
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ir a la pantalla de envío</a>" +
+            "</div>";
+        enviarEmailHtml(to, "🏷️ Nueva etiqueta — Pedido #" + compraId + " — Nexus", contenido);
     }
 
+    // ── 12. DEVOLUCIONES ──────────────────────────────────────────────────────
+    @Async
+    public void enviarSolicitudDevolucionVendedor(String to, String tituloProducto) {
+        String contenido =
+            "<h2>Solicitud de devolución recibida 🔄</h2>" +
+            "<p class=\"lead\">Un comprador ha solicitado devolver el artículo <strong>\"" + escapeHtml(tituloProducto) + "\"</strong>.</p>" +
+            "<div class=\"alert-box alert-warning\">" +
+            "  <div>" +
+            "    <strong>⏰ Responde a la brevedad posible</strong><br>" +
+            "    Tienes un plazo para revisar y responder a la solicitud de devolución. " +
+            "    Si no respondes en el tiempo estipulado, el equipo de Nexus tomará una decisión." +
+            "  </div>" +
+            "</div>" +
+            "<p>Para gestionar la devolución, ve a <strong>Mis Ventas</strong> y abre el pedido afectado. " +
+            "Allí podrás ver el motivo, comunicarte con el comprador y aceptar o rechazar la devolución.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn btn-warning\">Revisar solicitud de devolución</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Si tienes dudas sobre el proceso de devoluciones, consulta nuestra " +
+            "<a href=\"" + frontendUrl + "/ayuda\">guía de vendedores</a>.</p>";
+        enviarEmailHtml(to, "🔄 Solicitud de devolución — Nexus", contenido);
+    }
+
+    @Async
+    public void enviarRespuestaDevolucionComprador(String to, String mensajePlano) {
+        String contenido =
+            "<h2>Actualización de tu devolución</h2>" +
+            "<p class=\"lead\">El vendedor ha respondido a tu solicitud de devolución.</p>" +
+            "<div class=\"data-card\">" +
+            "  <p>" + escapeHtml(mensajePlano) + "</p>" +
+            "</div>" +
+            "<p>Si no estás de acuerdo con la respuesta del vendedor, puedes escalar la incidencia al equipo " +
+            "de soporte de Nexus para que intervenga como mediador.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mi devolución</a>" +
+            "</div>";
+        enviarEmailHtml(to, "📩 Respuesta a tu devolución — Nexus", contenido);
+    }
+
+    @Async
+    public void enviarReembolsoPlazoVencidoComprador(String to, String tituloProducto) {
+        String contenido =
+            "<h2>Reembolso automático procesado 💰</h2>" +
+            "<p class=\"lead\">El vendedor no envió <strong>\"" + escapeHtml(tituloProducto) + "\"</strong> dentro del plazo establecido.</p>" +
+            "<div class=\"alert-box alert-success\">" +
+            "  <div><strong>✅ Tu dinero está protegido</strong><br>" +
+            "  Hemos procesado el reembolso automáticamente. El importe íntegro volverá a tu método de pago " +
+            "  en un plazo de <strong>5-10 días hábiles</strong>." +
+            "  </div>" +
+            "</div>" +
+            "<p class=\"text-muted\">El anuncio del vendedor ha sido suspendido temporalmente para revisión. " +
+            "Lamentamos los inconvenientes causados.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mis compras</a>" +
+            "</div>";
+        enviarEmailHtml(to, "💰 Reembolso por plazo de envío — Nexus", contenido);
+    }
+
+    // ── 13. CONTRATOS DE PUBLICIDAD ───────────────────────────────────────────
+    @Async
+    public void enviarContratoNuevaPropuesta(String to, String empresaNombre, double monto,
+            String descripcion, String urlContratos) {
+        String descHtml = (descripcion != null && !descripcion.isBlank())
+                ? "<div class=\"data-row\"><span class=\"data-label\">Descripción</span>" +
+                  "<span class=\"data-value\">" + escapeHtml(descripcion) + "</span></div>"
+                : "";
+        String contenido =
+            "<h2>Nueva propuesta de publicidad 📣</h2>" +
+            "<p class=\"lead\">El equipo de <strong>Nexus</strong> ha preparado una propuesta de publicidad " +
+            "personalizada para <strong>" + escapeHtml(empresaNombre) + "</strong>.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Empresa</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(empresaNombre) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Presupuesto</span>" +
+            "    <span class=\"data-value highlight\">" + String.format("%.2f €", monto) + "</span>" +
+            "  </div>" +
+            descHtml +
+            "</div>" +
+            "<p>Para activar la campaña de publicidad en Nexus, revisa los detalles de la propuesta " +
+            "y, si estás de acuerdo, acepta y realiza el pago de forma segura con tarjeta (Stripe).</p>" +
+            "<div class=\"alert-box alert-info\">" +
+            "  <div>" +
+            "    <strong>¿Qué incluye?</strong><br>" +
+            "    Una vez activada, tu publicidad aparecerá ante miles de usuarios activos de Nexus. " +
+            "    El tipo de campaña (banner o producto destacado) se detalla en la propuesta." +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + urlContratos + "\" class=\"btn\">Ver propuesta y aceptar</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">También puedes acceder desde tu perfil de empresa → sección Publicidad. " +
+            "Si tienes alguna pregunta sobre la propuesta, contacta con nuestro equipo comercial en " +
+            "<a href=\"mailto:somosnexusapp@gmail.com\">somosnexusapp@gmail.com</a>.</p>";
+        enviarEmailHtml(to, "📣 Nueva propuesta de publicidad de Nexus para " + empresaNombre, contenido);
+    }
+
+    @Async
+    public void enviarContratoActivado(String to, String empresaNombre, String tipoContrato) {
+        String tipoDesc = "BANNER".equalsIgnoreCase(tipoContrato) ? "Banner publicitario" : "Producto patrocinado";
+        String contenido =
+            "<h2>¡Tu contrato está activo! 🚀</h2>" +
+            "<p class=\"lead\">El pago ha sido confirmado y tu campaña de publicidad en <strong>Nexus</strong> " +
+            "ya está activa para <strong>" + escapeHtml(empresaNombre) + "</strong>.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Empresa</span>" +
+            "    <span class=\"data-value\">" + escapeHtml(empresaNombre) + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Tipo de campaña</span>" +
+            "    <span class=\"data-value\"><span class=\"badge badge-purple\">" + tipoDesc + "</span></span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Estado</span>" +
+            "    <span class=\"data-value\"><span class=\"badge badge-green\">ACTIVO</span></span>" +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"alert-box alert-success\">" +
+            "  <div>" +
+            "    <strong>✅ Campaña en marcha</strong><br>" +
+            "    Tu publicidad ya es visible para los usuarios de Nexus. Puedes gestionar tus contratos " +
+            "    activos desde tu panel de empresa en cualquier momento." +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + frontendUrl + "/publicidad/contratos\" class=\"btn btn-success\">Ver mis contratos</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Si tienes alguna pregunta sobre el rendimiento de tu campaña, " +
+            "no dudes en contactarnos en <a href=\"mailto:somosnexusapp@gmail.com\">somosnexusapp@gmail.com</a>.</p>";
+        enviarEmailHtml(to, "🚀 ¡Tu publicidad en Nexus está activa! — " + empresaNombre, contenido);
+    }
+
+    // ─── UTILIDADES ───────────────────────────────────────────────────────────
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
@@ -462,33 +767,6 @@ public class EmailService {
 
     private String stripHtml(String html) {
         if (html == null) return "";
-        return html.replaceAll("<[^>]*>", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-    }
-
-    @Async
-    public void enviarSolicitudDevolucionVendedor(String to, String tituloProducto) {
-        String contenido =
-            "<h2>Solicitud de devolución</h2>" +
-            "<p>El comprador quiere devolver <b>" + escapeHtml(tituloProducto) + "</b>. Revisa la solicitud y responde en la app.</p>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=compras' class='btn'>Ver pedido</a></div>";
-        enviarEmailHtml(to, "Devolución solicitada — Nexus", contenido);
-    }
-
-    @Async
-    public void enviarRespuestaDevolucionComprador(String to, String mensajePlano) {
-        String contenido = "<h2>Actualización de tu devolución</h2><p>" + escapeHtml(mensajePlano) + "</p>";
-        enviarEmailHtml(to, "Respuesta a tu devolución — Nexus", contenido);
-    }
-
-    @Async
-    public void enviarReembolsoPlazoVencidoComprador(String to, String tituloProducto) {
-        String contenido =
-            "<h2>Compra reembolsada</h2>" +
-            "<p>El vendedor no envió <b>" + escapeHtml(tituloProducto) + "</b> dentro del plazo. Hemos procesado el reembolso automáticamente.</p>" +
-            "<p class='text-muted'>El importe volverá a tu método de pago en unos días hábiles.</p>" +
-            "<div style='text-align:center;'><a href='" + frontendUrl + "/perfil?tab=compras' class='btn'>Ver mis compras</a></div>";
-        enviarEmailHtml(to, "Reembolso por plazo de envío — Nexus", contenido);
+        return html.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
     }
 }
