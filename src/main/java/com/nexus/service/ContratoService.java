@@ -26,6 +26,9 @@ import com.nexus.repository.ProductoRepository;
 @Service
 public class ContratoService {
 
+    @Value("${nexus.frontend.url:http://localhost:4200}")
+    private String frontendUrl;
+
     @Autowired
     private ContratoRepository contratoRepository;
 
@@ -43,9 +46,6 @@ public class ContratoService {
 
     @Autowired
     private StripeService stripeService;
-
-    @Value("${nexus.frontend.url:http://localhost:4200}")
-    private String frontendUrl;
 
     public Optional<Contrato> findById(Integer id) {
         return this.contratoRepository.findById(id);
@@ -136,43 +136,41 @@ public class ContratoService {
 
     /**
      * Llamado desde el webhook de Stripe al completarse checkout.session.completed.
+     * La llamada HTTP a Stripe se hace FUERA de @Transactional para evitar que
+     * cualquier excepción de red marque la TX como rollback-only antes de la DB.
      */
-    @Transactional
     public void activarTrasCheckoutCompletado(String sessionId) {
         Session stripeSession;
         try {
             stripeSession = Session.retrieve(sessionId);
         } catch (Exception e) {
+            // No podemos verificar el pago; ignorar silenciosamente
             return;
         }
         if (!"paid".equals(stripeSession.getPaymentStatus())) {
             return;
         }
-        Optional<Contrato> oc = contratoRepository.findByStripeCheckoutSessionId(sessionId);
-        if (oc.isEmpty()) {
-            return;
-        }
-        Contrato c = oc.get();
-        if (c.getEstado() == EstadoContrato.ACTIVE) {
-            return;
-        }
-        if (c.getEstado() != EstadoContrato.PENDIENTE_PAGO) {
-            return;
-        }
+        // Ahora sí: activar en su propia transacción limpia
+        activarContratoEnDb(sessionId, stripeSession.getPaymentIntent());
+    }
 
-        String pi = stripeSession.getPaymentIntent();
-        if (pi != null && !pi.isBlank()) {
-            c.setStripePaymentIntentId(pi);
+    @Transactional
+    protected void activarContratoEnDb(String sessionId, String paymentIntent) {
+        Optional<Contrato> oc = contratoRepository.findByStripeCheckoutSessionId(sessionId);
+        if (oc.isEmpty()) return;
+
+        Contrato c = oc.get();
+        if (c.getEstado() == EstadoContrato.ACTIVE) return;
+        if (c.getEstado() != EstadoContrato.PENDIENTE_PAGO) return;
+
+        if (paymentIntent != null && !paymentIntent.isBlank()) {
+            c.setStripePaymentIntentId(paymentIntent);
         }
 
         c.setEstado(EstadoContrato.ACTIVE);
         LocalDateTime now = LocalDateTime.now();
-        if (c.getFechaInicio() == null) {
-            c.setFechaInicio(now);
-        }
-        if (c.getFechaFin() == null) {
-            c.setFechaFin(now.plusDays(30));
-        }
+        if (c.getFechaInicio() == null) c.setFechaInicio(now);
+        if (c.getFechaFin() == null)    c.setFechaFin(now.plusDays(30));
 
         if (c.getTipoContrato() == TipoContrato.PUBLICACION && c.getProductoId() != null) {
             productoRepository.findById(c.getProductoId()).ifPresent(p -> {
@@ -183,7 +181,7 @@ public class ContratoService {
 
         contratoRepository.save(c);
 
-        // Email de confirmación de activación a la empresa
+        // Email asíncrono (fuera de la TX gracias a @Async) — no contamina si falla
         if (c.getEmpresa() != null && c.getEmpresa().getEmail() != null) {
             String nombreEmpresa = c.getEmpresa().getNombreComercial() != null
                     ? c.getEmpresa().getNombreComercial() : c.getEmpresa().getUser();

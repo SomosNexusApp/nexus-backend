@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.nexus.dto.FavoritoDTO;
-import com.nexus.entity.Favorito;
 import com.nexus.service.FavoritoService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,10 +36,14 @@ public class FavoritoController {
             @PathVariable Integer usuarioId,
             @PathVariable Integer ofertaId) {
         try {
-            Favorito favorito = favoritoService.guardarOferta(usuarioId, ofertaId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(favorito);
-        } catch (IllegalStateException e) {
+            favoritoService.guardarOferta(usuarioId, ofertaId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("mensaje", "Oferta guardada correctamente"));
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno al guardar favorito"));
         }
     }
     
@@ -49,13 +52,16 @@ public class FavoritoController {
     public ResponseEntity<?> guardarProducto(
             @PathVariable Integer usuarioId,
             @PathVariable Integer productoId) {
-            
-        // Tu lógica actual de guardado (seguramente llame a un servicio)
-        favoritoService.guardarProducto(usuarioId, productoId); 
-        
-        // 🔥 EL CAMBIO ESTÁ AQUÍ: Devolvemos un JSON simple, no la Entidad completa
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("mensaje", "Favorito guardado correctamente"));
+        try {
+            favoritoService.guardarProducto(usuarioId, productoId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("mensaje", "Favorito guardado correctamente"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno al guardar favorito"));
+        }
     }
     
     @PostMapping("/vehiculo/{usuarioId}/{vehiculoId}")
@@ -63,9 +69,17 @@ public class FavoritoController {
     public ResponseEntity<?> guardarVehiculo(
             @PathVariable Integer usuarioId,
             @PathVariable Integer vehiculoId) {
-        favoritoService.guardarVehiculo(usuarioId, vehiculoId);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("mensaje", "Vehículo guardado correctamente"));
+        try {
+            favoritoService.guardarVehiculo(usuarioId, vehiculoId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("mensaje", "Vehículo guardado correctamente"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

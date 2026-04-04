@@ -426,6 +426,27 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             CondicionProducto.COMO_NUEVO, true, 3.99, false, "Sevilla",
             "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
 
+        Producto abrigoMassimoDutti = producto(
+            "Abrigo de Lana Premium Massimo Dutti M",
+            "Abrigo de lana 100% italiano Massimo Dutti colección Studio. Color camel clásico. Perfecto para la oficina o eventos formales. Usado un par de veces.",
+            145.0, TipoOferta.VENTA, sofia, catRopaMujer, "Massimo Dutti", "Lana Studio",
+            CondicionProducto.COMO_NUEVO, true, 5.99, true, "Madrid",
+            "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
+
+        Producto sudaderaBalenciaga = producto(
+            "Sudadera Balenciaga Logo - Talla M (Oversize)",
+            "Sudadera Balenciaga auténtica con logo bordado en el pecho. Corte oversize. Algodón grueso de alta calidad. Factura demostrable.",
+            350.0, TipoOferta.VENTA, pedro, catRopaHombre, "Balenciaga", "Logo Hoodie",
+            CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, false, "Valencia",
+            "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800");
+
+        Producto jordan4 = producto(
+            "Air Jordan 4 Retro 'Bred Reimagined' - Talla 43",
+            "Zapatillas Air Jordan 4 Bred edición Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
+            280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
+            CondicionProducto.NUEVO, true, 8.0, true, "Madrid",
+            "https://images.unsplash.com/photo-1574561135754-5264eee47a46?w=800");
+
         // Hogar
         Producto roomba = producto(
             "iRobot Roomba j7+ con base de vaciado",

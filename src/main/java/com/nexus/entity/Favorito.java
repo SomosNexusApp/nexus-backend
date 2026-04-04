@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 public class Favorito extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "actor_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
-    private Usuario usuario;
+    private Actor actor;
 
     @ManyToOne(fetch = FetchType.EAGER) // <-- CAMBIADO A EAGER
     @JoinColumn(name = "oferta_id")
@@ -46,8 +46,8 @@ public class Favorito extends DomainEntity {
     }
 
     // Getters y Setters
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    public Actor getActor() { return actor; }
+    public void setActor(Actor actor) { this.actor = actor; }
 
     public Oferta getOferta() { return oferta; }
     public void setOferta(Oferta oferta) { this.oferta = oferta; }

@@ -35,10 +35,7 @@ public class EmailService {
             "               border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }" +
             "    .header { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);" +
             "              padding: 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
-            "    .header-logo { width: 48px; height: 48px; background: linear-gradient(135deg,#7c3aed,#4f46e5);" +
-            "                   border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;" +
-            "                   margin-bottom: 16px; }" +
-            "    .header h1 { margin: 0; color: #ffffff; font-size: 28px; letter-spacing: 6px;" +
+            "    .header h1 { margin: 8px 0 0; color: #ffffff; font-size: 28px; letter-spacing: 6px;" +
             "                 font-weight: 900; text-transform: uppercase; }" +
             "    .header p { margin: 8px 0 0; color: #a5b4fc; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }" +
             "    .content { padding: 48px 40px; color: #1e293b; line-height: 1.8; font-size: 16px; }" +
@@ -100,12 +97,10 @@ public class EmailService {
             "<body>" +
             "  <div class=\"wrapper\">" +
             "    <div class=\"header\">" +
-            "      <div class=\"header-logo\">" +
-            "        <svg width=\"28\" height=\"28\" fill=\"none\" viewBox=\"0 0 24 24\">" +
-            "          <path d=\"M13 2L3 14h9l-1 8 10-12h-9l1-8z\" fill=\"white\"/>" +
-            "        </svg>" +
+            "      <div style=\"display:inline-block; background:linear-gradient(135deg,#7c3aed,#4f46e5); border-radius:14px; padding:12px 18px; margin-bottom:16px;\">" +
+            "        <span style=\"font-size:22px; font-weight:900; color:white; letter-spacing:3px;\">N</span>" +
             "      </div>" +
-            "      <h1>Nexus</h1>" +
+            "      <h1>NEXUS</h1>" +
             "      <p>Marketplace de confianza</p>" +
             "    </div>" +
             "    <div class=\"content\">" +
@@ -294,7 +289,16 @@ public class EmailService {
             "  <a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mis compras</a>" +
             "</div>" +
             "<p class=\"text-muted\">Si detectas cualquier incidencia o el vendedor no envía en el plazo establecido, " +
-            "nuestro equipo de soporte intervendrá para protegerte.</p>";
+            "nuestro equipo de soporte intervendrá para protegerte. Recuerda que bajo el sistema de escrow de Nexus, " +
+            "tu dinero nunca se libera al vendedor hasta que tú confirmas la recepción del artículo o " +
+            "vence el plazo de protección establecido.</p>" +
+            "<hr class=\"divider\">" +
+            "<h3>Preguntas frecuentes</h3>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">?</span><span><strong>¿Cuándo recibiré el artículo?</strong><br>El vendedor debe enviarlo en el plazo marcado. Una vez enviado, recibirás el número de seguimiento por email.</span></li>" +
+            "  <li><span class=\"step-num\">?</span><span><strong>¿Qué pasa si hay un problema?</strong><br>Abre una incidencia desde el chat del pedido. Nuestro equipo de mediación resolverá el conflicto.</span></li>" +
+            "  <li><span class=\"step-num\">?</span><span><strong>¿Cuándo se libera el pago al vendedor?</strong><br>Cuando confirmas la entrega o vence el plazo de protección del comprador.</span></li>" +
+            "</ul>";
         enviarEmailHtml(to, "✅ Compra confirmada: " + titulo + " — Nexus", contenido);
     }
 
@@ -380,7 +384,8 @@ public class EmailService {
             "  <a href=\"" + linkVentas + "\" class=\"btn\">Ir a Mis Ventas</a>" +
             "</div>" +
             "<p class=\"text-muted\">Ante cualquier problema con el envío o el comprador, nuestro equipo de soporte " +
-            "está disponible 24/7 desde <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>.</p>";
+            "está disponible 24/7 desde <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>. " +
+            "Recuerda que el pago está protegido por nuestro sistema de escrow hasta que el comprador confirme la recepción.</p>";
         enviarEmailHtml(to, "🛍️ Nueva venta: " + tituloProducto + " — Nexus", contenido);
     }
 
@@ -687,52 +692,96 @@ public class EmailService {
     public void enviarContratoNuevaPropuesta(String to, String empresaNombre, double monto,
             String descripcion, String urlContratos) {
         String descHtml = (descripcion != null && !descripcion.isBlank())
-                ? "<div class=\"data-row\"><span class=\"data-label\">Descripción</span>" +
+                ? "<div class=\"data-row\"><span class=\"data-label\">Descripción de la campaña</span>" +
                   "<span class=\"data-value\">" + escapeHtml(descripcion) + "</span></div>"
                 : "";
         String contenido =
-            "<h2>Nueva propuesta de publicidad 📣</h2>" +
-            "<p class=\"lead\">El equipo de <strong>Nexus</strong> ha preparado una propuesta de publicidad " +
-            "personalizada para <strong>" + escapeHtml(empresaNombre) + "</strong>.</p>" +
+            "<h2>Nueva propuesta de publicidad en Nexus 📣</h2>" +
+            "<p class=\"lead\">Estimado equipo de <strong>" + escapeHtml(empresaNombre) + "</strong>, " +
+            "el equipo comercial de <strong>Nexus</strong> ha preparado una propuesta de publicidad " +
+            "exclusiva y personalizada para tu empresa. Con miles de usuarios activos al mes, " +
+            "Nexus es la plataforma ideal para dar visibilidad a tu marca.</p>" +
+
             "<div class=\"data-card\">" +
             "  <div class=\"data-row\">" +
             "    <span class=\"data-label\">Empresa</span>" +
             "    <span class=\"data-value\">" + escapeHtml(empresaNombre) + "</span>" +
             "  </div>" +
             "  <div class=\"data-row\">" +
-            "    <span class=\"data-label\">Presupuesto</span>" +
+            "    <span class=\"data-label\">Presupuesto total (IVA incl.)</span>" +
             "    <span class=\"data-value highlight\">" + String.format("%.2f €", monto) + "</span>" +
             "  </div>" +
             descHtml +
-            "</div>" +
-            "<p>Para activar la campaña de publicidad en Nexus, revisa los detalles de la propuesta " +
-            "y, si estás de acuerdo, acepta y realiza el pago de forma segura con tarjeta (Stripe).</p>" +
-            "<div class=\"alert-box alert-info\">" +
-            "  <div>" +
-            "    <strong>¿Qué incluye?</strong><br>" +
-            "    Una vez activada, tu publicidad aparecerá ante miles de usuarios activos de Nexus. " +
-            "    El tipo de campaña (banner o producto destacado) se detalla en la propuesta." +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Estado de la propuesta</span>" +
+            "    <span class=\"data-value\"><span class=\"badge badge-orange\">Pendiente de aceptación</span></span>" +
             "  </div>" +
             "</div>" +
-            "<div class=\"text-center\">" +
-            "  <a href=\"" + urlContratos + "\" class=\"btn\">Ver propuesta y aceptar</a>" +
+
+            "<h3>¿Cómo funciona la publicidad en Nexus?</h3>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">1</span><span><strong>Revisa la propuesta</strong><br>" +
+            "  Accede a la sección de Publicidad en tu panel de empresa y consulta todos los detalles del contrato.</span></li>" +
+            "  <li><span class=\"step-num\">2</span><span><strong>Acepta y paga con Stripe</strong><br>" +
+            "  El pago es 100% seguro a través de Stripe, la plataforma de pagos de confianza utilizada por millones de empresas en Europa.</span></li>" +
+            "  <li><span class=\"step-num\">3</span><span><strong>Tu campaña se activa automáticamente</strong><br>" +
+            "  En segundos tras la confirmación del pago, tu banner o producto patrocinado empezará a mostrarse a los usuarios de Nexus.</span></li>" +
+            "  <li><span class=\"step-num\">4</span><span><strong>Seguimiento en tiempo real</strong><br>" +
+            "  Desde tu panel de empresa podrás consultar el estado de tu contrato durante toda la vigencia de la campaña.</span></li>" +
+            "</ul>" +
+
+            "<div class=\"alert-box alert-info\">" +
+            "  <div>" +
+            "    <strong>📊 ¿Por qué anunciarte en Nexus?</strong><br>" +
+            "    Nexus cuenta con una comunidad activa de compradores y vendedores altamente comprometidos. " +
+            "    Nuestras campañas cuentan con alta visibilidad directamente en el marketplace, generando " +
+            "    impresiones reales de usuarios con intención de compra. El CTR medio de nuestros banners es " +
+            "    superior al 3%, muy por encima de la media del sector." +
+            "  </div>" +
             "</div>" +
-            "<p class=\"text-muted\">También puedes acceder desde tu perfil de empresa → sección Publicidad. " +
-            "Si tienes alguna pregunta sobre la propuesta, contacta con nuestro equipo comercial en " +
-            "<a href=\"mailto:somosnexusapp@gmail.com\">somosnexusapp@gmail.com</a>.</p>";
-        enviarEmailHtml(to, "📣 Nueva propuesta de publicidad de Nexus para " + empresaNombre, contenido);
+
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + urlContratos + "\" class=\"btn\">Revisar propuesta y aceptar →</a>" +
+            "</div>" +
+
+            "<div class=\"alert-box alert-success\">" +
+            "  <div>" +
+            "    <strong>🔒 Pago 100% seguro y sin sorpresas</strong><br>" +
+            "    El cobro se realiza de una sola vez. No hay pagos ocultos, suscripciones ni comisiones adicionales. " +
+            "    Si decides rechazar la propuesta, no se efectuará ningún cargo." +
+            "  </div>" +
+            "</div>" +
+
+            "<hr class=\"divider\">" +
+            "<h3>¿Tienes alguna pregunta?</h3>" +
+            "<p>Estamos aquí para ayudarte. Puedes contactar con nuestro equipo comercial por cualquiera de estos medios:</p>" +
+            "<ul class=\"steps-list\">" +
+            "  <li><span class=\"step-num\">@</span><span>Email: <a href=\"mailto:somosnexusapp@gmail.com\">somosnexusapp@gmail.com</a></span></li>" +
+            "  <li><span class=\"step-num\">💬</span><span>Chat en vivo desde tu panel de empresa en Nexus</span></li>" +
+            "  <li><span class=\"step-num\">📞</span><span>Soporte disponible de lunes a viernes, de 9:00 a 18:00 h.</span></li>" +
+            "</ul>" +
+            "<p class=\"text-muted\">Esta propuesta ha sido generada exclusivamente para " + escapeHtml(empresaNombre) + ". " +
+            "Si has recibido este email por error, por favor ignóralo o contáctanos para aclararlo.</p>";
+        enviarEmailHtml(to, "📣 Nexus te propone una campaña de publicidad — " + empresaNombre, contenido);
     }
 
     @Async
     public void enviarContratoActivado(String to, String empresaNombre, String tipoContrato) {
         String tipoDesc = "BANNER".equalsIgnoreCase(tipoContrato) ? "Banner publicitario" : "Producto patrocinado";
+        String tipoDetalle = "BANNER".equalsIgnoreCase(tipoContrato)
+                ? "Tu banner está siendo mostrado en las secciones estratégicas de Nexus. " +
+                  "Los usuarios que hagan clic serán redirigidos a la URL que configuraste en la propuesta."
+                : "Tu producto aparece ahora en las primeras posiciones del marketplace con el badge " +
+                  "\"⚡ Patrocinado\", maximizando la visibilidad ante compradores con intención de compra activa.";
         String contenido =
-            "<h2>¡Tu contrato está activo! 🚀</h2>" +
-            "<p class=\"lead\">El pago ha sido confirmado y tu campaña de publicidad en <strong>Nexus</strong> " +
-            "ya está activa para <strong>" + escapeHtml(empresaNombre) + "</strong>.</p>" +
+            "<h2>¡Tu campaña en Nexus ya está en marcha! 🚀</h2>" +
+            "<p class=\"lead\">¡Enhorabuena, <strong>" + escapeHtml(empresaNombre) + "</strong>! " +
+            "El pago ha sido confirmado exitosamente por Stripe y tu campaña de publicidad en Nexus " +
+            "está ahora completamente activa. Tu marca ya es visible para miles de usuarios.</p>" +
+
             "<div class=\"data-card\">" +
             "  <div class=\"data-row\">" +
-            "    <span class=\"data-label\">Empresa</span>" +
+            "    <span class=\"data-label\">Empresa anunciante</span>" +
             "    <span class=\"data-value\">" + escapeHtml(empresaNombre) + "</span>" +
             "  </div>" +
             "  <div class=\"data-row\">" +

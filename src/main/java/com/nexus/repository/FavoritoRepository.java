@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.nexus.entity.Favorito;
@@ -13,18 +14,15 @@ import com.nexus.entity.Favorito;
 public interface FavoritoRepository extends JpaRepository<Favorito, Integer> {
     
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"producto", "oferta", "vehiculo"})
-    @Query("SELECT f FROM Favorito f WHERE f.usuario.id = ?1 ORDER BY f.fechaGuardado DESC")
-    List<Favorito> findByUsuarioId(Integer usuarioId);
+    @Query("SELECT f FROM Favorito f WHERE f.actor.id = :actorId ORDER BY f.fechaGuardado DESC")
+    List<Favorito> findByActorId(@Param("actorId") Integer actorId);
     
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"producto", "oferta", "vehiculo"})
-    @Query("SELECT f FROM Favorito f WHERE f.usuario.id = ?1 AND f.oferta.id = ?2")
-    Optional<Favorito> findByUsuarioAndOferta(Integer usuarioId, Integer ofertaId);
+    @Query("SELECT f FROM Favorito f WHERE f.actor.id = :actorId AND f.oferta.id = :ofertaId")
+    Optional<Favorito> findByActorAndOferta(@Param("actorId") Integer actorId, @Param("ofertaId") Integer ofertaId);
     
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"producto", "oferta", "vehiculo"})
-    @Query("SELECT f FROM Favorito f WHERE f.usuario.id = ?1 AND f.producto.id = ?2")
-    Optional<Favorito> findByUsuarioAndProducto(Integer usuarioId, Integer productoId);
+    @Query("SELECT f FROM Favorito f WHERE f.actor.id = :actorId AND f.producto.id = :productoId")
+    Optional<Favorito> findByActorAndProducto(@Param("actorId") Integer actorId, @Param("productoId") Integer productoId);
 
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"producto", "oferta", "vehiculo"})
-    @Query("SELECT f FROM Favorito f WHERE f.usuario.id = ?1 AND f.vehiculo.id = ?2")
-    Optional<Favorito> findByUsuarioAndVehiculo(Integer usuarioId, Integer vehiculoId);
+    @Query("SELECT f FROM Favorito f WHERE f.actor.id = :actorId AND f.vehiculo.id = :vehiculoId")
+    Optional<Favorito> findByActorAndVehiculo(@Param("actorId") Integer actorId, @Param("vehiculoId") Integer vehiculoId);
 }

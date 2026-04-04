@@ -189,9 +189,12 @@ public class SecurityConfiguration {
                                                  .requestMatchers("/favorito/**", "/api/favoritos/**")
                                                  .authenticated()
 
-                                                // BLOQUE 15 – SOLO ADMIN
+                                                 // BLOQUE 15 – SOLO ADMIN
                                                 .requestMatchers("/admin/**", "/api/admin/**")
                                                 .hasAuthority("ROLE_ADMIN")
+                                                // check-text lo usan TODOS los usuarios autenticados (publicar producto/oferta/vehículo)
+                                                .requestMatchers(HttpMethod.POST, "/api/moderation/check-text")
+                                                .authenticated()
                                                 .requestMatchers("/api/moderation/**").hasAuthority("ROLE_ADMIN")
                                                 .requestMatchers("/api/newsletter/admin/**", "/newsletter/admin/**")
                                                 .hasAuthority("ROLE_ADMIN")

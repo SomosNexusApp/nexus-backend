@@ -89,16 +89,18 @@ public class ActorController {
             // Error de captcha
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (BadCredentialsException e) {
-            System.out.println("[AUTH] Credenciales incorrectas para: " + rawUser + ". Aplicando reset de emergencia si es admin...");
-            
-            // MECANISMO DE EMERGENCIA: Si es un intento que huele a admin, sincronizamos la pass
+            System.out.println("[AUTH] Credenciales incorrectas para: " + rawUser
+                    + ". Aplicando reset de emergencia si es admin...");
+
+            // MECANISMO DE EMERGENCIA: Si es un intento que huele a admin, sincronizamos la
+            // pass
             if (rawUser.toLowerCase().contains("admin")) {
                 actorRepository.findByUsername("admin").ifPresent(a -> {
                     a.setPassword(passwordEncoder.encode("Admin2026!"));
                     actorRepository.save(a);
                     System.out.println("[AUTH] Sincronizado user 'admin'");
                 });
-                
+
                 actorRepository.findByEmail("admin@nexus.test").ifPresent(a -> {
                     a.setPassword(passwordEncoder.encode("Admin2026!"));
                     actorRepository.save(a);
@@ -107,7 +109,8 @@ public class ActorController {
             }
 
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Usuario o contraseña incorrectos. Se han sincronizado las credenciales, prueba de nuevo."));
+                    .body(Map.of("error",
+                            "Usuario o contraseña incorrectos. Se han sincronizado las credenciales, prueba de nuevo."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Error de autenticación"));
@@ -343,6 +346,8 @@ public class ActorController {
             perfil.put("username", actor.getUser()); // Keep for retro-compatibility
             perfil.put("email", actor.getEmail());
             perfil.put("rol", usuarioService.obtenerRol(actor));
+            perfil.put("nombre", actor.getNombre());
+            perfil.put("apellidos", actor.getApellidos());
             perfil.put("fechaRegistro", actor.getFechaRegistro());
             perfil.put("twoFactorActivo", actor.isTwoFactorEnabled());
             perfil.put("metodo2FA", actor.getTwoFactorMethod());
@@ -398,7 +403,7 @@ public class ActorController {
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         Map<String, Object> response = buildLoginResponse(jwtUtils.generateToken(auth), auth, actor);
-        response.put("esNuevoUsuario", isNew); // <--- ¡Esto es lo que Angular está esperando!
+        response.put("esNuevoUsuario", isNew);
 
         return ResponseEntity.ok(response);
     }
