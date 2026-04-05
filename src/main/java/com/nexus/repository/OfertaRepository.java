@@ -13,9 +13,12 @@ import org.springframework.stereotype.Repository;
 import com.nexus.entity.BadgeOferta;
 import com.nexus.entity.EstadoOferta;
 import com.nexus.entity.Oferta;
+import java.util.Optional;
 
 @Repository
 public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
+
+  Optional<Oferta> findByTitulo(String titulo);
 
   long countByEstado(EstadoOferta estado);
 

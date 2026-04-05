@@ -103,8 +103,10 @@ public class MarketplaceSearchService {
         // 2. Buscar Ofertas
         Page<Oferta> paginaOfertas = Page.empty();
         if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "OFERTA".equalsIgnoreCase(tipo)) {
+            // Usar la lista completa de slugs para ofertas también
+            String catForSpec = categorySlugs.isEmpty() ? null : String.join(",", categorySlugs);
             paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
-                categoria, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
+                catForSpec, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
                 minLat, maxLat, minLng, maxLng, subPage);
         }
 
