@@ -50,15 +50,25 @@ public class ChatController {
             Integer remitenteId = (Integer) payload.get("remitenteId");
             Integer receptorId = (Integer) payload.get("receptorId");
             String texto = (String) payload.get("texto");
+            String roomId = (String) payload.get("roomId");
+
+            if (remitenteId == null || receptorId == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Remitente o receptor no especificados"));
+            }
+
+            if (bloqueoService.estaBloqueado(remitenteId, receptorId) || bloqueoService.estaBloqueado(receptorId, remitenteId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Usuario bloqueado"));
+            }
 
             ChatMensaje guardado = chatService.guardarMensajeTexto(
                     productoId, remitenteId, receptorId, texto);
+            
+            // If roomId provided from frontend, ensure it matches
+            if (roomId != null) guardado.setRoomId(roomId);
 
             // Publicar en WebSocket para que el receptor lo reciba en tiempo real
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
-            if (receptorId != null && remitenteId != null) {
-                notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
-            }
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
@@ -127,6 +137,7 @@ public class ChatController {
             @RequestParam Integer remitenteId,
             @RequestParam Integer receptorId,
             @RequestParam String tipo,
+            @RequestParam(required = false) String roomId,
             @RequestParam(required = false, defaultValue = "0") Integer duracion,
             @RequestPart("archivo") MultipartFile archivo) {
         
@@ -143,6 +154,8 @@ public class ChatController {
                     guardado = chatService.guardarMensajeAudio(productoId, remitenteId, receptorId, archivo, duracion);
                 default -> guardado = chatService.guardarMensajeImagen(productoId, remitenteId, receptorId, archivo);
             }
+
+            if (roomId != null) guardado.setRoomId(roomId);
 
             // Publicar en WebSocket
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);

@@ -26,6 +26,9 @@ public class MarketplaceSearchService {
 
     @Autowired
     private VehiculoService vehiculoService;
+    
+    @Autowired
+    private CategoriaService categoriaService;
 
     @Autowired
     private com.nexus.repository.ContratoRepository contratoRepository;
@@ -60,8 +63,17 @@ public class MarketplaceSearchService {
             maxLng = lng + deltaLng;
         }
 
+        // 0.1 Categoría y subcategorías (Recursivo)
+        List<String> categorySlugs = new ArrayList<>();
+        if (categoria != null && !categoria.isBlank()) {
+            categorySlugs.add(categoria);
+            categoriaService.findBySlug(categoria).ifPresent(parent -> {
+                collectHijosSlugs(parent, categorySlugs);
+            });
+        }
+
         // 1. Patrocinados (Inyección Proactiva)
-        List<Map<String, Object>> sponsoredItems = fetchSponsoredItems(q, tipo, categoria, precioMin, precioMax, minLat, maxLat, minLng, maxLng);
+        List<Map<String, Object>> sponsoredItems = fetchSponsoredItems(q, tipo, categorySlugs, precioMin, precioMax, minLat, maxLat, minLng, maxLng);
 
         // Construir Sort para los sub-servicios
         org.springframework.data.domain.Sort subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
@@ -99,26 +111,28 @@ public class MarketplaceSearchService {
         // 3. Buscar Productos
         Page<Producto> paginaProductos = Page.empty();
         if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "PRODUCTO".equalsIgnoreCase(tipo)) {
+            // Pasamos null si no hay slugs para que no filtre
+            String catForSpec = categorySlugs.isEmpty() ? null : String.join(",", categorySlugs);
             paginaProductos = productoService.buscarConFiltrosPaginado(
-                categoria, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
+                catForSpec, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
                 minLat, maxLat, minLng, maxLng, subPage);
         }
 
         // 4. Buscar Vehículos
         boolean esCategoriaVehiculo = false;
-        if (categoria == null || categoria.isBlank()) {
-            esCategoriaVehiculo = true;
-        } else {
-            List<String> slugsMotor = List.of("vehiculos", "coches", "motos", "furgonetas", "caravanas", "otros-vehiculos", "scooters");
+        if (categoria != null && !categoria.isBlank()) {
+            List<String> slugsMotor = List.of("motor", "vehiculos", "coches", "motos", "furgonetas", "caravanas", "otros-vehiculos", "scooters");
             esCategoriaVehiculo = slugsMotor.contains(categoria.toLowerCase());
         }
 
         Page<Vehiculo> paginaVehiculos = Page.empty();
-        if (esCategoriaVehiculo && (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "VEHICULO".equalsIgnoreCase(tipo))) {
-            paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
-                    null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null, null,
-                    null, null,
-                    minLat, maxLat, minLng, maxLng, subPage);
+        if ((tipo == null || "TODOS".equalsIgnoreCase(tipo) || "VEHICULO".equalsIgnoreCase(tipo))) {
+            if (esCategoriaVehiculo || (categoria == null || categoria.isBlank())) {
+                paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
+                        null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null, null,
+                        null, null,
+                        minLat, maxLat, minLng, maxLng, subPage);
+            }
         }
 
         // 5. Transformar y Combinar
@@ -240,7 +254,7 @@ public class MarketplaceSearchService {
                 "size", pageable.getPageSize());
     }
 
-    private List<Map<String, Object>> fetchSponsoredItems(String q, String tipo, String categoria, Double precioMin, Double precioMax,
+    private List<Map<String, Object>> fetchSponsoredItems(String q, String tipo, List<String> categorySlugs, Double precioMin, Double precioMax,
                                                            Double minLat, Double maxLat, Double minLng, Double maxLng) {
         List<Map<String, Object>> sponsored = new ArrayList<>();
         
@@ -262,9 +276,9 @@ public class MarketplaceSearchService {
                                 // Filtro básico de query si existe
                                 if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
                                     // Filtro de categoría si existe
-                                    if (categoria == null || categoria.isBlank() || (p.getCategoria() != null && p.getCategoria().getSlug().equals(categoria))) {
-                                        
-                                        // Filtro geográfico (¡NUEVO!)
+                                    boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null && categorySlugs.contains(p.getCategoria().getSlug()));
+                                    if (matchCat) {
+                                        // Filtro geográfico
                                         boolean inRange = true;
                                         if (minLat != null && p.getLatitude() != null && (p.getLatitude() < minLat || p.getLatitude() > maxLat)) inRange = false;
                                         if (minLng != null && p.getLongitude() != null && (p.getLongitude() < minLng || p.getLongitude() > maxLng)) inRange = false;
@@ -287,11 +301,12 @@ public class MarketplaceSearchService {
                      if (sponsored.size() < 5) { // Un máximo de 5 patrocinados por flag
                          boolean alreadyIn = sponsored.stream().anyMatch(it -> it.get("id").equals(p.getId()) && "PRODUCTO".equals(it.get("searchType")));
                          if (!alreadyIn) {
-                             // Filtro de precio (¡CRÍTICO!)
+                             // Filtro de precio
                              double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
                              if ((precioMin == null || precio >= precioMin) && (precioMax == null || precio <= precioMax)) {
                                  if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
-                                     if (categoria == null || categoria.isBlank() || (p.getCategoria() != null && p.getCategoria().getSlug().equals(categoria))) {
+                                     boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null && categorySlugs.contains(p.getCategoria().getSlug()));
+                                     if (matchCat) {
                                          sponsored.add(transformToMap(p));
                                      }
                                  }
@@ -304,6 +319,15 @@ public class MarketplaceSearchService {
             // Log error
         }
         return sponsored;
+    }
+
+    private void collectHijosSlugs(com.nexus.entity.Categoria parent, List<String> slugs) {
+        if (parent.getHijos() != null) {
+            for (com.nexus.entity.Categoria hijo : parent.getHijos()) {
+                slugs.add(hijo.getSlug());
+                collectHijosSlugs(hijo, slugs);
+            }
+        }
     }
 
     private Map<String, Object> transformToMap(Producto p) {

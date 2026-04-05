@@ -69,7 +69,41 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             jdbcTemplate.execute("ALTER TABLE producto ALTER COLUMN descripcion TYPE text USING CAST(descripcion AS text)");
             System.out.println("=== PopulateDB: Schema de producto verificado/corregido (TEXT) ===");
         } catch (Exception e) {
-            System.err.println("=== PopulateDB: Error al verificar schema (posiblemente no es Postgres o ya es correcto): " + e.getMessage());
+            System.err.println("=== PopulateDB: Error al verificar schema de producto: " + e.getMessage());
+        }
+
+        // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos (Postgres Safe) ---
+        try {
+            // chat_mensaje: remitente_id y receptor_id
+            jdbcTemplate.execute("DO $$ BEGIN " +
+                "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fkrks3bkgi2d0d843eu25mgtm2f; " +
+                "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fk85y6m6ps4ge0r8p7w4r4v0v7m; " +
+                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_remitente') THEN " +
+                "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_remitente FOREIGN KEY (remitente_id) REFERENCES actor(id); END IF; " +
+                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_receptor') THEN " +
+                "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_receptor FOREIGN KEY (receptor_id) REFERENCES actor(id); END IF; " +
+                "END $$;");
+
+            // bloqueo: bloqueador_id y bloqueado_id
+            jdbcTemplate.execute("DO $$ BEGIN " +
+                "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk8n6u6p7w4r4v0v7m85y6m6ps4; " +
+                "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk_bloqueo_bloqueado_usuario; " +
+                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueador') THEN " +
+                "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueador FOREIGN KEY (bloqueador_id) REFERENCES actor(id); END IF; " +
+                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueado') THEN " +
+                "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueado FOREIGN KEY (bloqueado_id) REFERENCES actor(id); END IF; " +
+                "END $$;");
+
+            // favorito: actor_id
+            jdbcTemplate.execute("DO $$ BEGIN " +
+                "ALTER TABLE favorito DROP CONSTRAINT IF EXISTS fk_favorito_usuario; " +
+                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_favorito_actor') THEN " +
+                "  ALTER TABLE favorito ADD CONSTRAINT fk_favorito_actor FOREIGN KEY (actor_id) REFERENCES actor(id); END IF; " +
+                "END $$;");
+
+            System.out.println("=== PopulateDB: Foreign Keys migradas a Actor correctamente (Safe DO block) ===");
+        } catch (Exception e) {
+            System.err.println("=== PopulateDB: Error al migrar FKs: " + e.getMessage());
         }
 
         if (done || actorRepository.count() > 0) {
@@ -175,7 +209,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
         // ── 1. CATEGORÍAS ─────────────────────────────────────────────────────
         Categoria catElectronica  = cat("Electrónica",     "electronica",     "cpu",              "#1565C0", null, 1);
-        Categoria catRopa         = cat("Ropa",             "ropa",            "shirt",            "#6A1B9A", null, 2);
+        Categoria catModa         = cat("Moda",            "moda",            "shirt",            "#6A1B9A", null, 2);
         Categoria catHogar        = cat("Hogar",            "hogar",           "home",              "#2E7D32", null, 3);
         Categoria catVehiculos    = cat("Vehículos",        "vehiculos",       "car",               "#1976D2", null, 4);
         Categoria catInformatica  = cat("Informática",      "informatica",     "laptop",            "#00838F", null, 5);
@@ -199,9 +233,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         Categoria catComponentes  = cat("Componentes",      "componentes-pc",  "memory",            "#00838F", catInformatica, 3);
         Categoria catCoches       = cat("Coches",           "coches",          "car",               "#1976D2", catVehiculos, 1);
         Categoria catMotos        = cat("Motos",            "motos",           "bike",              "#1976D2", catVehiculos, 2);
-        Categoria catRopaHombre   = cat("Ropa Hombre",      "ropa-hombre",     "user",              "#6A1B9A", catRopa, 1);
-        Categoria catRopaMujer    = cat("Ropa Mujer",       "ropa-mujer",      "user",              "#6A1B9A", catRopa, 2);
-        Categoria catZapatillas   = cat("Zapatillas",       "zapatillas",      "footsteps",         "#6A1B9A", catRopa, 3);
+        Categoria catRopaHombre   = cat("Moda Hombre",      "moda-hombre",     "user",              "#6A1B9A", catModa, 1);
+        Categoria catRopaMujer    = cat("Moda Mujer",       "moda-mujer",      "user",              "#6A1B9A", catModa, 2);
+        Categoria catZapatillas   = cat("Zapatillas",       "zapatillas",      "footsteps",         "#6A1B9A", catModa, 3);
         Categoria catConsolaJuego = cat("Consolas",         "consolas",        "gamepad",           "#7B1FA2", catVideojuegos, 1);
         Categoria catMuebles      = cat("Muebles",          "muebles",         "chair",             "#2E7D32", catHogar, 1);
         Categoria catElectrodomest= cat("Electrodomésticos","electrodomesticos","kitchen",           "#2E7D32", catHogar, 2);
@@ -1675,9 +1709,5 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         n.setFecha(LocalDateTime.now().plusHours(horasAtras));
         
         notificacionRepository.save(n);
-        
     }
-    
-    
-
 }

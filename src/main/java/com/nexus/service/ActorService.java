@@ -1,5 +1,7 @@
 package com.nexus.service;
 
+import java.util.Optional;
+import com.nexus.entity.Actor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +12,11 @@ public class ActorService {
 
     @Autowired
     private ActorRepository actorRepository;
+
+    public Optional<Actor> findById(Integer id) {
+        return actorRepository.findById(id);
+    }
+
 
     @Transactional
     public void activar2FA(Integer actorId, String metodo, String secret) {

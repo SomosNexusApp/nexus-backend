@@ -58,12 +58,12 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obtener usuario por id")
-    public ResponseEntity<Usuario> getUsuarioById(@PathVariable Integer id) {
-        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+    @Operation(summary = "Obtener usuario/actor por id")
+    public ResponseEntity<Actor> getUsuarioById(@PathVariable Integer id) {
+        Optional<Actor> actorOptional = actorRepository.findById(id);
 
-        if (usuarioOptional.isPresent()) {
-            return ResponseEntity.ok(usuarioOptional.get());
+        if (actorOptional.isPresent()) {
+            return ResponseEntity.ok(actorOptional.get());
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -109,6 +109,15 @@ public class UsuarioController {
                 if (u.isMostrarTelefono()) {
                     perfilPublico.put("telefono", u.getTelefono());
                 }
+            } else if (actor instanceof Empresa) {
+                Empresa e = (Empresa) actor;
+                perfilPublico.put("biografia", e.getDescripcion());
+                perfilPublico.put("reputacion", 0); // O lógica similar
+                perfilPublico.put("totalVentas", 0);
+                perfilPublico.put("esVerificado", e.isVerificada());
+                perfilPublico.put("cif", e.getCif());
+                perfilPublico.put("web", e.getWeb());
+                perfilPublico.put("nombreComercial", e.getNombreComercial());
             }
 
             return ResponseEntity.ok(perfilPublico);
@@ -279,22 +288,24 @@ public class UsuarioController {
 
     @PatchMapping("/{id}")
     @Operation(summary = "Actualizar un usuario existente")
-    public ResponseEntity<?> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuarioDetalles) {
-        Optional<Usuario> usuarioActual = usuarioService.findById(id);
-        if (usuarioActual.isPresent()) {
-            Usuario usuario = usuarioActual.get();
-            usuario.setNombre(usuarioDetalles.getNombre());
-            // usuario.setUser(usuarioDetalles.getUser()); // Omitimos username/email por
-            // seguridad
-            // usuario.setEmail(usuarioDetalles.getEmail());
-            // Si el teléfono se envía como extra properties en un DTO lo cogeríamos aquí,
-            // asumiendo setTelefono
-            // usuario.setTelefono(usuarioDetalles.getTelefono());
-            usuario.setBiografia(usuarioDetalles.getBiografia());
-            usuario.setUbicacion(usuarioDetalles.getUbicacion());
+    public ResponseEntity<?> updateUsuario(@PathVariable Integer id, @RequestBody Map<String, Object> payload) {
+        Optional<Actor> actorActual = actorRepository.findById(id);
+        if (actorActual.isPresent()) {
+            Actor actor = actorActual.get();
+            if (payload.containsKey("nombre")) actor.setNombre((String) payload.get("nombre"));
+            if (payload.containsKey("apellidos")) actor.setApellidos((String) payload.get("apellidos"));
+            if (payload.containsKey("telefono")) actor.setTelefono((String) payload.get("telefono"));
 
-            usuario = usuarioService.save(usuario);
-            return ResponseEntity.ok(usuario);
+            if (actor instanceof Usuario u) {
+                if (payload.containsKey("biografia")) u.setBiografia((String) payload.get("biografia"));
+                if (payload.containsKey("ubicacion")) u.setUbicacion((String) payload.get("ubicacion"));
+                usuarioService.save(u);
+            } else if (actor instanceof Empresa e) {
+                if (payload.containsKey("biografia")) e.setDescripcion((String) payload.get("biografia"));
+                empresaService.save(e);
+            }
+
+            return ResponseEntity.ok(actor);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Usuario no encontrado con ID: " + id));

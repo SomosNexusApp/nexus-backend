@@ -57,8 +57,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       LEFT JOIN categoria c ON c.id = o.categoria_id
       WHERE
         (CAST(:categoria AS TEXT) IS NULL
-          OR c.nombre = CAST(:categoria AS TEXT)
-          OR c.slug   = CAST(:categoria AS TEXT))
+          OR c.nombre = ANY(string_to_array(CAST(:categoria AS TEXT), ','))
+          OR c.slug   = ANY(string_to_array(CAST(:categoria AS TEXT), ',')))
         AND
         (CAST(:tienda AS TEXT) IS NULL
           OR LOWER(o.tienda) LIKE LOWER('%' || CAST(:tienda AS TEXT) || '%'))
@@ -91,8 +91,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       LEFT JOIN categoria c ON c.id = o.categoria_id
       WHERE
         (CAST(:categoria AS TEXT) IS NULL
-          OR c.nombre = CAST(:categoria AS TEXT)
-          OR c.slug   = CAST(:categoria AS TEXT))
+          OR c.nombre = ANY(string_to_array(CAST(:categoria AS TEXT), ','))
+          OR c.slug   = ANY(string_to_array(CAST(:categoria AS TEXT), ',')))
         AND
         (CAST(:tienda AS TEXT) IS NULL
           OR LOWER(o.tienda) LIKE LOWER('%' || CAST(:tienda AS TEXT) || '%'))

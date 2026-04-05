@@ -12,17 +12,17 @@ public class Bloqueo extends DomainEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bloqueador_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
-        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
-        "cuentaEliminada", "cuentaVerificada"})
-    private Usuario bloqueador;
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler",
+            "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+            "cuentaEliminada", "cuentaVerificada" })
+    private Actor bloqueador;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bloqueado_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler",
-        "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
-        "cuentaEliminada", "cuentaVerificada"})
-    private Usuario bloqueado;
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler",
+            "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
+            "cuentaEliminada", "cuentaVerificada" })
+    private Actor bloqueado;
 
     private LocalDateTime fechaBloqueo;
 
@@ -31,10 +31,21 @@ public class Bloqueo extends DomainEntity {
 
     public Bloqueo() { super(); this.fechaBloqueo = LocalDateTime.now(); }
 
-    public Usuario  getBloqueador()            { return bloqueador; }
-    public void     setBloqueador(Usuario b)   { this.bloqueador = b; }
-    public Usuario  getBloqueado()             { return bloqueado; }
-    public void     setBloqueado(Usuario b)    { this.bloqueado = b; }
+    public Actor getBloqueador() {
+        return bloqueador;
+    }
+
+    public void setBloqueador(Actor b) {
+        this.bloqueador = b;
+    }
+
+    public Actor getBloqueado() {
+        return bloqueado;
+    }
+
+    public void setBloqueado(Actor b) {
+        this.bloqueado = b;
+    }
     public LocalDateTime getFechaBloqueo()     { return fechaBloqueo; }
     public String   getMotivo()                { return motivo; }
     public void     setMotivo(String m)        { this.motivo = m; }

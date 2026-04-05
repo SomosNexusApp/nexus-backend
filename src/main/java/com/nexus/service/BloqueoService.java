@@ -14,7 +14,7 @@ import com.nexus.repository.*;
 public class BloqueoService {
 
     @Autowired private BloqueoRepository  bloqueoRepository;
-    @Autowired private UsuarioRepository  usuarioRepository;
+    @Autowired private ActorRepository  actorRepository;
 
     @Transactional
     public void bloquear(Integer bloqueadorId, Integer bloqueadoId, String motivo) {
@@ -24,9 +24,9 @@ public class BloqueoService {
         if (bloqueoRepository.existsByBloqueadorIdAndBloqueadoId(bloqueadorId, bloqueadoId))
             throw new IllegalStateException("Ya tienes a este usuario bloqueado");
 
-        Usuario bloqueador = usuarioRepository.findById(bloqueadorId)
+        Actor bloqueador = actorRepository.findById(bloqueadorId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        Usuario bloqueado  = usuarioRepository.findById(bloqueadoId)
+        Actor bloqueado  = actorRepository.findById(bloqueadoId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
         Bloqueo b = new Bloqueo();

@@ -15,7 +15,7 @@ public class ChatService {
     @Autowired
     private ChatMensajeRepository chatMensajeRepository;
     @Autowired
-    private UsuarioService usuarioService;
+    private ActorService actorService;
     @Autowired
     private ProductoService productoService;
     @Autowired
@@ -188,13 +188,16 @@ public class ChatService {
             productoService.findById(productoId).ifPresent(msg::setProducto);
             msg.setRoomId("P_" + productoId);
         } else if (remitenteId != null && receptorId != null) {
+            // Consistent direct room ID: D_MinID_MaxID
             int user1 = Math.min(remitenteId, receptorId);
             int user2 = Math.max(remitenteId, receptorId);
             msg.setRoomId("D_" + user1 + "_" + user2);
         }
-        usuarioService.findById(remitenteId).ifPresent(msg::setRemitente);
-        if (receptorId != null)
-            usuarioService.findById(receptorId).ifPresent(msg::setReceptor);
+        msg.setRemitente(actorService.findById(remitenteId)
+                .orElseThrow(() -> new IllegalArgumentException("Remitente con ID " + remitenteId + " no existe en el sistema")));
+        if (receptorId != null) {
+            actorService.findById(receptorId).ifPresent(msg::setReceptor);
+        }
         return msg;
     }
 }

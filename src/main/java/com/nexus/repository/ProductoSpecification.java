@@ -59,9 +59,18 @@ public class ProductoSpecification {
             // ── Categoría ────────────────────────────────────────────────
             if (categoria != null && !categoria.isBlank()) {
                 Join<Object, Object> catJoin = root.join("categoria", JoinType.LEFT);
-                where.add(cb.or(
+                if (categoria.contains(",")) {
+                    List<String> slugs = java.util.Arrays.asList(categoria.split(","));
+                    where.add(cb.or(
+                        catJoin.get("nombre").in(slugs),
+                        catJoin.get("slug").in(slugs)
+                    ));
+                } else {
+                    where.add(cb.or(
                         cb.equal(catJoin.get("nombre"), categoria),
-                        cb.equal(catJoin.get("slug"), categoria)));
+                        cb.equal(catJoin.get("slug"), categoria)
+                    ));
+                }
             }
 
             // ── Precio ───────────────────────────────────────────────────

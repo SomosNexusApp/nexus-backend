@@ -25,14 +25,14 @@ public class ChatMensaje extends DomainEntity {
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler",
             "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
             "cuentaEliminada", "cuentaVerificada" })
-    private Usuario remitente;
+    private Actor remitente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receptor_id")
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler",
             "password", "twoFactorSecret", "jwtVersion", "notificacionConfig",
             "cuentaEliminada", "cuentaVerificada" })
-    private Usuario receptor;
+    private Actor receptor;
 
     @Column(columnDefinition = "TEXT")
     private String texto;
@@ -69,19 +69,19 @@ public class ChatMensaje extends DomainEntity {
         this.producto = p;
     }
 
-    public Usuario getRemitente() {
+    public Actor getRemitente() {
         return remitente;
     }
 
-    public void setRemitente(Usuario r) {
+    public void setRemitente(Actor r) {
         this.remitente = r;
     }
 
-    public Usuario getReceptor() {
+    public Actor getReceptor() {
         return receptor;
     }
 
-    public void setReceptor(Usuario r) {
+    public void setReceptor(Actor r) {
         this.receptor = r;
     }
 
