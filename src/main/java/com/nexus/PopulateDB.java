@@ -19,44 +19,68 @@ import java.util.UUID;
  * PopulateDB â€” Datos de prueba completos para Nexus (Wallapop + Chollometro).
  *
  * REGLAS CRITICAS (no cambiar):
- *   - Admin/Empresa se guardan con actorRepository, NUNCA usuarioRepository
- *   - setCategoria() recibe objeto Categoria, NUNCA String
- *   - SparkVoto(actor, oferta, true)  â†’ Spark (+1)
- *   - SparkVoto(actor, oferta, false) â†’ Drip  (-1)
- *   - La clase es idempotente: comprueba actorRepository.count() > 0 antes de insertar
+ * - Admin/Empresa se guardan con actorRepository, NUNCA usuarioRepository
+ * - setCategoria() recibe objeto Categoria, NUNCA String
+ * - SparkVoto(actor, oferta, true) â†’ Spark (+1)
+ * - SparkVoto(actor, oferta, false) â†’ Drip (-1)
+ * - La clase es idempotente: comprueba actorRepository.count() > 0 antes de
+ * insertar
  *
  * Entidades cubiertas:
- *   Admin, Empresa, Usuario, Categoria, Producto, Vehiculo, Oferta,
- *   SparkVoto, Comentario, Favorito, Bloqueo, Mensaje, ChatMensaje,
- *   Compra, Envio, Devolucion, Valoracion, Reporte, Contrato,
- *   NewsletterSuscripcion, NotificacionInApp
+ * Admin, Empresa, Usuario, Categoria, Producto, Vehiculo, Oferta,
+ * SparkVoto, Comentario, Favorito, Bloqueo, Mensaje, ChatMensaje,
+ * Compra, Envio, Devolucion, Valoracion, Reporte, Contrato,
+ * NewsletterSuscripcion, NotificacionInApp
  */
 @Component
 public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
-    // â”€â”€ Repositories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    @Autowired private ActorRepository            actorRepository;
-    @Autowired private UsuarioRepository          usuarioRepository;
-    @Autowired private ProductoRepository         productoRepository;
-    @Autowired private VehiculoRepository         vehiculoRepository;
-    @Autowired private OfertaRepository           ofertaRepository;
-    @Autowired private SparkVotoRepository        sparkVotoRepository;
-    @Autowired private CategoriaRepository        categoriaRepository;
-    @Autowired private ComentarioRepository       comentarioRepository;
-    @Autowired private FavoritoRepository         favoritoRepository;
-    @Autowired private BloqueoRepository          bloqueoRepository;
-    @Autowired private MensajeRepository          mensajeRepository;
-    @Autowired private ChatMensajeRepository      chatMensajeRepository;
-    @Autowired private CompraRepository           compraRepository;
-    @Autowired private EnvioRepository            envioRepository;
-    @Autowired private DevolucionRepository       devolucionRepository;
-    @Autowired private ValoracionRepository       valoracionRepository;
-    @Autowired private ReporteRepository          reporteRepository;
-    @Autowired private ContratoRepository         contratoRepository;
-    @Autowired private NewsletterRepository       newsletterRepository;
-    @Autowired private NotificacionRepository     notificacionRepository;
-    @Autowired private PasswordEncoder            passwordEncoder;
-    @Autowired private JdbcTemplate               jdbcTemplate;
+    // â”€â”€ Repositories
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    @Autowired
+    private ActorRepository actorRepository;
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+    @Autowired
+    private ProductoRepository productoRepository;
+    @Autowired
+    private VehiculoRepository vehiculoRepository;
+    @Autowired
+    private OfertaRepository ofertaRepository;
+    @Autowired
+    private SparkVotoRepository sparkVotoRepository;
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+    @Autowired
+    private ComentarioRepository comentarioRepository;
+    @Autowired
+    private FavoritoRepository favoritoRepository;
+    @Autowired
+    private BloqueoRepository bloqueoRepository;
+    @Autowired
+    private MensajeRepository mensajeRepository;
+    @Autowired
+    private ChatMensajeRepository chatMensajeRepository;
+    @Autowired
+    private CompraRepository compraRepository;
+    @Autowired
+    private EnvioRepository envioRepository;
+    @Autowired
+    private DevolucionRepository devolucionRepository;
+    @Autowired
+    private ValoracionRepository valoracionRepository;
+    @Autowired
+    private ReporteRepository reporteRepository;
+    @Autowired
+    private ContratoRepository contratoRepository;
+    @Autowired
+    private NewsletterRepository newsletterRepository;
+    @Autowired
+    private NotificacionRepository notificacionRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private boolean done = false;
 
@@ -66,40 +90,52 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         // --- MIGRACION DE EMERGENCIA: Asegurar tipos de texto en Postgres ---
         try {
             jdbcTemplate.execute("ALTER TABLE producto ALTER COLUMN titulo TYPE text USING CAST(titulo AS text)");
-            jdbcTemplate.execute("ALTER TABLE producto ALTER COLUMN descripcion TYPE text USING CAST(descripcion AS text)");
+            jdbcTemplate
+                    .execute("ALTER TABLE producto ALTER COLUMN descripcion TYPE text USING CAST(descripcion AS text)");
             System.out.println("=== PopulateDB: Schema de producto verificado/corregido (TEXT) ===");
         } catch (Exception e) {
             System.err.println("=== PopulateDB: Error al verificar schema de producto: " + e.getMessage());
         }
 
-        // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos (Postgres Safe) ---
+        // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos
+        // (Postgres Safe) ---
         try {
             // chat_mensaje: remitente_id y receptor_id
             jdbcTemplate.execute("DO $$ BEGIN " +
-                "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fkrks3bkgi2d0d843eu25mgtm2f; " +
-                "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fk85y6m6ps4ge0r8p7w4r4v0v7m; " +
-                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_remitente') THEN " +
-                "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_remitente FOREIGN KEY (remitente_id) REFERENCES actor(id); END IF; " +
-                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_receptor') THEN " +
-                "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_receptor FOREIGN KEY (receptor_id) REFERENCES actor(id); END IF; " +
-                "END $$;");
+                    "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fkrks3bkgi2d0d843eu25mgtm2f; " +
+                    "ALTER TABLE chat_mensaje DROP CONSTRAINT IF EXISTS fk85y6m6ps4ge0r8p7w4r4v0v7m; " +
+                    "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_remitente') THEN "
+                    +
+                    "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_remitente FOREIGN KEY (remitente_id) REFERENCES actor(id); END IF; "
+                    +
+                    "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_chat_receptor') THEN "
+                    +
+                    "  ALTER TABLE chat_mensaje ADD CONSTRAINT fk_chat_receptor FOREIGN KEY (receptor_id) REFERENCES actor(id); END IF; "
+                    +
+                    "END $$;");
 
             // bloqueo: bloqueador_id y bloqueado_id
             jdbcTemplate.execute("DO $$ BEGIN " +
-                "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk8n6u6p7w4r4v0v7m85y6m6ps4; " +
-                "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk_bloqueo_bloqueado_usuario; " +
-                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueador') THEN " +
-                "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueador FOREIGN KEY (bloqueador_id) REFERENCES actor(id); END IF; " +
-                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueado') THEN " +
-                "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueado FOREIGN KEY (bloqueado_id) REFERENCES actor(id); END IF; " +
-                "END $$;");
+                    "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk8n6u6p7w4r4v0v7m85y6m6ps4; " +
+                    "ALTER TABLE bloqueo DROP CONSTRAINT IF EXISTS fk_bloqueo_bloqueado_usuario; " +
+                    "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueador') THEN "
+                    +
+                    "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueador FOREIGN KEY (bloqueador_id) REFERENCES actor(id); END IF; "
+                    +
+                    "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_bloqueo_bloqueado') THEN "
+                    +
+                    "  ALTER TABLE bloqueo ADD CONSTRAINT fk_bloqueo_bloqueado FOREIGN KEY (bloqueado_id) REFERENCES actor(id); END IF; "
+                    +
+                    "END $$;");
 
             // favorito: actor_id
             jdbcTemplate.execute("DO $$ BEGIN " +
-                "ALTER TABLE favorito DROP CONSTRAINT IF EXISTS fk_favorito_usuario; " +
-                "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_favorito_actor') THEN " +
-                "  ALTER TABLE favorito ADD CONSTRAINT fk_favorito_actor FOREIGN KEY (actor_id) REFERENCES actor(id); END IF; " +
-                "END $$;");
+                    "ALTER TABLE favorito DROP CONSTRAINT IF EXISTS fk_favorito_usuario; " +
+                    "IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_favorito_actor') THEN "
+                    +
+                    "  ALTER TABLE favorito ADD CONSTRAINT fk_favorito_actor FOREIGN KEY (actor_id) REFERENCES actor(id); END IF; "
+                    +
+                    "END $$;");
 
             System.out.println("=== PopulateDB: Foreign Keys migradas a Actor correctamente (Safe DO block) ===");
         } catch (Exception e) {
@@ -110,24 +146,34 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             // --- INYECCIÓN BAJO DEMANDA DE MODA FALTANTE ---
             if (productoRepository.findByTitulo("Chaqueta de Cuero Biker Premium - AllSaints").isEmpty()) {
                 System.out.println("=== PopulateDB: Inyectando moda faltante ===");
-                 Usuario lucia_fashion = usuarioRepository.findByUsername("lucia_moda").orElseGet(() -> 
-                     usuario("lucia_moda", "lucia@moda.com", "Sevilla", "Apasionada de la moda y el estilo.", 4.8, 12, true));
-                 
-                 Categoria catModa = categoriaRepository.findBySlug("moda").orElse(null);
-                 Categoria catRopaHombre = categoriaRepository.findBySlug("moda-hombre").orElse(null);
-                 Categoria catRopaMujer = categoriaRepository.findBySlug("moda-mujer").orElse(null);
-                 Categoria catZapas = categoriaRepository.findBySlug("zapatillas").orElse(null);
+                Usuario lucia_fashion = usuarioRepository.findByUsername("lucia_moda")
+                        .orElseGet(() -> usuario("lucia_moda", "lucia@moda.com", "Sevilla",
+                                "Apasionada de la moda y el estilo.", 4.8, 12, true));
 
-                 if (catRopaHombre != null) {
-                    Producto chaquetaCuero = producto("Chaqueta de Cuero Biker Premium - AllSaints", "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado.", 290.0, TipoOferta.VENTA, lucia_fashion, catRopaHombre, "AllSaints", "Milo Biker", CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla", "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
-                    chaquetaCuero.addImagenGaleria("https://images.unsplash.com/photo-1521223890158-f9f7c3d5d54d?w=800");
+                Categoria catModa = categoriaRepository.findBySlug("moda").orElse(null);
+                Categoria catRopaHombre = categoriaRepository.findBySlug("moda-hombre").orElse(null);
+                Categoria catRopaMujer = categoriaRepository.findBySlug("moda-mujer").orElse(null);
+                Categoria catZapas = categoriaRepository.findBySlug("zapatillas").orElse(null);
+
+                if (catRopaHombre != null) {
+                    Producto chaquetaCuero = producto("Chaqueta de Cuero Biker Premium - AllSaints",
+                            "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado.", 290.0,
+                            TipoOferta.VENTA, lucia_fashion, catRopaHombre, "AllSaints", "Milo Biker",
+                            CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
+                            "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
+                    chaquetaCuero
+                            .addImagenGaleria("https://images.unsplash.com/photo-1521223890158-f9f7c3d5d54d?w=800");
                     productoRepository.save(chaquetaCuero);
-                 }
-                 if (catRopaMujer != null) {
-                    Producto bolsoChanel = producto("Chanel Boy Bag Medium - Piel de Cordero", "Bolso Chanel modelo Boy auténtico. Piel de cordero negra acolchada.", 4200.0, TipoOferta.VENTA, lucia_fashion, catRopaMujer, "Chanel", "Boy Bag", CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Sevilla", "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
+                }
+                if (catRopaMujer != null) {
+                    Producto bolsoChanel = producto("Chanel Boy Bag Medium - Piel de Cordero",
+                            "Bolso Chanel modelo Boy auténtico. Piel de cordero negra acolchada.", 4200.0,
+                            TipoOferta.VENTA, lucia_fashion, catRopaMujer, "Chanel", "Boy Bag",
+                            CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Sevilla",
+                            "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
                     productoRepository.save(bolsoChanel);
-                 }
-                 // ... (Añadiendo el resto simplificado para que sea rápido y funcione ya) ...
+                }
+                // ... (Añadiendo el resto simplificado para que sea rápido y funcione ya) ...
             }
 
             System.out.println("=== PopulateDB: datos ya presentes, comprobando actualizaciones de esquema ===");
@@ -139,8 +185,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 }
             }
 
-
-            // Incluso si ya hay actores, nos aseguramos de que haya compras extras para el gráfico
+            // Incluso si ya hay actores, nos aseguramos de que haya compras extras para el
+            // gráfico
             if (compraRepository.count() < 15) {
                 Usuario m = usuarioRepository.findByUsername("maria_chollos").orElse(null);
                 List<Producto> todosProds = productoRepository.findAll();
@@ -173,34 +219,39 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
             productoRepository.findByTitulo("iPhone 14 Pro 128GB - Azul Profundo").ifPresent(p -> {
                 boolean hasContract = contratoRepository.findAll().stream()
-                        .anyMatch(c -> p.getId().equals(c.getProductoId()) && c.getTipoContrato() == TipoContrato.PUBLICACION);
+                        .anyMatch(c -> p.getId().equals(c.getProductoId())
+                                && c.getTipoContrato() == TipoContrato.PUBLICACION);
                 if (!hasContract) {
-                     Contrato con = new Contrato();
-                     con.setTipoContrato(TipoContrato.PUBLICACION);
-                     con.setProductoId(p.getId());
-                     con.setEstado(EstadoContrato.ACTIVE);
-                     con.setFechaInicio(LocalDateTime.now().minusDays(7));
-                     con.setFechaFin(LocalDateTime.now().plusMonths(1));
-                     con.setMonto(50.0);
-                     // Buscar techstore
-                     actorRepository.findAll().stream()
-                        .filter(a -> "techstore_oficial".equals(a.getUser()) && a instanceof Empresa)
-                        .findFirst()
-                        .ifPresent(e -> con.setEmpresa((Empresa) e));
-                     contratoRepository.save(con);
+                    Contrato con = new Contrato();
+                    con.setTipoContrato(TipoContrato.PUBLICACION);
+                    con.setProductoId(p.getId());
+                    con.setEstado(EstadoContrato.ACTIVE);
+                    con.setFechaInicio(LocalDateTime.now().minusDays(7));
+                    con.setFechaFin(LocalDateTime.now().plusMonths(1));
+                    con.setMonto(50.0);
+                    // Buscar techstore
+                    actorRepository.findAll().stream()
+                            .filter(a -> "techstore_oficial".equals(a.getUser()) && a instanceof Empresa)
+                            .findFirst()
+                            .ifPresent(e -> con.setEmpresa((Empresa) e));
+                    contratoRepository.save(con);
                 }
             });
 
             // --- TEST: Asegurar Ofertas de Viajes y Flash ---
             Categoria catViajes = categoriaRepository.findBySlug("viajes").orElse(null);
-            if (catViajes != null && !ofertaRepository.findAll().stream().anyMatch(o -> "Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash".equals(o.getTitulo()))) {
+            if (catViajes != null && !ofertaRepository.findAll().stream().anyMatch(
+                    o -> "Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash".equals(o.getTitulo()))) {
                 Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
-                if (tech == null) tech = actorRepository.findAll().stream().filter(a -> a instanceof Empresa).findFirst().orElse(null);
-                
+                if (tech == null)
+                    tech = actorRepository.findAll().stream().filter(a -> a instanceof Empresa).findFirst()
+                            .orElse(null);
+
                 if (tech != null) {
                     Oferta flashViaje = new Oferta();
                     flashViaje.setTitulo("Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash");
-                    flashViaje.setDescripcion("Disfruta de una villa sobre el agua en el resort mÃ¡s exclusivo de las Maldivas. Vuelos, traslados y pensiÃ³n completa incluidos. Â¡Solo 5 unidades!");
+                    flashViaje.setDescripcion(
+                            "Disfruta de una villa sobre el agua en el resort mÃ¡s exclusivo de las Maldivas. Vuelos, traslados y pensiÃ³n completa incluidos. Â¡Solo 5 unidades!");
                     flashViaje.setPrecioOferta(1499.0);
                     flashViaje.setPrecioOriginal(2990.0);
                     flashViaje.setTienda("B the travel brand");
@@ -224,162 +275,49 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 }
             }
 
-            // --- INYECCIÓN DE TOP CHOLLOS PREMIUM ---
-            if (ofertaRepository.findByTitulo("Samsung Galaxy Watch Ultra - Edición Titanio").isEmpty()) {
-                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(actorRepository.findAll().stream().filter(a -> a instanceof Empresa).findFirst().orElse(null));
-                Categoria catElectronica = categoriaRepository.findBySlug("electronica").orElse(null);
-                Categoria catModa = categoriaRepository.findBySlug("moda").orElse(null);
-                Categoria catHogar = categoriaRepository.findBySlug("hogar").orElse(null);
-                Categoria catGaming = categoriaRepository.findBySlug("videojuegos").orElse(null);
-
-                if (tech != null) {
-                    // Flash: Samsung Galaxy Watch Ultra
-                    Oferta watch = new Oferta();
-                    watch.setTitulo("Samsung Galaxy Watch Ultra - Edición Titanio");
-                    watch.setDescripcion("El smartwatch más resistente de Samsung. GPS de doble banda, batería de hasta 100 horas y acabado en titanio grado aerospacial.");
-                    watch.setPrecioOferta(449.0);
-                    watch.setPrecioOriginal(699.0);
-                    watch.setTienda("Samsung Oficial");
-                    watch.setCategoria(catElectronica);
-                    watch.setActor(tech);
-                    watch.setImagenPrincipal("https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800");
-                    watch.setEsFlash(true);
-                    watch.setFlashFin(LocalDateTime.now().plusHours(5));
-                    watch.setSparkCount(1250);
-                    watch.setBadge(BadgeOferta.CHOLLAZO);
-                    watch.setEsActiva(true);
-                    ofertaRepository.save(watch);
-
-                    // Flash: Steam Deck OLED 512GB
-                    Oferta steamDeck = new Oferta();
-                    steamDeck.setTitulo("Steam Deck OLED 512GB - ¡Mínimo Histórico!");
-                    steamDeck.setDescripcion("La consola portátil definitiva con pantalla OLED de 90Hz. Autonomía mejorada y descargas más rápidas con Wi-Fi 6E.");
-                    steamDeck.setPrecioOferta(489.0);
-                    steamDeck.setPrecioOriginal(569.0);
-                    steamDeck.setTienda("Steam");
-                    steamDeck.setCategoria(catGaming);
-                    steamDeck.setActor(tech);
-                    steamDeck.setImagenPrincipal("https://images.unsplash.com/photo-1621333100656-654868f0a071?w=800");
-                    steamDeck.setEsFlash(true);
-                    steamDeck.setFlashFin(LocalDateTime.now().plusHours(8));
-                    steamDeck.setSparkCount(2100);
-                    steamDeck.setBadge(BadgeOferta.DESTACADA);
-                    steamDeck.setEsActiva(true);
-                    ofertaRepository.save(steamDeck);
-
-                    // Premium: Dyson V15 Detect Absolute
-                    Oferta dyson = new Oferta();
-                    dyson.setTitulo("Dyson V15 Detect Absolute - Aspiradora Inteligente");
-                    dyson.setDescripcion("Aspiradora sin cable con sensor acústico y láser que revela el polvo invisible. El modelo más avanzado de Dyson.");
-                    dyson.setPrecioOferta(549.0);
-                    dyson.setPrecioOriginal(749.0);
-                    dyson.setTienda("Dyson.es");
-                    dyson.setCategoria(catHogar);
-                    dyson.setActor(tech);
-                    dyson.setImagenPrincipal("https://images.unsplash.com/photo-1558317374-067fb5f30001?w=800");
-                    dyson.setSparkCount(850);
-                    dyson.setBadge(BadgeOferta.PORCENTAJE);
-                    dyson.setEsFlash(true);
-                    dyson.setFlashFin(LocalDateTime.now().plusHours(24));
-                    dyson.setEsActiva(true);
-                    ofertaRepository.save(dyson);
-
-                    // Flash: Jordan 4 Retro 'Military Blue'
-                    Oferta jordan = new Oferta();
-                    jordan.setTitulo("Air Jordan 4 Retro 'Military Blue' - Reposición Flash");
-                    jordan.setDescripcion("Vuelven las míticas Jordan 4 en su colorway original. Unidades limitadísimas. Envío gratuito.");
-                    jordan.setPrecioOferta(189.0);
-                    jordan.setPrecioOriginal(209.0);
-                    jordan.setTienda("Nike");
-                    jordan.setCategoria(catModa);
-                    jordan.setActor(tech);
-                    jordan.setImagenPrincipal("https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800");
-                    jordan.setEsFlash(true);
-                    jordan.setFlashFin(LocalDateTime.now().plusHours(2));
-                    jordan.setSparkCount(3400);
-                    jordan.setBadge(BadgeOferta.CHOLLAZO);
-                    jordan.setEsActiva(true);
-                    ofertaRepository.save(jordan);
-
-                    // Flash: Sony A7 IV Body
-                    Oferta sony = new Oferta();
-                    sony.setTitulo("Sony Alpha 7 IV (Cuerpo) - ¡Súper Precio!");
-                    sony.setDescripcion("Cámara de fotograma completo para entusiastas y profesionales. 33MP, 4K 60p. La todoterreno definitiva de Sony.");
-                    sony.setPrecioOferta(1999.0);
-                    sony.setPrecioOriginal(2399.0);
-                    sony.setTienda("Amazon");
-                    sony.setCategoria(catElectronica);
-                    sony.setActor(tech);
-                    sony.setImagenPrincipal("https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800");
-                    sony.setEsFlash(true);
-                    sony.setFlashFin(LocalDateTime.now().plusHours(12));
-                    sony.setSparkCount(920);
-                    sony.setBadge(BadgeOferta.CHOLLAZO);
-                    sony.setEsActiva(true);
-                    ofertaRepository.save(sony);
-
-                    // Flash: LEGO Millenium Falcon
-                    Oferta lego = new Oferta();
-                    lego.setTitulo("LEGO Star Wars Halcón Milenario 75192");
-                    lego.setDescripcion("Serie Ultimate Collector. 7541 piezas. Un desafío de construcción épico para cualquier fan de Star Wars.");
-                    lego.setPrecioOferta(649.0);
-                    lego.setPrecioOriginal(849.0);
-                    lego.setTienda("LEGO Store");
-                    lego.setCategoria(catGaming);
-                    lego.setActor(tech);
-                    lego.setImagenPrincipal("https://images.unsplash.com/photo-1544652478-6653e09f18a2?w=800");
-                    lego.setEsFlash(true);
-                    lego.setFlashFin(LocalDateTime.now().plusHours(48));
-                    lego.setSparkCount(1500);
-                    lego.setBadge(BadgeOferta.PORCENTAJE);
-                    lego.setEsActiva(true);
-                    ofertaRepository.save(lego);
-                    
-                    System.out.println("=== PopulateDB: Top Chollos Premium inyectados correctamente ===");
-                }
-            }
-
-            done = true; 
-            return; 
+            done = true;
+            return;
         }
         done = true;
 
         System.out.println("=== PopulateDB: iniciando inserciÃ³n de datos ===");
 
-        // â”€â”€ 1. CATEGORÃAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        Categoria catElectronica  = cat("ElectrÃ³nica",     "electronica",     "cpu",              "#1565C0", null, 1);
-        Categoria catModa         = cat("Moda",            "moda",            "shirt",            "#6A1B9A", null, 2);
-        Categoria catHogar        = cat("Hogar",            "hogar",           "home",              "#2E7D32", null, 3);
-        Categoria catVehiculos    = cat("VehÃ­culos",        "vehiculos",       "car",               "#1976D2", null, 4);
-        Categoria catInformatica  = cat("InformÃ¡tica",      "informatica",     "laptop",            "#00838F", null, 5);
-        Categoria catVideojuegos  = cat("Videojuegos",      "videojuegos",     "gamepad",           "#7B1FA2", null, 6);
-        Categoria catDeportes     = cat("Deportes",         "deportes",        "bicycle",           "#E65100", null, 7);
-        Categoria catLibros       = cat("Libros",           "libros",          "book",              "#4E342E", null, 8);
-        Categoria catJuguetes     = cat("Juguetes",         "juguetes",        "toy-brick",         "#F57F17", null, 9);
-        Categoria catInmuebles    = cat("Inmuebles",        "inmuebles",       "building",          "#37474F", null, 10);
-        Categoria catViajes       = cat("Viajes",           "viajes",          "plane",             "#F44336", null, 12);
-        cat("Vuelos",           "vuelos",          "plane-takeoff",     "#F44336", catViajes, 1);
-        cat("Hoteles",          "hoteles",         "bed",               "#F44336", catViajes, 2);
-        cat("Otros",            "otros",           "archive",           "#78909C", null, 13);
+        // â”€â”€ 1. CATEGORÃAS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        Categoria catElectronica = cat("ElectrÃ³nica", "electronica", "cpu", "#1565C0", null, 1);
+        Categoria catModa = cat("Moda", "moda", "shirt", "#6A1B9A", null, 2);
+        Categoria catHogar = cat("Hogar", "hogar", "home", "#2E7D32", null, 3);
+        Categoria catVehiculos = cat("VehÃ­culos", "vehiculos", "car", "#1976D2", null, 4);
+        Categoria catInformatica = cat("InformÃ¡tica", "informatica", "laptop", "#00838F", null, 5);
+        Categoria catVideojuegos = cat("Videojuegos", "videojuegos", "gamepad", "#7B1FA2", null, 6);
+        Categoria catDeportes = cat("Deportes", "deportes", "bicycle", "#E65100", null, 7);
+        Categoria catLibros = cat("Libros", "libros", "book", "#4E342E", null, 8);
+        Categoria catJuguetes = cat("Juguetes", "juguetes", "toy-brick", "#F57F17", null, 9);
+        Categoria catInmuebles = cat("Inmuebles", "inmuebles", "building", "#37474F", null, 10);
+        Categoria catViajes = cat("Viajes", "viajes", "plane", "#F44336", null, 12);
+        cat("Vuelos", "vuelos", "plane-takeoff", "#F44336", catViajes, 1);
+        cat("Hoteles", "hoteles", "bed", "#F44336", catViajes, 2);
+        cat("Otros", "otros", "archive", "#78909C", null, 13);
 
         // Sub-categorÃ­as
-        Categoria catMoviles      = cat("MÃ³viles",          "moviles",         "smartphone",        "#1565C0", catElectronica, 1);
-        Categoria catAudio        = cat("Audio",            "audio",           "headphones",        "#1565C0", catElectronica, 2);
-        Categoria catTV           = cat("TV y VÃ­deo",       "tv-video",        "tv",                "#1565C0", catElectronica, 3);
-        Categoria catCamaras      = cat("CÃ¡maras",          "camaras",         "camera",            "#1565C0", catElectronica, 4);
-        Categoria catPCs          = cat("PCs y PortÃ¡tiles", "pcs",             "laptop",            "#00838F", catInformatica, 1);
-        Categoria catSoftware     = cat("Software",         "software",        "code",              "#00838F", catInformatica, 2);
-        Categoria catComponentes  = cat("Componentes",      "componentes-pc",  "memory",            "#00838F", catInformatica, 3);
-        Categoria catCoches       = cat("Coches",           "coches",          "car",               "#1976D2", catVehiculos, 1);
-        Categoria catMotos        = cat("Motos",            "motos",           "bike",              "#1976D2", catVehiculos, 2);
-        Categoria catRopaHombre   = cat("Moda Hombre",      "moda-hombre",     "user",              "#6A1B9A", catModa, 1);
-        Categoria catRopaMujer    = cat("Moda Mujer",       "moda-mujer",      "user",              "#6A1B9A", catModa, 2);
-        Categoria catZapatillas   = cat("Zapatillas",       "zapatillas",      "footsteps",         "#6A1B9A", catModa, 3);
-        Categoria catConsolaJuego = cat("Consolas",         "consolas",        "gamepad",           "#7B1FA2", catVideojuegos, 1);
-        Categoria catMuebles      = cat("Muebles",          "muebles",         "chair",             "#2E7D32", catHogar, 1);
-        Categoria catElectrodomest= cat("ElectrodomÃ©sticos","electrodomesticos","kitchen",           "#2E7D32", catHogar, 2);
+        Categoria catMoviles = cat("MÃ³viles", "moviles", "smartphone", "#1565C0", catElectronica, 1);
+        Categoria catAudio = cat("Audio", "audio", "headphones", "#1565C0", catElectronica, 2);
+        Categoria catTV = cat("TV y VÃ­deo", "tv-video", "tv", "#1565C0", catElectronica, 3);
+        Categoria catCamaras = cat("CÃ¡maras", "camaras", "camera", "#1565C0", catElectronica, 4);
+        Categoria catPCs = cat("PCs y PortÃ¡tiles", "pcs", "laptop", "#00838F", catInformatica, 1);
+        Categoria catSoftware = cat("Software", "software", "code", "#00838F", catInformatica, 2);
+        Categoria catComponentes = cat("Componentes", "componentes-pc", "memory", "#00838F", catInformatica, 3);
+        Categoria catCoches = cat("Coches", "coches", "car", "#1976D2", catVehiculos, 1);
+        Categoria catMotos = cat("Motos", "motos", "bike", "#1976D2", catVehiculos, 2);
+        Categoria catRopaHombre = cat("Moda Hombre", "moda-hombre", "user", "#6A1B9A", catModa, 1);
+        Categoria catRopaMujer = cat("Moda Mujer", "moda-mujer", "user", "#6A1B9A", catModa, 2);
+        Categoria catZapatillas = cat("Zapatillas", "zapatillas", "footsteps", "#6A1B9A", catModa, 3);
+        Categoria catConsolaJuego = cat("Consolas", "consolas", "gamepad", "#7B1FA2", catVideojuegos, 1);
+        Categoria catMuebles = cat("Muebles", "muebles", "chair", "#2E7D32", catHogar, 1);
+        Categoria catElectrodomest = cat("ElectrodomÃ©sticos", "electrodomesticos", "kitchen", "#2E7D32", catHogar, 2);
 
-        // â”€â”€ 2. ADMINS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 2. ADMINS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Admin admin1 = new Admin();
         admin1.setUser("admin");
         admin1.setEmail("admin@nexus.test");
@@ -396,7 +334,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         admin2.setNivelAcceso(2);
         actorRepository.save(admin2);
 
-        // â”€â”€ 3. EMPRESAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 3. EMPRESAS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Empresa techStore = new Empresa();
         techStore.setUser("techstore_oficial");
         techStore.setEmail("info@techstore.es");
@@ -438,14 +377,22 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         contratoRepository.save(contrato2);
 
         // --- 5. USUARIOS ---
-        Usuario carlos   = usuario("carlos_vendedor",  "carlos@nexus.test",   "Madrid, Chamberi",   "Vendedor de electronica de confianza. +200 ventas.", 4.8, 212, true);
-        Usuario maria    = usuario("maria_chollos",    "maria@nexus.test",    "Barcelona, Gracia",  "Cazadora de chollos compulsiva. Siempre encuentro lo mejor.", 4.5, 87, true);
-        Usuario pedro    = usuario("pedro_gamer",      "pedro@nexus.test",    "Valencia, Ruzafa",   "Gamer hardcore. Vendo y compro videojuegos y hardware.", 4.9, 310, true);
-        Usuario lucia    = usuario("lucia_moda",       "lucia@nexus.test",    "Sevilla, Triana",    "Amante de la moda sostenible. Doy segunda vida a la ropa.", 4.6, 145, false);
-        Usuario miguel   = usuario("miguel_motor",     "miguel@nexus.test",   "Bilbao, Casco Viejo","Mecanico aficionado. Compro y vendo vehiculos y piezas.", 4.3, 56, true);
-        Usuario sofia    = usuario("sofia_hogar",      "sofia@nexus.test",    "Madrid, Retiro",     "Interiorista. Renuevo muebles y electrodomesticos frecuentemente.", 4.7, 178, true);
-        Usuario andres   = usuario("andres_libros",    "andres@nexus.test",   "Granada, Albaicin",  "Lector empedernido. Intercambio y vendo libros.", 4.2, 33, false);
-        Usuario elena    = usuario("elena_deporte",    "elena@nexus.test",    "Zaragoza, Centro",   "Deportista. Vendo material deportivo que ya no uso.", 4.4, 61, true);
+        Usuario carlos = usuario("carlos_vendedor", "carlos@nexus.test", "Madrid, Chamberi",
+                "Vendedor de electronica de confianza. +200 ventas.", 4.8, 212, true);
+        Usuario maria = usuario("maria_chollos", "maria@nexus.test", "Barcelona, Gracia",
+                "Cazadora de chollos compulsiva. Siempre encuentro lo mejor.", 4.5, 87, true);
+        Usuario pedro = usuario("pedro_gamer", "pedro@nexus.test", "Valencia, Ruzafa",
+                "Gamer hardcore. Vendo y compro videojuegos y hardware.", 4.9, 310, true);
+        Usuario lucia = usuario("lucia_moda", "lucia@nexus.test", "Sevilla, Triana",
+                "Amante de la moda sostenible. Doy segunda vida a la ropa.", 4.6, 145, false);
+        Usuario miguel = usuario("miguel_motor", "miguel@nexus.test", "Bilbao, Casco Viejo",
+                "Mecanico aficionado. Compro y vendo vehiculos y piezas.", 4.3, 56, true);
+        Usuario sofia = usuario("sofia_hogar", "sofia@nexus.test", "Madrid, Retiro",
+                "Interiorista. Renuevo muebles y electrodomesticos frecuentemente.", 4.7, 178, true);
+        Usuario andres = usuario("andres_libros", "andres@nexus.test", "Granada, Albaicin",
+                "Lector empedernido. Intercambio y vendo libros.", 4.2, 33, false);
+        Usuario elena = usuario("elena_deporte", "elena@nexus.test", "Zaragoza, Centro",
+                "Deportista. Vendo material deportivo que ya no uso.", 4.4, 61, true);
 
         // Direccion por defecto para Carlos
         DireccionEnvio dirCarlos = new DireccionEnvio();
@@ -469,311 +416,312 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         maria.setDireccionPorDefecto(dirMaria);
         usuarioRepository.save(maria);
 
-        // â”€â”€ 6. PRODUCTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 6. PRODUCTOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         // ElectrÃ³nica - MÃ³viles
         Producto iphone14 = producto(
-            "iPhone 14 Pro 128GB - Azul Profundo",
-            "iPhone 14 Pro en perfecto estado. Sin rayadas, baterÃ­a al 97%. Incluye caja original, cargador y funda de piel. Comprado en noviembre 2022.",
-            750.0, TipoOferta.VENTA, carlos, catMoviles, "Apple", "iPhone 14 Pro",
-            CondicionProducto.COMO_NUEVO, true, 5.0, false, "Madrid",
-            "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800");
+                "iPhone 14 Pro 128GB - Azul Profundo",
+                "iPhone 14 Pro en perfecto estado. Sin rayadas, baterÃ­a al 97%. Incluye caja original, cargador y funda de piel. Comprado en noviembre 2022.",
+                750.0, TipoOferta.VENTA, carlos, catMoviles, "Apple", "iPhone 14 Pro",
+                CondicionProducto.COMO_NUEVO, true, 5.0, false, "Madrid",
+                "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800");
 
         Producto samsungS23 = producto(
-            "Samsung Galaxy S23 Ultra 256GB",
-            "Samsung S23 Ultra con S Pen. Color Phantom Black. 12GB RAM. BaterÃ­a 89%. Siempre con funda. Sin golpes ni araÃ±azos.",
-            680.0, TipoOferta.VENTA, pedro, catMoviles, "Samsung", "Galaxy S23 Ultra",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Valencia",
-            "https://images.unsplash.com/photo-1675272979687-aad85d4be5c7?w=800");
+                "Samsung Galaxy S23 Ultra 256GB",
+                "Samsung S23 Ultra con S Pen. Color Phantom Black. 12GB RAM. BaterÃ­a 89%. Siempre con funda. Sin golpes ni araÃ±azos.",
+                680.0, TipoOferta.VENTA, pedro, catMoviles, "Samsung", "Galaxy S23 Ultra",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Valencia",
+                "https://images.unsplash.com/photo-1675272979687-aad85d4be5c7?w=800");
         samsungS23.setPatrocinado(true);
         productoRepository.save(samsungS23);
 
         Producto pixelPhone = producto(
-            "Google Pixel 7 Pro 128GB",
-            "Pixel 7 Pro con 12GB RAM. CÃ¡mara increÃ­ble. Actualizaciones garantizadas hasta 2026. Desbloqueo facial y fingerprint.",
-            420.0, TipoOferta.VENTA, maria, catMoviles, "Google", "Pixel 7 Pro",
-            CondicionProducto.BUEN_ESTADO, true, 4.99, true, "Barcelona",
-            "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800");
+                "Google Pixel 7 Pro 128GB",
+                "Pixel 7 Pro con 12GB RAM. CÃ¡mara increÃ­ble. Actualizaciones garantizadas hasta 2026. Desbloqueo facial y fingerprint.",
+                420.0, TipoOferta.VENTA, maria, catMoviles, "Google", "Pixel 7 Pro",
+                CondicionProducto.BUEN_ESTADO, true, 4.99, true, "Barcelona",
+                "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800");
 
         // ElectrÃ³nica - Audio
         Producto sonyWH = producto(
-            "Sony WH-1000XM5 - CancelaciÃ³n ruido activa",
-            "Auriculares premium Sony WH-1000XM5. ANC lÃ­der del mercado. 30h autonomÃ­a. Bluetooth 5.2. Como nuevos, usados 3 meses.",
-            220.0, TipoOferta.VENTA, sofia, catAudio, "Sony", "WH-1000XM5",
-            CondicionProducto.COMO_NUEVO, true, 6.0, false, "Madrid",
-            "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800");
+                "Sony WH-1000XM5 - CancelaciÃ³n ruido activa",
+                "Auriculares premium Sony WH-1000XM5. ANC lÃ­der del mercado. 30h autonomÃ­a. Bluetooth 5.2. Como nuevos, usados 3 meses.",
+                220.0, TipoOferta.VENTA, sofia, catAudio, "Sony", "WH-1000XM5",
+                CondicionProducto.COMO_NUEVO, true, 6.0, false, "Madrid",
+                "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800");
 
         Producto airpodsMax = producto(
-            "AirPods Max Plata - Caja original",
-            "AirPods Max en color plata. BaterÃ­a al 91%. Incluye estuche Smart Case. Sonido Hi-Fi extraordinario.",
-            320.0, TipoOferta.VENTA, carlos, catAudio, "Apple", "AirPods Max",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 7.0, false, "Madrid",
-            "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800");
+                "AirPods Max Plata - Caja original",
+                "AirPods Max en color plata. BaterÃ­a al 91%. Incluye estuche Smart Case. Sonido Hi-Fi extraordinario.",
+                320.0, TipoOferta.VENTA, carlos, catAudio, "Apple", "AirPods Max",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 7.0, false, "Madrid",
+                "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800");
 
         // ElectrÃ³nica - TV
         Producto lgOled = producto(
-            "LG OLED C2 55\" 4K 120Hz HDMI 2.1",
-            "TV LG OLED C2 55 pulgadas. Panel OLED Evo, 4K, 120Hz, HDMI 2.1, G-Sync y FreeSync. Perfecto para gaming. 14 meses de uso.",
-            820.0, TipoOferta.VENTA, carlos, catTV, "LG", "OLED55C2",
-            CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=800");
+                "LG OLED C2 55\" 4K 120Hz HDMI 2.1",
+                "TV LG OLED C2 55 pulgadas. Panel OLED Evo, 4K, 120Hz, HDMI 2.1, G-Sync y FreeSync. Perfecto para gaming. 14 meses de uso.",
+                820.0, TipoOferta.VENTA, carlos, catTV, "LG", "OLED55C2",
+                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=800");
 
         // InformÃ¡tica - PCs
         Producto macbookPro = producto(
-            "MacBook Pro M2 14\" 16GB 512GB SSD",
-            "MacBook Pro con chip Apple M2 Pro. 16GB RAM, 512GB SSD. Pantalla Liquid Retina XDR. BaterÃ­a al 94%. Incluye cargador MagSafe.",
-            1650.0, TipoOferta.VENTA, pedro, catPCs, "Apple", "MacBook Pro M2",
-            CondicionProducto.COMO_NUEVO, true, 15.0, false, "Valencia",
-            "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800");
+                "MacBook Pro M2 14\" 16GB 512GB SSD",
+                "MacBook Pro con chip Apple M2 Pro. 16GB RAM, 512GB SSD. Pantalla Liquid Retina XDR. BaterÃ­a al 94%. Incluye cargador MagSafe.",
+                1650.0, TipoOferta.VENTA, pedro, catPCs, "Apple", "MacBook Pro M2",
+                CondicionProducto.COMO_NUEVO, true, 15.0, false, "Valencia",
+                "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800");
 
         Producto lenovoThinkpad = producto(
-            "Lenovo ThinkPad X1 Carbon Gen 10",
-            "ThinkPad X1 Carbon 14\". Intel i7-1260P, 16GB LPDDR5, 512GB SSD NVMe. 1.12kg. Teclado retroiluminado. Excelente para trabajo.",
-            950.0, TipoOferta.VENTA, maria, catPCs, "Lenovo", "ThinkPad X1 Carbon Gen 10",
-            CondicionProducto.BUEN_ESTADO, true, 12.0, true, "Barcelona",
-            "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800");
+                "Lenovo ThinkPad X1 Carbon Gen 10",
+                "ThinkPad X1 Carbon 14\". Intel i7-1260P, 16GB LPDDR5, 512GB SSD NVMe. 1.12kg. Teclado retroiluminado. Excelente para trabajo.",
+                950.0, TipoOferta.VENTA, maria, catPCs, "Lenovo", "ThinkPad X1 Carbon Gen 10",
+                CondicionProducto.BUEN_ESTADO, true, 12.0, true, "Barcelona",
+                "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800");
 
         // InformÃ¡tica - Componentes
         Producto rtx4070 = producto(
-            "NVIDIA RTX 4070 Ti SUPER - ASUS TUF",
-            "Tarjeta grÃ¡fica ASUS TUF Gaming RTX 4070 Ti SUPER OC. 16GB GDDR6X. Solo 8 meses de uso. Nunca para minerÃ­a.",
-            650.0, TipoOferta.VENTA, pedro, catComponentes, "ASUS", "TUF Gaming RTX 4070 Ti SUPER",
-            CondicionProducto.COMO_NUEVO, false, 0.0, true, "Valencia",
-            "https://images.unsplash.com/photo-1591489378430-ef2f4c626b35?w=800");
+                "NVIDIA RTX 4070 Ti SUPER - ASUS TUF",
+                "Tarjeta grÃ¡fica ASUS TUF Gaming RTX 4070 Ti SUPER OC. 16GB GDDR6X. Solo 8 meses de uso. Nunca para minerÃ­a.",
+                650.0, TipoOferta.VENTA, pedro, catComponentes, "ASUS", "TUF Gaming RTX 4070 Ti SUPER",
+                CondicionProducto.COMO_NUEVO, false, 0.0, true, "Valencia",
+                "https://images.unsplash.com/photo-1591489378430-ef2f4c626b35?w=800");
 
         Producto procesadorRyzen = producto(
-            "AMD Ryzen 9 7950X - Caja original sin activar",
-            "Procesador AMD Ryzen 9 7950X 16 nÃºcleos / 32 hilos. 5.7GHz boost. 64MB cachÃ© L3. Sin usar, en caja sellada.",
-            580.0, TipoOferta.VENTA, pedro, catComponentes, "AMD", "Ryzen 9 7950X",
-            CondicionProducto.NUEVO, true, 5.0, false, "Valencia",
-            "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=800");
+                "AMD Ryzen 9 7950X - Caja original sin activar",
+                "Procesador AMD Ryzen 9 7950X 16 nÃºcleos / 32 hilos. 5.7GHz boost. 64MB cachÃ© L3. Sin usar, en caja sellada.",
+                580.0, TipoOferta.VENTA, pedro, catComponentes, "AMD", "Ryzen 9 7950X",
+                CondicionProducto.NUEVO, true, 5.0, false, "Valencia",
+                "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=800");
 
         // Videojuegos
         Producto ps5Console = producto(
-            "PlayStation 5 EdiciÃ³n Digital + 3 juegos",
-            "PS5 Digital Edition en perfecto estado. Incluye: Spider-Man 2, Horizon FW y Returnal. Mando original DualSense sin stick drift.",
-            420.0, TipoOferta.VENTA, carlos, catConsolaJuego, "Sony", "PlayStation 5 Digital",
-            CondicionProducto.COMO_NUEVO, false, 0.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800");
+                "PlayStation 5 EdiciÃ³n Digital + 3 juegos",
+                "PS5 Digital Edition en perfecto estado. Incluye: Spider-Man 2, Horizon FW y Returnal. Mando original DualSense sin stick drift.",
+                420.0, TipoOferta.VENTA, carlos, catConsolaJuego, "Sony", "PlayStation 5 Digital",
+                CondicionProducto.COMO_NUEVO, false, 0.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800");
 
         Producto nintendoSwitch = producto(
-            "Nintendo Switch OLED Blanca + 5 juegos",
-            "Nintendo Switch OLED blanca. BaterÃ­a perfecta. Juegos: Zelda Tears of the Kingdom, Mario Kart 8, Animal Crossing, Splatoon 3 y Pokemon Violet.",
-            290.0, TipoOferta.VENTA, maria, catConsolaJuego, "Nintendo", "Switch OLED",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Barcelona",
-            "https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=800");
+                "Nintendo Switch OLED Blanca + 5 juegos",
+                "Nintendo Switch OLED blanca. BaterÃ­a perfecta. Juegos: Zelda Tears of the Kingdom, Mario Kart 8, Animal Crossing, Splatoon 3 y Pokemon Violet.",
+                290.0, TipoOferta.VENTA, maria, catConsolaJuego, "Nintendo", "Switch OLED",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Barcelona",
+                "https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=800");
 
         Producto zelda = producto(
-            "Zelda: Tears of the Kingdom - Nintendo Switch",
-            "Juego fÃ­sico para Nintendo Switch. Completo con caja y manual. Solo terminado una vez. Perfecto estado.",
-            45.0, TipoOferta.VENTA, andres, catVideojuegos, "Nintendo", "Zelda TotK",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 3.99, true, "Granada",
-            "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
+                "Zelda: Tears of the Kingdom - Nintendo Switch",
+                "Juego fÃ­sico para Nintendo Switch. Completo con caja y manual. Solo terminado una vez. Perfecto estado.",
+                45.0, TipoOferta.VENTA, andres, catVideojuegos, "Nintendo", "Zelda TotK",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 3.99, true, "Granada",
+                "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
 
         // Ropa
         Producto nikeSneakers = producto(
-            "Nike Air Max 90 Talla 42 - Blancas",
-            "Nike Air Max 90 talla 42. Usadas 3 veces para probarlas. Sin manchas ni deformaciones. Caja original incluida.",
-            90.0, TipoOferta.VENTA, lucia, catZapatillas, "Nike", "Air Max 90",
-            CondicionProducto.COMO_NUEVO, true, 4.99, false, "Sevilla",
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800");
+                "Nike Air Max 90 Talla 42 - Blancas",
+                "Nike Air Max 90 talla 42. Usadas 3 veces para probarlas. Sin manchas ni deformaciones. Caja original incluida.",
+                90.0, TipoOferta.VENTA, lucia, catZapatillas, "Nike", "Air Max 90",
+                CondicionProducto.COMO_NUEVO, true, 4.99, false, "Sevilla",
+                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800");
 
         Producto converseClassic = producto(
-            "Converse Chuck Taylor All Star 41 Negras",
-            "Converse clÃ¡sicas negras talla 41. Usadas con cuidado durante 6 meses. Sin roturas. Limpiadas y listas.",
-            35.0, TipoOferta.VENTA, maria, catZapatillas, "Converse", "Chuck Taylor All Star",
-            CondicionProducto.BUEN_ESTADO, true, 3.99, true, "Barcelona",
-            "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800");
+                "Converse Chuck Taylor All Star 41 Negras",
+                "Converse clÃ¡sicas negras talla 41. Usadas con cuidado durante 6 meses. Sin roturas. Limpiadas y listas.",
+                35.0, TipoOferta.VENTA, maria, catZapatillas, "Converse", "Chuck Taylor All Star",
+                CondicionProducto.BUEN_ESTADO, true, 3.99, true, "Barcelona",
+                "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800");
 
         Producto canadaGoose = producto(
-            "Canada Goose Expedition Parka L - Negro",
-            "Parka Canada Goose Expedition talla L. PlumÃ³n de ganso 625 Fill Power. Certificado REAL FUR. Perfecta para inviernos extremos.",
-            650.0, TipoOferta.VENTA, carlos, catRopaHombre, "Canada Goose", "Expedition Parka",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
+                "Canada Goose Expedition Parka L - Negro",
+                "Parka Canada Goose Expedition talla L. PlumÃ³n de ganso 625 Fill Power. Certificado REAL FUR. Perfecta para inviernos extremos.",
+                650.0, TipoOferta.VENTA, carlos, catRopaHombre, "Canada Goose", "Expedition Parka",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
 
         Producto zaraVestido = producto(
-            "Vestido Zara satÃ©n midi azul marino - S",
-            "Vestido midi de satÃ©n Zara talla S. Estrenado una sola vez para una boda. Sin manchas ni descosidos.",
-            28.0, TipoOferta.DONACION, lucia, catRopaMujer, "Zara", "Vestido SatÃ©n Midi",
-            CondicionProducto.COMO_NUEVO, true, 3.99, false, "Sevilla",
-            "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
+                "Vestido Zara satÃ©n midi azul marino - S",
+                "Vestido midi de satÃ©n Zara talla S. Estrenado una sola vez para una boda. Sin manchas ni descosidos.",
+                28.0, TipoOferta.DONACION, lucia, catRopaMujer, "Zara", "Vestido SatÃ©n Midi",
+                CondicionProducto.COMO_NUEVO, true, 3.99, false, "Sevilla",
+                "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
 
         Producto abrigoMassimoDutti = producto(
-            "Abrigo de Lana Premium Massimo Dutti M",
-            "Abrigo de lana 100% italiano Massimo Dutti colecciÃ³n Studio. Color camel clÃ¡sico. Perfecto para la oficina o eventos formales. Usado un par de veces.",
-            145.0, TipoOferta.VENTA, sofia, catRopaMujer, "Massimo Dutti", "Lana Studio",
-            CondicionProducto.COMO_NUEVO, true, 5.99, true, "Madrid",
-            "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
+                "Abrigo de Lana Premium Massimo Dutti M",
+                "Abrigo de lana 100% italiano Massimo Dutti colecciÃ³n Studio. Color camel clÃ¡sico. Perfecto para la oficina o eventos formales. Usado un par de veces.",
+                145.0, TipoOferta.VENTA, sofia, catRopaMujer, "Massimo Dutti", "Lana Studio",
+                CondicionProducto.COMO_NUEVO, true, 5.99, true, "Madrid",
+                "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
 
         Producto sudaderaBalenciaga = producto(
-            "Sudadera Balenciaga Logo - Talla M (Oversize)",
-            "Sudadera Balenciaga autÃ©ntica con logo bordado en el pecho. Corte oversize. AlgodÃ³n grueso de alta calidad. Factura demostrable.",
-            350.0, TipoOferta.VENTA, pedro, catRopaHombre, "Balenciaga", "Logo Hoodie",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, false, "Valencia",
-            "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800");
+                "Sudadera Balenciaga Logo - Talla M (Oversize)",
+                "Sudadera Balenciaga autÃ©ntica con logo bordado en el pecho. Corte oversize. AlgodÃ³n grueso de alta calidad. Factura demostrable.",
+                350.0, TipoOferta.VENTA, pedro, catRopaHombre, "Balenciaga", "Logo Hoodie",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, false, "Valencia",
+                "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800");
 
         Producto jordan4 = producto(
-            "Air Jordan 4 Retro 'Bred Reimagined' - Talla 43",
-            "Zapatillas Air Jordan 4 Bred ediciÃ³n Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
-            280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
-            CondicionProducto.NUEVO, true, 8.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1574561135754-5264eee47a46?w=800");
+                "Air Jordan 4 Retro 'Bred Reimagined' - Talla 43",
+                "Zapatillas Air Jordan 4 Bred ediciÃ³n Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
+                280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
+                CondicionProducto.NUEVO, true, 8.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1574561135754-5264eee47a46?w=800");
 
         // Hogar
-                // --- MÃXIMA MODA (HOMBRE) ---
+        // --- MÃXIMA MODA (HOMBRE) ---
         Producto chaquetaCuero = producto(
-            "Chaqueta de Cuero Biker Premium - AllSaints",
-            "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado, cremalleras metÃ¡licas pesadas. Un clÃ¡sico atemporal que solo mejora con el tiempo.",
-            290.0, TipoOferta.VENTA, lucia, catRopaHombre, "AllSaints", "Milo Biker",
-            CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
-            "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
+                "Chaqueta de Cuero Biker Premium - AllSaints",
+                "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado, cremalleras metÃ¡licas pesadas. Un clÃ¡sico atemporal que solo mejora con el tiempo.",
+                290.0, TipoOferta.VENTA, lucia, catRopaHombre, "AllSaints", "Milo Biker",
+                CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
+                "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
         chaquetaCuero.addImagenGaleria("https://images.unsplash.com/photo-1521223890158-f9f7c3d5d54d?w=800");
         chaquetaCuero.addImagenGaleria("https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800");
         productoRepository.save(chaquetaCuero);
 
         Producto vaquerosLevis = producto(
-            "Levi's 501 Original Fit - Talla 32/32",
-            "Los icÃ³nicos vaqueros de Levi's. Tejido denim rÃ­gido 100% algodÃ³n. Lavado azul medio clÃ¡sico. PrÃ¡cticamente sin uso.",
-            55.0, TipoOferta.VENTA, lucia, catRopaHombre, "Levi's", "501 Original",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 4.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800");
+                "Levi's 501 Original Fit - Talla 32/32",
+                "Los icÃ³nicos vaqueros de Levi's. Tejido denim rÃ­gido 100% algodÃ³n. Lavado azul medio clÃ¡sico. PrÃ¡cticamente sin uso.",
+                55.0, TipoOferta.VENTA, lucia, catRopaHombre, "Levi's", "501 Original",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 4.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800");
         vaquerosLevis.addImagenGaleria("https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800");
         productoRepository.save(vaquerosLevis);
 
         Producto sudaderaSupreme = producto(
-            "Supreme Box Logo Hoodie - FW23 Black",
-            "Sudadera original Supreme Box Logo de la temporada FW23. AlgodÃ³n de alto gramaje. Muy codiciada. Comprada en la tienda de Londres.",
-            480.0, TipoOferta.VENTA, lucia, catRopaHombre, "Supreme", "Box Logo Hoodie",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Sevilla",
-            "https://images.unsplash.com/photo-1534030347209-c77bd357b1cb?w=800");
+                "Supreme Box Logo Hoodie - FW23 Black",
+                "Sudadera original Supreme Box Logo de la temporada FW23. AlgodÃ³n de alto gramaje. Muy codiciada. Comprada en la tienda de Londres.",
+                480.0, TipoOferta.VENTA, lucia, catRopaHombre, "Supreme", "Box Logo Hoodie",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Sevilla",
+                "https://images.unsplash.com/photo-1534030347209-c77bd357b1cb?w=800");
         sudaderaSupreme.addImagenGaleria("https://images.unsplash.com/photo-1578932750294-f5075e53944a?w=800");
         productoRepository.save(sudaderaSupreme);
 
         Producto relojOmega = producto(
-            "Omega Speedmaster Professional Moonwatch",
-            "El cronÃ³grafo mÃ¡s famoso del mundo. Movimiento manual. Cristal Hesalite. Set completo con caja y papeles de 2023. Estado impecable.",
-            5900.0, TipoOferta.VENTA, lucia, catRopaHombre, "Omega", "Speedmaster",
-            CondicionProducto.COMO_NUEVO, true, 15.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=800");
+                "Omega Speedmaster Professional Moonwatch",
+                "El cronÃ³grafo mÃ¡s famoso del mundo. Movimiento manual. Cristal Hesalite. Set completo con caja y papeles de 2023. Estado impecable.",
+                5900.0, TipoOferta.VENTA, lucia, catRopaHombre, "Omega", "Speedmaster",
+                CondicionProducto.COMO_NUEVO, true, 15.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=800");
         relojOmega.addImagenGaleria("https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?w=800");
         productoRepository.save(relojOmega);
 
         Producto botasTimberland = producto(
-            "Timberland Classic 6-inch Waterproof Boot",
-            "Botas amarillas originales Timberland. Impermeables, cuero premium. Talla 43. Muy resistentes para invierno.",
-            140.0, TipoOferta.VENTA, lucia, catRopaHombre, "Timberland", "6-inch Classic",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=800");
+                "Timberland Classic 6-inch Waterproof Boot",
+                "Botas amarillas originales Timberland. Impermeables, cuero premium. Talla 43. Muy resistentes para invierno.",
+                140.0, TipoOferta.VENTA, lucia, catRopaHombre, "Timberland", "6-inch Classic",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=800");
         botasTimberland.addImagenGaleria("https://images.unsplash.com/photo-1520639832042-45a16942f367?w=800");
         productoRepository.save(botasTimberland);
 
         // --- MÃS MODA (MUJER) ---
         Producto bolsoChanel = producto(
-            "Chanel Boy Bag Medium - Piel de Cordero",
-            "Bolso Chanel modelo Boy autÃ©ntico. Piel de cordero negra acolchada con herrajes plateados. Incluye tarjeta de autenticidad y guardapolvo.",
-            4200.0, TipoOferta.VENTA, lucia, catRopaMujer, "Chanel", "Boy Bag",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
+                "Chanel Boy Bag Medium - Piel de Cordero",
+                "Bolso Chanel modelo Boy autÃ©ntico. Piel de cordero negra acolchada con herrajes plateados. Incluye tarjeta de autenticidad y guardapolvo.",
+                4200.0, TipoOferta.VENTA, lucia, catRopaMujer, "Chanel", "Boy Bag",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800");
         bolsoChanel.addImagenGaleria("https://images.unsplash.com/photo-1584917469274-964fd99478f4?w=800");
         productoRepository.save(bolsoChanel);
 
         Producto vestidoPronovias = producto(
-            "Vestido de Gala Pronovias - ColecciÃ³n Fiesta",
-            "Espectacular vestido de noche Pronovias. Color rojo rubÃ­, corte sirena con pedrerÃ­a fina en el escote. Talla 38. Usado una sola vez en evento.",
-            350.0, TipoOferta.VENTA, lucia, catRopaMujer, "Pronovias", "Gala Red",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 5.0, false, "Sevilla",
-            "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800");
+                "Vestido de Gala Pronovias - ColecciÃ³n Fiesta",
+                "Espectacular vestido de noche Pronovias. Color rojo rubÃ­, corte sirena con pedrerÃ­a fina en el escote. Talla 38. Usado una sola vez en evento.",
+                350.0, TipoOferta.VENTA, lucia, catRopaMujer, "Pronovias", "Gala Red",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 5.0, false, "Sevilla",
+                "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800");
         vestidoPronovias.addImagenGaleria("https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
         productoRepository.save(vestidoPronovias);
 
         Producto gafasPrada = producto(
-            "Gafas de Sol Prada Heritage - Carey",
-            "Gafas Prada autÃ©nticas. Montura de acetato color carey. Lentes degradadas marrones con 100% protecciÃ³n UV. Funda original incluida.",
-            160.0, TipoOferta.VENTA, lucia, catRopaMujer, "Prada", "Heritage Square",
-            CondicionProducto.COMO_NUEVO, true, 2.99, true, "Sevilla",
-            "https://images.unsplash.com/photo-1511499767390-a73c23310fc1?w=800");
+                "Gafas de Sol Prada Heritage - Carey",
+                "Gafas Prada autÃ©nticas. Montura de acetato color carey. Lentes degradadas marrones con 100% protecciÃ³n UV. Funda original incluida.",
+                160.0, TipoOferta.VENTA, lucia, catRopaMujer, "Prada", "Heritage Square",
+                CondicionProducto.COMO_NUEVO, true, 2.99, true, "Sevilla",
+                "https://images.unsplash.com/photo-1511499767390-a73c23310fc1?w=800");
         gafasPrada.addImagenGaleria("https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800");
         productoRepository.save(gafasPrada);
 
         Producto zapatosLouboutin = producto(
-            "Christian Louboutin Pigalle 100 - Suela Roja",
-            "Stilettos Christian Louboutin originales. Patent leather negro. TacÃ³n de 10cm. Suela roja impecable (protector puesto). Talla 39.",
-            490.0, TipoOferta.VENTA, lucia, catRopaMujer, "Christian Louboutin", "Pigalle 100",
-            CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800");
+                "Christian Louboutin Pigalle 100 - Suela Roja",
+                "Stilettos Christian Louboutin originales. Patent leather negro. TacÃ³n de 10cm. Suela roja impecable (protector puesto). Talla 39.",
+                490.0, TipoOferta.VENTA, lucia, catRopaMujer, "Christian Louboutin", "Pigalle 100",
+                CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800");
         zapatosLouboutin.addImagenGaleria("https://images.unsplash.com/photo-1581067720543-84b2234bcc82?w=800");
         productoRepository.save(zapatosLouboutin);
 
         Producto abrigoStella = producto(
-            "Abrigo Faux Fur Stella McCartney - EdiciÃ³n Limitada",
-            "Abrigo de piel sintÃ©tica de alta gama. Tacto increÃ­blemente suave y lujoso. Marca pionera en moda sostenible. Muy cÃ¡lido.",
-            780.0, TipoOferta.VENTA, lucia, catRopaMujer, "Stella McCartney", "Faux Fur Luxury",
-            CondicionProducto.COMO_NUEVO, true, 10.0, true, "Sevilla",
-            "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
+                "Abrigo Faux Fur Stella McCartney - EdiciÃ³n Limitada",
+                "Abrigo de piel sintÃ©tica de alta gama. Tacto increÃ­blemente suave y lujoso. Marca pionera en moda sostenible. Muy cÃ¡lido.",
+                780.0, TipoOferta.VENTA, lucia, catRopaMujer, "Stella McCartney", "Faux Fur Luxury",
+                CondicionProducto.COMO_NUEVO, true, 10.0, true, "Sevilla",
+                "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
         abrigoStella.addImagenGaleria("https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
         productoRepository.save(abrigoStella);
 
         Producto roomba = producto(
 
-            "iRobot Roomba j7+ con base de vaciado",
-            "Roomba j7+ con base de vaciado automÃ¡tico. Mapeo por IA, esquiva obstÃ¡culos. 18 meses de uso. Incluye cargador y bolsas.",
-            320.0, TipoOferta.VENTA, sofia, catElectrodomest, "iRobot", "Roomba j7+",
-            CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800");
+                "iRobot Roomba j7+ con base de vaciado",
+                "Roomba j7+ con base de vaciado automÃ¡tico. Mapeo por IA, esquiva obstÃ¡culos. 18 meses de uso. Incluye cargador y bolsas.",
+                320.0, TipoOferta.VENTA, sofia, catElectrodomest, "iRobot", "Roomba j7+",
+                CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800");
 
         Producto ikeaEscritorio = producto(
-            "Escritorio IKEA Bekant 160x80 blanco",
-            "Mesa de escritorio IKEA Bekant 160x80cm color blanco. Estructura metÃ¡lica. Sin araÃ±azos relevantes. Desmontada y lista para recoger.",
-            120.0, TipoOferta.VENTA, sofia, catMuebles, "IKEA", "Bekant",
-            CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
-            "https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=800");
+                "Escritorio IKEA Bekant 160x80 blanco",
+                "Mesa de escritorio IKEA Bekant 160x80cm color blanco. Estructura metÃ¡lica. Sin araÃ±azos relevantes. Desmontada y lista para recoger.",
+                120.0, TipoOferta.VENTA, sofia, catMuebles, "IKEA", "Bekant",
+                CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
+                "https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=800");
 
         // Deportes
         Producto bicicletaCarretera = producto(
-            "Bicicleta carretera Trek Domane AL 3 T52",
-            "Trek Domane AL 3 talla 52. Grupo Shimano 105 11v. Frenos hidrÃ¡ulicos. Ruedas Bontrager Paradigm. 2 aÃ±os, perfecto estado.",
-            890.0, TipoOferta.VENTA, elena, catDeportes, "Trek", "Domane AL 3",
-            CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Zaragoza",
-            "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800");
+                "Bicicleta carretera Trek Domane AL 3 T52",
+                "Trek Domane AL 3 talla 52. Grupo Shimano 105 11v. Frenos hidrÃ¡ulicos. Ruedas Bontrager Paradigm. 2 aÃ±os, perfecto estado.",
+                890.0, TipoOferta.VENTA, elena, catDeportes, "Trek", "Domane AL 3",
+                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Zaragoza",
+                "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800");
 
         Producto raquetaTenis = producto(
-            "Raqueta Wilson Blade 98 v8 16x19",
-            "Wilson Blade 98 v8, 305g. Grip 3. Encordado Luxilon Alu Power. Usada 1 temporada. Sin golpes en el marco.",
-            130.0, TipoOferta.VENTA, elena, catDeportes, "Wilson", "Blade 98 v8",
-            CondicionProducto.BUEN_ESTADO, true, 5.0, true, "Zaragoza",
-            "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800");
+                "Raqueta Wilson Blade 98 v8 16x19",
+                "Wilson Blade 98 v8, 305g. Grip 3. Encordado Luxilon Alu Power. Usada 1 temporada. Sin golpes en el marco.",
+                130.0, TipoOferta.VENTA, elena, catDeportes, "Wilson", "Blade 98 v8",
+                CondicionProducto.BUEN_ESTADO, true, 5.0, true, "Zaragoza",
+                "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800");
 
         // Libros
         Producto libroCleanCode = producto(
-            "Clean Code - Robert C. Martin (Robert C. Martin)",
-            "Libro 'Clean Code: A Handbook of Agile Software Craftsmanship'. EdiciÃ³n inglesa. Subrayado mÃ­nimo con lÃ¡piz. Excelente estado.",
-            18.0, TipoOferta.VENTA, andres, catLibros, null, null,
-            CondicionProducto.BUEN_ESTADO, true, 2.99, false, "Granada",
-            "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800");
+                "Clean Code - Robert C. Martin (Robert C. Martin)",
+                "Libro 'Clean Code: A Handbook of Agile Software Craftsmanship'. EdiciÃ³n inglesa. Subrayado mÃ­nimo con lÃ¡piz. Excelente estado.",
+                18.0, TipoOferta.VENTA, andres, catLibros, null, null,
+                CondicionProducto.BUEN_ESTADO, true, 2.99, false, "Granada",
+                "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800");
 
         Producto libroDune = producto(
-            "DUNE - Frank Herbert (EdiciÃ³n Especial)",
-            "Dune ediciÃ³n especial con ilustraciones. Tapa dura. Como nueva. Solo leÃ­da una vez.",
-            22.0, TipoOferta.INTERCAMBIO, andres, catLibros, null, null,
-            CondicionProducto.COMO_NUEVO, true, 3.0, false, "Granada",
-            "https://images.unsplash.com/photo-1513001900722-370f803f498d?w=800");
+                "DUNE - Frank Herbert (EdiciÃ³n Especial)",
+                "Dune ediciÃ³n especial con ilustraciones. Tapa dura. Como nueva. Solo leÃ­da una vez.",
+                22.0, TipoOferta.INTERCAMBIO, andres, catLibros, null, null,
+                CondicionProducto.COMO_NUEVO, true, 3.0, false, "Granada",
+                "https://images.unsplash.com/photo-1513001900722-370f803f498d?w=800");
 
         // CÃ¡mara
         Producto sonyA7IV = producto(
-            "Sony Alpha a7 IV + Objetivo 28-70mm",
-            "CÃ¡mara Sony A7 IV full-frame 33MP. 120fps en 4K. Solo 8.000 disparos. Incluye objetivo 28-70mm OSS y dos baterÃ­as.",
-            2200.0, TipoOferta.VENTA, carlos, catCamaras, "Sony", "Alpha a7 IV",
-            CondicionProducto.COMO_NUEVO, true, 20.0, false, "Madrid",
-            "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800");
+                "Sony Alpha a7 IV + Objetivo 28-70mm",
+                "CÃ¡mara Sony A7 IV full-frame 33MP. 120fps en 4K. Solo 8.000 disparos. Incluye objetivo 28-70mm OSS y dos baterÃ­as.",
+                2200.0, TipoOferta.VENTA, carlos, catCamaras, "Sony", "Alpha a7 IV",
+                CondicionProducto.COMO_NUEVO, true, 20.0, false, "Madrid",
+                "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800");
 
         // Juguetes
         Producto legoBatman = producto(
-            "LEGO Batman BatmÃ³vil 42127 - Sin abrir",
-            "Set LEGO Technic Batman BatmÃ³vil 42127. 422 piezas. Caja sellada sin abrir. Comprado como regalo pero tenemos uno igual.",
-            55.0, TipoOferta.VENTA, lucia, catJuguetes, "LEGO", "BatmÃ³vil Technic 42127",
-            CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
-            "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
+                "LEGO Batman BatmÃ³vil 42127 - Sin abrir",
+                "Set LEGO Technic Batman BatmÃ³vil 42127. 422 piezas. Caja sellada sin abrir. Comprado como regalo pero tenemos uno igual.",
+                55.0, TipoOferta.VENTA, lucia, catJuguetes, "LEGO", "BatmÃ³vil Technic 42127",
+                CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
+                "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
 
         // --- CONTRATO PATROCINADO PARA TEST ---
         Contrato conPatrocinio = new Contrato();
@@ -786,254 +734,279 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         conPatrocinio.setMonto(50.0);
         contratoRepository.save(conPatrocinio);
 
-        // â”€â”€ 7. VEHÃCULOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 7. VEHÃCULOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Vehiculo bmw320d = vehiculo(
-            "BMW 320d xDrive Touring 2021",
-            "BMW Serie 3 Touring 320d xDrive 190CV. Color gris mineral. 62.000 km. Mantenimiento en BMW oficial. Extras: parking automÃ¡tico, HUD, asientos calefactados.",
-            32500.0, TipoVehiculo.COCHE, miguel, catVehiculos, "BMW", "320d xDrive Touring",
-            2021, 62000, "DIESEL", "AUTOMATICO", 190, 1995, "Gris Mineral",
-            4, 5, "4520FKL", true, true, "Bilbao",
-            "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800");
+                "BMW 320d xDrive Touring 2021",
+                "BMW Serie 3 Touring 320d xDrive 190CV. Color gris mineral. 62.000 km. Mantenimiento en BMW oficial. Extras: parking automÃ¡tico, HUD, asientos calefactados.",
+                32500.0, TipoVehiculo.COCHE, miguel, catVehiculos, "BMW", "320d xDrive Touring",
+                2021, 62000, "DIESEL", "AUTOMATICO", 190, 1995, "Gris Mineral",
+                4, 5, "4520FKL", true, true, "Bilbao",
+                "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800");
 
         Vehiculo hondaCBR = vehiculo(
-            "Honda CBR600RR 2019 - Solo 12.000 km",
-            "Honda CBR600RR Rojo/Negro. 120CV. 12.000 km reales. ITV reciente. Nunca caÃ­da. Escape Arrow. Revisiones en concesionario oficial Honda.",
-            7200.0, TipoVehiculo.MOTO, miguel, catVehiculos, "Honda", "CBR600RR",
-            2019, 12000, "GASOLINA", "MANUAL", 120, 599, "Rojo/Negro",
-            null, 2, "9482MNK", true, false, "Bilbao",
-            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800");
+                "Honda CBR600RR 2019 - Solo 12.000 km",
+                "Honda CBR600RR Rojo/Negro. 120CV. 12.000 km reales. ITV reciente. Nunca caÃ­da. Escape Arrow. Revisiones en concesionario oficial Honda.",
+                7200.0, TipoVehiculo.MOTO, miguel, catVehiculos, "Honda", "CBR600RR",
+                2019, 12000, "GASOLINA", "MANUAL", 120, 599, "Rojo/Negro",
+                null, 2, "9482MNK", true, false, "Bilbao",
+                "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800");
 
         Vehiculo teslaModel3 = vehiculo(
-            "Tesla Model 3 Long Range AWD 2022",
-            "Tesla Model 3 Long Range AWD 358CV. Color blanco perlado. 41.000 km. AutonomÃ­a real 500km. Autopilot. Cargador tipo 2 incluido.",
-            38900.0, TipoVehiculo.COCHE, carlos, catVehiculos, "Tesla", "Model 3 Long Range",
-            2022, 41000, "ELECTRICO", "AUTOMATICO", 358, 0, "Blanco Perlado",
-            4, 5, "3381ABC", true, true, "Madrid",
-            "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800");
+                "Tesla Model 3 Long Range AWD 2022",
+                "Tesla Model 3 Long Range AWD 358CV. Color blanco perlado. 41.000 km. AutonomÃ­a real 500km. Autopilot. Cargador tipo 2 incluido.",
+                38900.0, TipoVehiculo.COCHE, carlos, catVehiculos, "Tesla", "Model 3 Long Range",
+                2022, 41000, "ELECTRICO", "AUTOMATICO", 358, 0, "Blanco Perlado",
+                4, 5, "3381ABC", true, true, "Madrid",
+                "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800");
 
         Vehiculo fordTransit = vehiculo(
-            "Ford Transit Custom 310 L1 2.0 TDCI 2020",
-            "Ford Transit Custom 310 L1 130CV. Blanco. 85.000 km. Ideal para empresa. NeumÃ¡ticos nuevos. Revisiones al dÃ­a.",
-            18500.0, TipoVehiculo.FURGONETA, miguel, catVehiculos, "Ford", "Transit Custom 310 L1",
-            2020, 85000, "DIESEL", "MANUAL", 130, 1996, "Blanco",
-            null, 2, "6621PQR", true, false, "Bilbao",
-            "https://images.unsplash.com/photo-1595787572888-b6553d8073b7?w=800");
+                "Ford Transit Custom 310 L1 2.0 TDCI 2020",
+                "Ford Transit Custom 310 L1 130CV. Blanco. 85.000 km. Ideal para empresa. NeumÃ¡ticos nuevos. Revisiones al dÃ­a.",
+                18500.0, TipoVehiculo.FURGONETA, miguel, catVehiculos, "Ford", "Transit Custom 310 L1",
+                2020, 85000, "DIESEL", "MANUAL", 130, 1996, "Blanco",
+                null, 2, "6621PQR", true, false, "Bilbao",
+                "https://images.unsplash.com/photo-1595787572888-b6553d8073b7?w=800");
 
         Vehiculo vespa = vehiculo(
-            "Vespa GTS 300 Super 2023 - Gris Titanio",
-            "Vespa GTS 300 Super 2023. Solo 2.800 km. Color gris titanio. ABS, ASR, pantalla TFT, luz LED. Como nueva.",
-            5800.0, TipoVehiculo.SCOOTER, lucia, catVehiculos, "Vespa", "GTS 300 Super",
-            2023, 2800, "GASOLINA", "AUTOMATICO", 25, 278, "Gris Titanio",
-            null, 2, "7763STU", true, true, "Sevilla",
-            "https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=800");
+                "Vespa GTS 300 Super 2023 - Gris Titanio",
+                "Vespa GTS 300 Super 2023. Solo 2.800 km. Color gris titanio. ABS, ASR, pantalla TFT, luz LED. Como nueva.",
+                5800.0, TipoVehiculo.SCOOTER, lucia, catVehiculos, "Vespa", "GTS 300 Super",
+                2023, 2800, "GASOLINA", "AUTOMATICO", 25, 278, "Gris Titanio",
+                null, 2, "7763STU", true, true, "Sevilla",
+                "https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=800");
 
-        // â”€â”€ 8. OFERTAS (Chollometro) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 8. OFERTAS (Chollometro)
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Oferta ofertaAirpods = oferta(
-            "AirPods Pro 2Âª Gen USB-C - MÃ­nimo histÃ³rico en Amazon",
-            "Los mejores auriculares TWS de Apple con cancelaciÃ³n activa de ruido H2, modo transparencia adaptativo y audio espacial. Precio mÃ­nimo histÃ³rico registrado.",
-            179.0, 279.0, "Amazon", "https://amazon.es/airpods-pro-2",
-            catAudio, techStore, BadgeOferta.CHOLLAZO, -72,
-            "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800",
-            156, 8, 4800, 312);
+                "AirPods Pro 2Âª Gen USB-C - MÃ­nimo histÃ³rico en Amazon",
+                "Los mejores auriculares TWS de Apple con cancelaciÃ³n activa de ruido H2, modo transparencia adaptativo y audio espacial. Precio mÃ­nimo histÃ³rico registrado.",
+                179.0, 279.0, "Amazon", "https://amazon.es/airpods-pro-2",
+                catAudio, techStore, BadgeOferta.CHOLLAZO, -72,
+                "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800",
+                156, 8, 4800, 312);
 
         Oferta ofertaWindows = oferta(
-            "Windows 11 Pro OEM por solo 9,99â‚¬ - Key digital",
-            "Licencia OEM original de Windows 11 Pro. ActivaciÃ³n inmediata. Compatible con upgrade desde Windows 10. Entrega en menos de 5 minutos.",
-            9.99, 145.0, "Kinguin", "https://kinguin.net/windows-11-pro",
-            catSoftware, techStore, BadgeOferta.CHOLLAZO, -48,
-            "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800",
-            289, 22, 9800, 756);
+                "Windows 11 Pro OEM por solo 9,99â‚¬ - Key digital",
+                "Licencia OEM original de Windows 11 Pro. ActivaciÃ³n inmediata. Compatible con upgrade desde Windows 10. Entrega en menos de 5 minutos.",
+                9.99, 145.0, "Kinguin", "https://kinguin.net/windows-11-pro",
+                catSoftware, techStore, BadgeOferta.CHOLLAZO, -48,
+                "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800",
+                289, 22, 9800, 756);
 
         Oferta ofertaPS5 = oferta(
-            "PlayStation 5 Standard 699â‚¬ + 2 mandos - PcComponentes",
-            "Bundle PS5 con disco + 2 mandos DualSense. Ideal para no quedarte sin consola estas navidades. Stock limitado.",
-            699.0, 789.0, "PcComponentes", "https://pccomponentes.com/ps5",
-            catConsolaJuego, carlos, BadgeOferta.DESTACADA, -36,
-            "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800",
-            98, 12, 5600, 289);
+                "PlayStation 5 Standard 699â‚¬ + 2 mandos - PcComponentes",
+                "Bundle PS5 con disco + 2 mandos DualSense. Ideal para no quedarte sin consola estas navidades. Stock limitado.",
+                699.0, 789.0, "PcComponentes", "https://pccomponentes.com/ps5",
+                catConsolaJuego, carlos, BadgeOferta.DESTACADA, -36,
+                "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800",
+                98, 12, 5600, 289);
 
         Oferta ofertaXiaomi = oferta(
-            "Xiaomi Redmi Note 13 Pro+ 5G 256GB por 249â‚¬",
-            "Xiaomi Redmi Note 13 Pro+ con Dimensity 7200 Ultra, cÃ¡mara de 200MP, pantalla AMOLED 120Hz y carga de 120W. Una barbaridad por este precio.",
-            249.0, 399.0, "MediaMarkt", "https://mediamarkt.es/xiaomi",
-            catMoviles, maria, BadgeOferta.NUEVA, -2,
-            "https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=800",
-            67, 4, 2100, 134);
+                "Xiaomi Redmi Note 13 Pro+ 5G 256GB por 249â‚¬",
+                "Xiaomi Redmi Note 13 Pro+ con Dimensity 7200 Ultra, cÃ¡mara de 200MP, pantalla AMOLED 120Hz y carga de 120W. Una barbaridad por este precio.",
+                249.0, 399.0, "MediaMarkt", "https://mediamarkt.es/xiaomi",
+                catMoviles, maria, BadgeOferta.NUEVA, -2,
+                "https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=800",
+                67, 4, 2100, 134);
 
         Oferta ofertaPSPlus = oferta(
-            "PS Plus Essential 12 meses por 39,99â‚¬ - CÃ³digo digital",
-            "SuscripciÃ³n PlayStation Plus Essential 12 meses. Acceso a juegos mensuales gratuitos y multijugador online. Precio mÃ­nimo del aÃ±o.",
-            39.99, 71.99, "PlayStation Store", "https://store.playstation.com",
-            catConsolaJuego, pedro, BadgeOferta.DESTACADA, -24,
-            "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=800",
-            78, 3, 3200, 189);
+                "PS Plus Essential 12 meses por 39,99â‚¬ - CÃ³digo digital",
+                "SuscripciÃ³n PlayStation Plus Essential 12 meses. Acceso a juegos mensuales gratuitos y multijugador online. Precio mÃ­nimo del aÃ±o.",
+                39.99, 71.99, "PlayStation Store", "https://store.playstation.com",
+                catConsolaJuego, pedro, BadgeOferta.DESTACADA, -24,
+                "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=800",
+                78, 3, 3200, 189);
 
         Oferta ofertaSamsungQLED = oferta(
-            "Samsung QLED 55\" Q80C 4K 2024 por 499â‚¬",
-            "Smart TV Samsung QLED 55 pulgadas Q80C. 120Hz, HDR10+, Quantum Processor. El mejor precio del mercado para este panel.",
-            499.0, 799.0, "El Corte InglÃ©s", "https://elcorteingles.es/samsung-q80c",
-            catTV, sofia, BadgeOferta.PORCENTAJE, -18,
-            "https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=800",
-            43, 5, 1890, 97);
+                "Samsung QLED 55\" Q80C 4K 2024 por 499â‚¬",
+                "Smart TV Samsung QLED 55 pulgadas Q80C. 120Hz, HDR10+, Quantum Processor. El mejor precio del mercado para este panel.",
+                499.0, 799.0, "El Corte InglÃ©s", "https://elcorteingles.es/samsung-q80c",
+                catTV, sofia, BadgeOferta.PORCENTAJE, -18,
+                "https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=800",
+                43, 5, 1890, 97);
 
         Oferta ofertaRoombaIRobot = oferta(
-            "iRobot Roomba j9+ con base autovaciado por 299â‚¬",
-            "Roomba j9+ con base de vaciado automÃ¡tico Clean Base. Mapeo 3D, evita obstÃ¡culos por IA. Precio mÃ­nimo histÃ³rico con -46% de descuento.",
-            299.0, 549.0, "Amazon", "https://amazon.es/roomba-j9",
-            catElectrodomest, modaFashion, BadgeOferta.CHOLLAZO, -12,
-            "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800",
-            112, 6, 3400, 201);
+                "iRobot Roomba j9+ con base autovaciado por 299â‚¬",
+                "Roomba j9+ con base de vaciado automÃ¡tico Clean Base. Mapeo 3D, evita obstÃ¡culos por IA. Precio mÃ­nimo histÃ³rico con -46% de descuento.",
+                299.0, 549.0, "Amazon", "https://amazon.es/roomba-j9",
+                catElectrodomest, modaFashion, BadgeOferta.CHOLLAZO, -12,
+                "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800",
+                112, 6, 3400, 201);
 
         Oferta ofertaRTX4060 = oferta(
-            "RTX 4060 Ti 8GB ASUS TUF por 349â‚¬ en PCComponentes",
-            "Tarjeta grÃ¡fica ASUS TUF Gaming RTX 4060 Ti 8GB OC Edition. Oferta relÃ¡mpago con stock limitado. Rinde al nivel de la 3080 Ti.",
-            349.0, 449.0, "PcComponentes", "https://pccomponentes.com/rtx4060ti",
-            catComponentes, techStore, BadgeOferta.EXPIRA_HOY,
-            LocalDateTime.now().plusHours(8),
-            "https://images.unsplash.com/photo-1591489378430-ef2f4c626b35?w=800",
-            201, 9, 6700, 445);
+                "RTX 4060 Ti 8GB ASUS TUF por 349â‚¬ en PCComponentes",
+                "Tarjeta grÃ¡fica ASUS TUF Gaming RTX 4060 Ti 8GB OC Edition. Oferta relÃ¡mpago con stock limitado. Rinde al nivel de la 3080 Ti.",
+                349.0, 449.0, "PcComponentes", "https://pccomponentes.com/rtx4060ti",
+                catComponentes, techStore, BadgeOferta.EXPIRA_HOY,
+                LocalDateTime.now().plusHours(8),
+                "https://images.unsplash.com/photo-1591489378430-ef2f4c626b35?w=800",
+                201, 9, 6700, 445);
 
         Oferta ofertaNike = oferta(
-            "Nike Air Force 1 '07 por 54,99â‚¬ en Nike.com - 3 colores",
-            "Nike Air Force 1 blancas, negras y rojas disponibles en todas las tallas. CÃ³digo de descuento aplicado automÃ¡ticamente.",
-            54.99, 89.99, "Nike.com", "https://nike.com/air-force-1",
-            catZapatillas, lucia, BadgeOferta.PORCENTAJE, -6,
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
-            34, 2, 1560, 88);
+                "Nike Air Force 1 '07 por 54,99â‚¬ en Nike.com - 3 colores",
+                "Nike Air Force 1 blancas, negras y rojas disponibles en todas las tallas. CÃ³digo de descuento aplicado automÃ¡ticamente.",
+                54.99, 89.99, "Nike.com", "https://nike.com/air-force-1",
+                catZapatillas, lucia, BadgeOferta.PORCENTAJE, -6,
+                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
+                34, 2, 1560, 88);
 
         Oferta ofertaLego = oferta(
-            "LEGO Icons 10281 Ãrbol BonsÃ¡i por 32,99â‚¬",
-            "Set LEGO Icons Ãrbol BonsÃ¡i 878 piezas. Precio mÃ¡s bajo del aÃ±o. Ideal para adultos. EnvÃ­o gratis con Prime.",
-            32.99, 54.99, "Amazon", "https://amazon.es/lego-bonsai",
-            catJuguetes, maria, BadgeOferta.NUEVA, -1,
-            "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800",
-            23, 1, 890, 45);
+                "LEGO Icons 10281 Ãrbol BonsÃ¡i por 32,99â‚¬",
+                "Set LEGO Icons Ãrbol BonsÃ¡i 878 piezas. Precio mÃ¡s bajo del aÃ±o. Ideal para adultos. EnvÃ­o gratis con Prime.",
+                32.99, 54.99, "Amazon", "https://amazon.es/lego-bonsai",
+                catJuguetes, maria, BadgeOferta.NUEVA, -1,
+                "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800",
+                23, 1, 890, 45);
 
         // --- VIAJES ---
         Oferta viajeMaldivas = oferta(
-            "Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash",
-            "Disfruta de una villa sobre el agua en el resort mÃ¡s exclusivo de las Maldivas. Vuelos, traslados y pensiÃ³n completa incluidos. Â¡Solo 5 unidades!",
-            1499.0, 2990.0, "B the travel brand", "https://bthetravelbrand.com/maldivas",
-            catViajes, techStore, BadgeOferta.CHOLLAZO, -1,
-            "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800",
-            950, 2, 25000, 1500);
+                "Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash",
+                "Disfruta de una villa sobre el agua en el resort mÃ¡s exclusivo de las Maldivas. Vuelos, traslados y pensiÃ³n completa incluidos. Â¡Solo 5 unidades!",
+                1499.0, 2990.0, "B the travel brand", "https://bthetravelbrand.com/maldivas",
+                catViajes, techStore, BadgeOferta.CHOLLAZO, -1,
+                "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800",
+                950, 2, 25000, 1500);
         viajeMaldivas.setEsFlash(true);
         viajeMaldivas.setFlashFin(LocalDateTime.now().plusHours(12));
         viajeMaldivas.setDestacada(true);
         ofertaRepository.save(viajeMaldivas);
 
         Oferta viajeJapon = oferta(
-            "Vuelo + 10 dÃ­as en JapÃ³n (Tokio y Kioto) - Â¡Chollazo!",
-            "IncreÃ­ble pack para visitar el paÃ­s del sol naciente. Incluye vuelos directos, hoteles cÃ©ntricos y JR Pass para 7 dÃ­as.",
-            1250.0, 1890.0, "Logitravel", "https://logitravel.com/japon",
-            catViajes, techStore, BadgeOferta.CHOLLAZO, -4,
-            "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
-            550, 12, 12500, 890);
+                "Vuelo + 10 dÃ­as en JapÃ³n (Tokio y Kioto) - Â¡Chollazo!",
+                "IncreÃ­ble pack para visitar el paÃ­s del sol naciente. Incluye vuelos directos, hoteles cÃ©ntricos y JR Pass para 7 dÃ­as.",
+                1250.0, 1890.0, "Logitravel", "https://logitravel.com/japon",
+                catViajes, techStore, BadgeOferta.CHOLLAZO, -4,
+                "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+                550, 12, 12500, 890);
 
         Oferta viajeBali = oferta(
-            "7 noches en Villa Privada en Bali con piscina",
-            "RelÃ¡jate en el paraÃ­so de Ubud. Villa privada con vistas a los arrozales, desayuno incluido y traslado al aeropuerto.",
-            450.0, 800.0, "Booking", "https://booking.com/bali-villa",
-            catViajes, maria, BadgeOferta.DESTACADA, -24,
-            "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800",
-            420, 5, 8900, 420);
+                "7 noches en Villa Privada en Bali con piscina",
+                "RelÃ¡jate en el paraÃ­so de Ubud. Villa privada con vistas a los arrozales, desayuno incluido y traslado al aeropuerto.",
+                450.0, 800.0, "Booking", "https://booking.com/bali-villa",
+                catViajes, maria, BadgeOferta.DESTACADA, -24,
+                "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800",
+                420, 5, 8900, 420);
 
         Oferta cruceroMed = oferta(
-            "Crucero Todo Incluido por el MediterrÃ¡neo - MSC World Europa",
-            "Salida desde Barcelona. Itinerario: Marsella, GÃ©nova, NÃ¡poles, Mesina y La Valeta. Lo mejor de MS. Todo incluido.",
-            599.0, 950.0, "MSC Cruceros", "https://msc.com/mediterraneo",
-            catViajes, carlos, BadgeOferta.NUEVA, -12,
-            "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800",
-            380, 2, 5600, 150);
+                "Crucero Todo Incluido por el MediterrÃ¡neo - MSC World Europa",
+                "Salida desde Barcelona. Itinerario: Marsella, GÃ©nova, NÃ¡poles, Mesina y La Valeta. Lo mejor de MS. Todo incluido.",
+                599.0, 950.0, "MSC Cruceros", "https://msc.com/mediterraneo",
+                catViajes, carlos, BadgeOferta.NUEVA, -12,
+                "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800",
+                380, 2, 5600, 150);
 
         // Oferta gratuita
         Oferta ofertaNetflixTrial = oferta(
-            "Netflix Premium 3 meses GRATIS con Vodafone",
-            "Clientes Vodafone One pueden activar Netflix Premium durante 3 meses completamente gratis. Solo para nuevas altas.",
-            0.0, 41.97, "Vodafone", "https://vodafone.es/netflix-gratis",
-            catVideojuegos, techStore, BadgeOferta.GRATUITA, -3,
-            "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800",
-            445, 15, 12000, 1890);
+                "Netflix Premium 3 meses GRATIS con Vodafone",
+                "Clientes Vodafone One pueden activar Netflix Premium durante 3 meses completamente gratis. Solo para nuevas altas.",
+                0.0, 41.97, "Vodafone", "https://vodafone.es/netflix-gratis",
+                catVideojuegos, techStore, BadgeOferta.GRATUITA, -3,
+                "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800",
+                445, 15, 12000, 1890);
 
-        // â”€â”€ 9. SPARK VOTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        sparkVotoRepository.save(new SparkVoto(maria,  ofertaAirpods, true));
-        sparkVotoRepository.save(new SparkVoto(pedro,  ofertaAirpods, true));
-        sparkVotoRepository.save(new SparkVoto(sofia,  ofertaAirpods, true));
-        sparkVotoRepository.save(new SparkVoto(lucia,  ofertaAirpods, true));
+        // â”€â”€ 9. SPARK VOTOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        sparkVotoRepository.save(new SparkVoto(maria, ofertaAirpods, true));
+        sparkVotoRepository.save(new SparkVoto(pedro, ofertaAirpods, true));
+        sparkVotoRepository.save(new SparkVoto(sofia, ofertaAirpods, true));
+        sparkVotoRepository.save(new SparkVoto(lucia, ofertaAirpods, true));
         sparkVotoRepository.save(new SparkVoto(andres, ofertaAirpods, true));
 
         sparkVotoRepository.save(new SparkVoto(carlos, ofertaWindows, true));
-        sparkVotoRepository.save(new SparkVoto(pedro,  ofertaWindows, true));
-        sparkVotoRepository.save(new SparkVoto(elena,  ofertaWindows, true));
+        sparkVotoRepository.save(new SparkVoto(pedro, ofertaWindows, true));
+        sparkVotoRepository.save(new SparkVoto(elena, ofertaWindows, true));
         sparkVotoRepository.save(new SparkVoto(miguel, ofertaWindows, true));
-        sparkVotoRepository.save(new SparkVoto(sofia,  ofertaWindows, false)); // drip
+        sparkVotoRepository.save(new SparkVoto(sofia, ofertaWindows, false)); // drip
 
-        sparkVotoRepository.save(new SparkVoto(maria,  ofertaPS5,    true));
-        sparkVotoRepository.save(new SparkVoto(andres, ofertaPS5,    true));
-        sparkVotoRepository.save(new SparkVoto(lucia,  ofertaPS5,    false)); // drip
+        sparkVotoRepository.save(new SparkVoto(maria, ofertaPS5, true));
+        sparkVotoRepository.save(new SparkVoto(andres, ofertaPS5, true));
+        sparkVotoRepository.save(new SparkVoto(lucia, ofertaPS5, false)); // drip
 
         sparkVotoRepository.save(new SparkVoto(carlos, ofertaXiaomi, true));
-        sparkVotoRepository.save(new SparkVoto(sofia,  ofertaXiaomi, true));
+        sparkVotoRepository.save(new SparkVoto(sofia, ofertaXiaomi, true));
 
-        sparkVotoRepository.save(new SparkVoto(pedro,  ofertaPSPlus, true));
-        sparkVotoRepository.save(new SparkVoto(elena,  ofertaPSPlus, true));
+        sparkVotoRepository.save(new SparkVoto(pedro, ofertaPSPlus, true));
+        sparkVotoRepository.save(new SparkVoto(elena, ofertaPSPlus, true));
         sparkVotoRepository.save(new SparkVoto(andres, ofertaPSPlus, true));
 
-        sparkVotoRepository.save(new SparkVoto(maria,  ofertaSamsungQLED, true));
+        sparkVotoRepository.save(new SparkVoto(maria, ofertaSamsungQLED, true));
         sparkVotoRepository.save(new SparkVoto(carlos, ofertaRoombaIRobot, true));
-        sparkVotoRepository.save(new SparkVoto(pedro,  ofertaRTX4060, true));
-        sparkVotoRepository.save(new SparkVoto(elena,  ofertaRTX4060, true));
-        sparkVotoRepository.save(new SparkVoto(sofia,  ofertaRTX4060, true));
+        sparkVotoRepository.save(new SparkVoto(pedro, ofertaRTX4060, true));
+        sparkVotoRepository.save(new SparkVoto(elena, ofertaRTX4060, true));
+        sparkVotoRepository.save(new SparkVoto(sofia, ofertaRTX4060, true));
         sparkVotoRepository.save(new SparkVoto(miguel, ofertaNetflixTrial, true));
-        sparkVotoRepository.save(new SparkVoto(lucia,  ofertaNetflixTrial, true));
+        sparkVotoRepository.save(new SparkVoto(lucia, ofertaNetflixTrial, true));
         sparkVotoRepository.save(new SparkVoto(andres, ofertaNetflixTrial, true));
 
-        // â”€â”€ 10. COMENTARIOS EN OFERTAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        comentarioRepository.save(new Comentario("Â¡IncreÃ­ble precio! Lo comprÃ© y llegÃ³ en 24h perfectamente embalado.", ofertaAirpods, carlos));
-        comentarioRepository.save(new Comentario("Â¿Funciona bien el ANC en zonas de mucho ruido? Estoy dudando entre estos y los Sony XM5.", ofertaAirpods, miguel));
-        comentarioRepository.save(new Comentario("@miguel_motor SÃ­, el ANC es el mejor del mercado actualmente. Los Sony son muy buenos tambiÃ©n pero estos tienen audio espacial. Para llamadas yo prefiero los AirPods.", ofertaAirpods, pedro));
-        comentarioRepository.save(new Comentario("Ya no estÃ¡ disponible este precio, ha subido a 209â‚¬. :-/", ofertaAirpods, andres));
+        // â”€â”€ 10. COMENTARIOS EN OFERTAS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        comentarioRepository.save(new Comentario(
+                "Â¡IncreÃ­ble precio! Lo comprÃ© y llegÃ³ en 24h perfectamente embalado.", ofertaAirpods, carlos));
+        comentarioRepository.save(new Comentario(
+                "Â¿Funciona bien el ANC en zonas de mucho ruido? Estoy dudando entre estos y los Sony XM5.",
+                ofertaAirpods, miguel));
+        comentarioRepository.save(new Comentario(
+                "@miguel_motor SÃ­, el ANC es el mejor del mercado actualmente. Los Sony son muy buenos tambiÃ©n pero estos tienen audio espacial. Para llamadas yo prefiero los AirPods.",
+                ofertaAirpods, pedro));
+        comentarioRepository.save(
+                new Comentario("Ya no estÃ¡ disponible este precio, ha subido a 209â‚¬. :-/", ofertaAirpods, andres));
 
-        comentarioRepository.save(new Comentario("ComprÃ© la key, activÃ© en 30 segundos. 100% real y funcional.", ofertaWindows, sofia));
-        comentarioRepository.save(new Comentario("Â¿Es activaciÃ³n permanente o tiene caducidad?", ofertaWindows, lucia));
-        comentarioRepository.save(new Comentario("@lucia_moda Es OEM, ligada a un hardware concreto. Mientras no cambies la placa, es vitalicia.", ofertaWindows, carlos));
-        comentarioRepository.save(new Comentario("Cuidado con las keys de Kinguin. Algunas son robadas. Mejor comprar en tiendas oficiales.", ofertaWindows, elena));
+        comentarioRepository.save(
+                new Comentario("ComprÃ© la key, activÃ© en 30 segundos. 100% real y funcional.", ofertaWindows, sofia));
+        comentarioRepository
+                .save(new Comentario("Â¿Es activaciÃ³n permanente o tiene caducidad?", ofertaWindows, lucia));
+        comentarioRepository.save(new Comentario(
+                "@lucia_moda Es OEM, ligada a un hardware concreto. Mientras no cambies la placa, es vitalicia.",
+                ofertaWindows, carlos));
+        comentarioRepository.save(new Comentario(
+                "Cuidado con las keys de Kinguin. Algunas son robadas. Mejor comprar en tiendas oficiales.",
+                ofertaWindows, elena));
 
-        comentarioRepository.save(new Comentario("La PS5 ya merece la pena a este precio, hay un catÃ¡logo brutal.", ofertaPS5, pedro));
+        comentarioRepository.save(
+                new Comentario("La PS5 ya merece la pena a este precio, hay un catÃ¡logo brutal.", ofertaPS5, pedro));
         comentarioRepository.save(new Comentario("Â¿Sigue en stock? Entro y me dice agotado.", ofertaPS5, andres));
 
-        comentarioRepository.save(new Comentario("El Xiaomi 13 Ultra tambiÃ©n estÃ¡ a buen precio, Â¿alguien lo compara con este?", ofertaXiaomi, sofia));
-        comentarioRepository.save(new Comentario("El Redmi Note 13 Pro+ tiene mejor relaciÃ³n calidad/precio. La cÃ¡mara de 200MP es una pasada para su rango.", ofertaXiaomi, pedro));
+        comentarioRepository
+                .save(new Comentario("El Xiaomi 13 Ultra tambiÃ©n estÃ¡ a buen precio, Â¿alguien lo compara con este?",
+                        ofertaXiaomi, sofia));
+        comentarioRepository.save(new Comentario(
+                "El Redmi Note 13 Pro+ tiene mejor relaciÃ³n calidad/precio. La cÃ¡mara de 200MP es una pasada para su rango.",
+                ofertaXiaomi, pedro));
 
-        comentarioRepository.save(new Comentario("RTX 4060 Ti para 1440p es una bestia. Muy buen precio aquÃ­.", ofertaRTX4060, carlos));
-        comentarioRepository.save(new Comentario("Â¿Merece la pena respecto a una 3080 de segunda mano?", ofertaRTX4060, maria));
+        comentarioRepository.save(
+                new Comentario("RTX 4060 Ti para 1440p es una bestia. Muy buen precio aquÃ­.", ofertaRTX4060, carlos));
+        comentarioRepository
+                .save(new Comentario("Â¿Merece la pena respecto a una 3080 de segunda mano?", ofertaRTX4060, maria));
 
-        // â”€â”€ 11. FAVORITOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        favoritoRepository.save(favoritoOferta(maria,    ofertaAirpods));
-        favoritoRepository.save(favoritoOferta(pedro,    ofertaWindows));
-        favoritoRepository.save(favoritoOferta(sofia,    ofertaRoombaIRobot));
-        favoritoRepository.save(favoritoOferta(andres,   ofertaNetflixTrial));
-        favoritoRepository.save(favoritoOferta(lucia,    ofertaNike));
-        favoritoRepository.save(favoritoOferta(elena,    ofertaPS5));
-        favoritoRepository.save(favoritoOferta(miguel,   ofertaRTX4060));
+        // â”€â”€ 11. FAVORITOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        favoritoRepository.save(favoritoOferta(maria, ofertaAirpods));
+        favoritoRepository.save(favoritoOferta(pedro, ofertaWindows));
+        favoritoRepository.save(favoritoOferta(sofia, ofertaRoombaIRobot));
+        favoritoRepository.save(favoritoOferta(andres, ofertaNetflixTrial));
+        favoritoRepository.save(favoritoOferta(lucia, ofertaNike));
+        favoritoRepository.save(favoritoOferta(elena, ofertaPS5));
+        favoritoRepository.save(favoritoOferta(miguel, ofertaRTX4060));
 
-        favoritoRepository.save(favoritoProducto(maria,   iphone14));
-        favoritoRepository.save(favoritoProducto(pedro,   macbookPro));
-        favoritoRepository.save(favoritoProducto(sofia,   sonyWH));
-        favoritoRepository.save(favoritoProducto(lucia,   nikeSneakers));
-        favoritoRepository.save(favoritoProducto(andres,  ps5Console));
-        favoritoRepository.save(favoritoProducto(elena,   bicicletaCarretera));
-        favoritoRepository.save(favoritoProducto(carlos,  sonyA7IV));
+        favoritoRepository.save(favoritoProducto(maria, iphone14));
+        favoritoRepository.save(favoritoProducto(pedro, macbookPro));
+        favoritoRepository.save(favoritoProducto(sofia, sonyWH));
+        favoritoRepository.save(favoritoProducto(lucia, nikeSneakers));
+        favoritoRepository.save(favoritoProducto(andres, ps5Console));
+        favoritoRepository.save(favoritoProducto(elena, bicicletaCarretera));
+        favoritoRepository.save(favoritoProducto(carlos, sonyA7IV));
 
-
-        // â”€â”€ 12. MENSAJES (chat legacy) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 12. MENSAJES (chat legacy)
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Mensaje msg1 = new Mensaje("Hola, Â¿sigue disponible el iPhone 14 Pro?", maria, iphone14);
         mensajeRepository.save(msg1);
         Mensaje msg2 = new Mensaje("SÃ­, totalmente disponible. Â¿CuÃ¡ndo quieres verlo?", carlos, iphone14);
         mensajeRepository.save(msg2);
         Mensaje msg3 = new Mensaje("Â¿Aceptas 700â‚¬? Es que el mercado ha bajado bastante.", maria, iphone14);
         mensajeRepository.save(msg3);
-        Mensaje msg4 = new Mensaje("Por 720â‚¬ lo dejo. Es el precio mÃ­nimo que acepto por el estado que tiene.", carlos, iphone14);
+        Mensaje msg4 = new Mensaje("Por 720â‚¬ lo dejo. Es el precio mÃ­nimo que acepto por el estado que tiene.",
+                carlos, iphone14);
         mensajeRepository.save(msg4);
 
         Mensaje msg5 = new Mensaje("Buenas, Â¿puedo ver la RTX 4070 Ti en persona?", elena, rtx4070);
@@ -1041,34 +1014,36 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         Mensaje msg6 = new Mensaje("Claro, estoy en Valencia. Â¿CuÃ¡ndo te viene bien?", pedro, rtx4070);
         mensajeRepository.save(msg6);
 
-        // â”€â”€ 13. CHAT MENSAJES (sistema nuevo con WebSocket) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 13. CHAT MENSAJES (sistema nuevo con WebSocket)
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ChatMensaje chat1 = chatTexto(iphone14, maria, carlos,
-            "Hola Carlos, Â¿sigues teniendo el iPhone 14 Pro? Me interesa mucho.", -120);
+                "Hola Carlos, Â¿sigues teniendo el iPhone 14 Pro? Me interesa mucho.", -120);
         ChatMensaje chat2 = chatTexto(iphone14, carlos, maria,
-            "SÃ­, aquÃ­ lo tengo. EstÃ¡ prÃ¡cticamente nuevo. Â¿Quieres que te mande mÃ¡s fotos?", -115);
+                "SÃ­, aquÃ­ lo tengo. EstÃ¡ prÃ¡cticamente nuevo. Â¿Quieres que te mande mÃ¡s fotos?", -115);
         ChatMensaje chat3 = chatPropuesta(iphone14, maria, carlos, 700.0, -110);
         ChatMensaje chat4 = chatTexto(iphone14, carlos, maria,
-            "La mÃ­nima que acepto es 720â‚¬. Tiene baterÃ­a al 97% y sin ningÃºn araÃ±azo.", -105);
+                "La mÃ­nima que acepto es 720â‚¬. Tiene baterÃ­a al 97% y sin ningÃºn araÃ±azo.", -105);
         ChatMensaje chat5 = chatTexto(iphone14, maria, carlos,
-            "Ok, trato hecho. Â¿CÃ³mo lo hacemos, envÃ­o o en persona?", -100);
+                "Ok, trato hecho. Â¿CÃ³mo lo hacemos, envÃ­o o en persona?", -100);
         ChatMensaje chat6 = chatTexto(iphone14, carlos, maria,
-            "Prefiero por Wallapop pero como estamos en Nexus lo hacemos aquÃ­. Te lo envÃ­o maÃ±ana.", -95);
+                "Prefiero por Wallapop pero como estamos en Nexus lo hacemos aquÃ­. Te lo envÃ­o maÃ±ana.", -95);
 
         ChatMensaje chat7 = chatTexto(ps5Console, andres, carlos,
-            "Buenas! Â¿La PS5 tiene problemas de ventilaciÃ³n o de sobrecalentamiento?", -200);
+                "Buenas! Â¿La PS5 tiene problemas de ventilaciÃ³n o de sobrecalentamiento?", -200);
         ChatMensaje chat8 = chatTexto(ps5Console, carlos, andres,
-            "Ninguno. Siempre la he tenido en vertical con buena ventilaciÃ³n. Sin ningÃºn problema.", -195);
+                "Ninguno. Siempre la he tenido en vertical con buena ventilaciÃ³n. Sin ningÃºn problema.", -195);
         ChatMensaje chat9 = chatTexto(ps5Console, andres, carlos,
-            "Â¿Los 3 juegos que incluyes son fÃ­sicos o digitales?", -190);
+                "Â¿Los 3 juegos que incluyes son fÃ­sicos o digitales?", -190);
         ChatMensaje chat10 = chatTexto(ps5Console, carlos, andres,
-            "Spider-Man 2 y Returnal son fÃ­sicos. Horizon FW es cÃ³digo digital.", -185);
+                "Spider-Man 2 y Returnal son fÃ­sicos. Horizon FW es cÃ³digo digital.", -185);
 
         ChatMensaje chat11 = chatTexto(macbookPro, sofia, pedro,
-            "Hola! Â¿El MacBook tiene alguna mancha en la pantalla o blemish en el aluminio?", -50);
+                "Hola! Â¿El MacBook tiene alguna mancha en la pantalla o blemish en el aluminio?", -50);
         ChatMensaje chat12 = chatTexto(macbookPro, pedro, sofia,
-            "Ninguna. Perfecto. Siempre con funda de cuero desde el primer dÃ­a.", -45);
+                "Ninguna. Perfecto. Siempre con funda de cuero desde el primer dÃ­a.", -45);
 
-        // â”€â”€ 14. COMPRAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 14. COMPRAS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Compra 1: COMPLETADA (iPhone 14 Pro - maria compra a carlos)
         Compra compra1 = new Compra();
         compra1.setComprador(maria);
@@ -1244,7 +1219,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             compraRepository.save(extra);
         }
 
-        // â”€â”€ 15. ENVÃOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 15. ENVÃOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // EnvÃ­o de compra1 (completada - iPhone 14 Pro)
         Envio envio1 = new Envio();
         envio1.setCompra(compra1);
@@ -1329,8 +1305,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         envio9.setFechaConfirmacionEntrega(LocalDateTime.now().minusDays(6));
         envio9.setStripePaymentIntentId("pi_3Qxyz1234ENTREGADO009");
         envioRepository.save(envio9);
-        
-     // --- GUARDAR FAVORITOS (Se crearon pero no se persistieron en el bloque 11) ---
+
+        // --- GUARDAR FAVORITOS (Se crearon pero no se persistieron en el bloque 11)
+        // ---
         favoritoRepository.save(favoritoOferta(maria, ofertaAirpods));
         favoritoRepository.save(favoritoOferta(pedro, ofertaWindows));
         favoritoRepository.save(favoritoOferta(sofia, ofertaRoombaIRobot));
@@ -1348,28 +1325,35 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         favoritoRepository.save(favoritoProducto(carlos, sonyA7IV));
 
         // --- GUARDAR CHAT MENSAJES (Sistema WebSocket - Bloque 13) ---
-        chatMensajeRepository.save(chatTexto(iphone14, maria, carlos, "Hola Carlos, Â¿sigues teniendo el iPhone 14 Pro?", -120));
-        chatMensajeRepository.save(chatTexto(iphone14, carlos, maria, "SÃ­, aquÃ­ lo tengo. EstÃ¡ prÃ¡cticamente nuevo.", -115));
+        chatMensajeRepository
+                .save(chatTexto(iphone14, maria, carlos, "Hola Carlos, Â¿sigues teniendo el iPhone 14 Pro?", -120));
+        chatMensajeRepository
+                .save(chatTexto(iphone14, carlos, maria, "SÃ­, aquÃ­ lo tengo. EstÃ¡ prÃ¡cticamente nuevo.", -115));
         chatMensajeRepository.save(chatPropuesta(iphone14, maria, carlos, 700.0, -110));
         chatMensajeRepository.save(chatTexto(iphone14, carlos, maria, "La mÃ­nima que acepto es 720â‚¬.", -105));
         chatMensajeRepository.save(chatTexto(iphone14, maria, carlos, "Ok, trato hecho.", -100));
 
-        chatMensajeRepository.save(chatTexto(ps5Console, andres, carlos, "Buenas! Â¿La PS5 tiene problemas de ventilaciÃ³n?", -200));
+        chatMensajeRepository
+                .save(chatTexto(ps5Console, andres, carlos, "Buenas! Â¿La PS5 tiene problemas de ventilaciÃ³n?", -200));
         chatMensajeRepository.save(chatTexto(ps5Console, carlos, andres, "Ninguno. Siempre en vertical.", -195));
 
-        chatMensajeRepository.save(chatTexto(macbookPro, sofia, pedro, "Â¿El MacBook tiene alguna mancha en la pantalla?", -50));
+        chatMensajeRepository
+                .save(chatTexto(macbookPro, sofia, pedro, "Â¿El MacBook tiene alguna mancha en la pantalla?", -50));
         chatMensajeRepository.save(chatTexto(macbookPro, pedro, sofia, "Ninguna. Perfecto.", -45));
 
-        // â”€â”€ 16. VALORACIONES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 16. VALORACIONES
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // ValoraciÃ³n de compra1 (maria â†’ carlos, 5 estrellas)
         Valoracion val1 = new Valoracion();
         val1.setComprador(maria);
         val1.setVendedor(carlos);
         val1.setCompra(compra1);
         val1.setPuntuacion(5);
-        val1.setComentario("Producto exactamente como se describÃ­a. EnvÃ­o rapidÃ­simo y bien embalado. Carlos es un vendedor de 10, recomiendo 100%.");
+        val1.setComentario(
+                "Producto exactamente como se describÃ­a. EnvÃ­o rapidÃ­simo y bien embalado. Carlos es un vendedor de 10, recomiendo 100%.");
         val1.setFecha(LocalDateTime.now().minusDays(26));
-        val1.setRespuestaVendedor("Â¡Gracias MarÃ­a! Ha sido un placer. Espero que disfrutes del iPhone. Â¡Hasta la prÃ³xima!");
+        val1.setRespuestaVendedor(
+                "Â¡Gracias MarÃ­a! Ha sido un placer. Espero que disfrutes del iPhone. Â¡Hasta la prÃ³xima!");
         val1.setFechaRespuesta(LocalDateTime.now().minusDays(25));
         valoracionRepository.save(val1);
 
@@ -1379,7 +1363,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         val2.setVendedor(carlos);
         val2.setCompra(compra2);
         val2.setPuntuacion(4);
-        val2.setComentario("La PS5 estaba tal como se describÃ­a. La entrega en persona fue puntual. Un punto menos porque el mando tenÃ­a el gatillo un poco duro.");
+        val2.setComentario(
+                "La PS5 estaba tal como se describÃ­a. La entrega en persona fue puntual. Un punto menos porque el mando tenÃ­a el gatillo un poco duro.");
         val2.setFecha(LocalDateTime.now().minusDays(18));
         valoracionRepository.save(val2);
 
@@ -1389,7 +1374,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         val3.setVendedor(carlos);
         val3.setCompra(compra9);
         val3.setPuntuacion(5);
-        val3.setComentario("El LG OLED impresionante. Carlos muy amable y puntual en la entrega. Sin duda volverÃ­a a comprarle.");
+        val3.setComentario(
+                "El LG OLED impresionante. Carlos muy amable y puntual en la entrega. Sin duda volverÃ­a a comprarle.");
         val3.setFecha(LocalDateTime.now().minusDays(5));
         val3.setRespuestaVendedor("Muchas gracias Pedro! Espero que lo disfrutes para el gaming, es una bestia.");
         val3.setFechaRespuesta(LocalDateTime.now().minusDays(5).plusHours(3));
@@ -1400,13 +1386,15 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         carlos.setTotalVentas(215);
         usuarioRepository.save(carlos);
 
-        // â”€â”€ 17. DEVOLUCIONES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 17. DEVOLUCIONES
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // DevoluciÃ³n compra5 (disputa RTX 4070 Ti)
         Devolucion dev1 = new Devolucion();
         dev1.setCompra(compra5);
         dev1.setEstado(EstadoDevolucion.SOLICITADA);
         dev1.setMotivo(MotivoDevolucion.PRODUCTO_NO_CORRESPONDE);
-        dev1.setDescripcion("La tarjeta grÃ¡fica tiene araÃ±azos en el backplate y el ventilador hace un ruido anÃ³malo que no se menciona en el anuncio. Solicito devoluciÃ³n o reducciÃ³n del precio.");
+        dev1.setDescripcion(
+                "La tarjeta grÃ¡fica tiene araÃ±azos en el backplate y el ventilador hace un ruido anÃ³malo que no se menciona en el anuncio. Solicito devoluciÃ³n o reducciÃ³n del precio.");
         dev1.setFechaSolicitud(LocalDateTime.now().minusDays(7));
         devolucionRepository.save(dev1);
 
@@ -1415,8 +1403,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         dev2.setCompra(compra7);
         dev2.setEstado(EstadoDevolucion.COMPLETADA);
         dev2.setMotivo(MotivoDevolucion.PRODUCTO_DEFECTUOSO);
-        dev2.setDescripcion("El Roomba no conecta con el WiFi y la baterÃ­a no carga correctamente. No funciona segÃºn lo descrito.");
-        dev2.setNotaVendedor("Entendido, aceptamos la devoluciÃ³n. EnvÃ­a el producto de vuelta con el embalaje original.");
+        dev2.setDescripcion(
+                "El Roomba no conecta con el WiFi y la baterÃ­a no carga correctamente. No funciona segÃºn lo descrito.");
+        dev2.setNotaVendedor(
+                "Entendido, aceptamos la devoluciÃ³n. EnvÃ­a el producto de vuelta con el embalaje original.");
         dev2.setTrackingDevolucion("CORREOS2024998877");
         dev2.setTransportistaDevolucion("Correos");
         dev2.setImporteDevolucion(320.0);
@@ -1424,12 +1414,14 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         dev2.setFechaResolucion(LocalDateTime.now().minusDays(18));
         devolucionRepository.save(dev2);
 
-        // â”€â”€ 18. REPORTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 18. REPORTES
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Reporte rep1 = new Reporte();
         rep1.setReportador(elena);
         rep1.setTipo(TipoReporte.OFERTA);
         rep1.setMotivo(MotivoReporte.SPAM);
-        rep1.setDescripcion("Esta oferta de Windows 11 estÃ¡ duplicada. Ya existe la misma oferta publicada hace 2 horas por el mismo usuario.");
+        rep1.setDescripcion(
+                "Esta oferta de Windows 11 estÃ¡ duplicada. Ya existe la misma oferta publicada hace 2 horas por el mismo usuario.");
         rep1.setEstado(EstadoReporte.RESUELTO);
         rep1.setOfertaDenunciada(ofertaWindows);
         rep1.setFecha(LocalDateTime.now().minusDays(5));
@@ -1441,7 +1433,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         rep2.setReportador(andres);
         rep2.setTipo(TipoReporte.PRODUCTO);
         rep2.setMotivo(MotivoReporte.FRAUDE);
-        rep2.setDescripcion("El vendedor afirma vender un iPhone 14 Pro pero en las fotos parece un clone chino. La pantalla no tiene las esquinas del iPhone original.");
+        rep2.setDescripcion(
+                "El vendedor afirma vender un iPhone 14 Pro pero en las fotos parece un clone chino. La pantalla no tiene las esquinas del iPhone original.");
         rep2.setEstado(EstadoReporte.EN_REVISION);
         rep2.setProductoDenunciado(iphone14);
         rep2.setFecha(LocalDateTime.now().minusDays(2));
@@ -1451,7 +1444,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         rep3.setReportador(sofia);
         rep3.setTipo(TipoReporte.USUARIO);
         rep3.setMotivo(MotivoReporte.ACOSO);
-        rep3.setDescripcion("Este usuario me ha enviado varios mensajes de acoso despuÃ©s de que no aceptÃ© su oferta de precio. Solicito que se tome medida.");
+        rep3.setDescripcion(
+                "Este usuario me ha enviado varios mensajes de acoso despuÃ©s de que no aceptÃ© su oferta de precio. Solicito que se tome medida.");
         rep3.setEstado(EstadoReporte.PENDIENTE);
         rep3.setActorDenunciado(miguel);
         rep3.setFecha(LocalDateTime.now().minusHours(6));
@@ -1461,11 +1455,13 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         rep4.setReportador(pedro);
         rep4.setTipo(TipoReporte.OFERTA);
         rep4.setMotivo(MotivoReporte.INFORMACION_FALSA);
-        rep4.setDescripcion("Esta oferta dice que el precio es mÃ­nimo histÃ³rico pero he encontrado precios mÃ¡s bajos en otras tiendas hace 3 semanas.");
+        rep4.setDescripcion(
+                "Esta oferta dice que el precio es mÃ­nimo histÃ³rico pero he encontrado precios mÃ¡s bajos en otras tiendas hace 3 semanas.");
         rep4.setEstado(EstadoReporte.DESESTIMADO);
         rep4.setOfertaDenunciada(ofertaRoombaIRobot);
         rep4.setFecha(LocalDateTime.now().minusDays(8));
-        rep4.setResolucion("Verificado el historial de precios. El precio publicado sÃ­ es mÃ­nimo histÃ³rico en Amazon segÃºn datos de CamelCamelCamel.");
+        rep4.setResolucion(
+                "Verificado el historial de precios. El precio publicado sÃ­ es mÃ­nimo histÃ³rico en Amazon segÃºn datos de CamelCamelCamel.");
         rep4.setFechaResolucion(LocalDateTime.now().minusDays(7));
         reporteRepository.save(rep4);
 
@@ -1473,7 +1469,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         rep5.setReportador(lucia);
         rep5.setTipo(TipoReporte.VEHICULO);
         rep5.setMotivo(MotivoReporte.FRAUDE);
-        rep5.setDescripcion("El vendedor asegura que el coche tiene 62.000 km pero he consultado el historial y aparece con 95.000 km hace 2 aÃ±os. Posible manipulaciÃ³n del cuentakilÃ³metros.");
+        rep5.setDescripcion(
+                "El vendedor asegura que el coche tiene 62.000 km pero he consultado el historial y aparece con 95.000 km hace 2 aÃ±os. Posible manipulaciÃ³n del cuentakilÃ³metros.");
         rep5.setEstado(EstadoReporte.PENDIENTE);
         rep5.setVehiculoDenunciado(bmw320d);
         rep5.setFecha(LocalDateTime.now().minusHours(18));
@@ -1483,12 +1480,14 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         rep6.setReportador(carlos);
         rep6.setTipo(TipoReporte.COMENTARIO);
         rep6.setMotivo(MotivoReporte.CONTENIDO_INAPROPIADO);
-        rep6.setDescripcion("Este comentario contiene lenguaje ofensivo y difamatorio hacia el vendedor sin fundamento.");
+        rep6.setDescripcion(
+                "Este comentario contiene lenguaje ofensivo y difamatorio hacia el vendedor sin fundamento.");
         rep6.setEstado(EstadoReporte.PENDIENTE);
         rep6.setFecha(LocalDateTime.now().minusHours(1));
         reporteRepository.save(rep6);
 
-        // â”€â”€ 19. BLOQUEOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 19. BLOQUEOS
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Bloqueo bloqueo1 = new Bloqueo();
         bloqueo1.setBloqueador(sofia);
         bloqueo1.setBloqueado(miguel);
@@ -1501,7 +1500,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         bloqueo2.setMotivo("IntentÃ³ hacer una compra falsa y cancelÃ³ sin motivo justo cuando iba a enviarlo.");
         bloqueoRepository.save(bloqueo2);
 
-        // â”€â”€ 20. NEWSLETTER SUSCRIPCIONES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 20. NEWSLETTER SUSCRIPCIONES
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // SuscripciÃ³n activa - carlos
         NewsletterSuscripcion news1 = new NewsletterSuscripcion();
         news1.setEmail(carlos.getEmail());
@@ -1600,52 +1600,62 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         news6.setVersionPolitica("1.0");
         newsletterRepository.save(news6);
 
-        // â”€â”€ 21. NOTIFICACIONES IN-APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â”€â”€ 21. NOTIFICACIONES IN-APP
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Para maria (compradora activa)
         notif(maria, TipoNotificacion.COMPRA_CONFIRMADA, "Compra confirmada",
-              "Tu compra del iPhone 14 Pro ha sido confirmada. El vendedor prepararÃ¡ el envÃ­o en breve.", "/compras", true, -30);
+                "Tu compra del iPhone 14 Pro ha sido confirmada. El vendedor prepararÃ¡ el envÃ­o en breve.",
+                "/compras", true, -30);
         notif(maria, TipoNotificacion.ENVIO_ACTUALIZADO, "Â¡Tu pedido estÃ¡ en camino!",
-              "Carlos ha enviado el iPhone 14 Pro. NÂº seguimiento: MRW2024001122334 (MRW)", "/compras", true, -29);
+                "Carlos ha enviado el iPhone 14 Pro. NÂº seguimiento: MRW2024001122334 (MRW)", "/compras", true, -29);
         notif(maria, TipoNotificacion.NUEVA_VALORACION, "ValoraciÃ³n recibida",
-              "Carlos ha respondido a tu valoraciÃ³n. Ve a verla en tu perfil.", "/perfil", true, -25);
+                "Carlos ha respondido a tu valoraciÃ³n. Ve a verla en tu perfil.", "/perfil", true, -25);
         notif(maria, TipoNotificacion.NUEVO_MENSAJE, "Nuevo mensaje de Carlos",
-              "Carlos: 'Muchas gracias MarÃ­a! La baterÃ­a estÃ¡ al 97%, ya verÃ¡s quÃ© pasada'", "/chat", false, -1);
+                "Carlos: 'Muchas gracias MarÃ­a! La baterÃ­a estÃ¡ al 97%, ya verÃ¡s quÃ© pasada'", "/chat", false, -1);
         notif(maria, TipoNotificacion.SPARK_EN_OFERTA, "Tu oferta de Xiaomi estÃ¡ en tendencia",
-              "La oferta 'Xiaomi Redmi Note 13 Pro+' ha recibido 67 Sparks en las Ãºltimas 2 horas.", "/ofertas", false, -2);
+                "La oferta 'Xiaomi Redmi Note 13 Pro+' ha recibido 67 Sparks en las Ãºltimas 2 horas.", "/ofertas",
+                false, -2);
 
         // Para carlos (vendedor activo)
         notif(carlos, TipoNotificacion.NUEVA_COMPRA, "Â¡Nueva venta! iPhone 14 Pro",
-              "MarÃ­a ha comprado tu iPhone 14 Pro por 725â‚¬. Prepara el envÃ­o lo antes posible.", "/ventas", true, -30);
+                "MarÃ­a ha comprado tu iPhone 14 Pro por 725â‚¬. Prepara el envÃ­o lo antes posible.", "/ventas", true,
+                -30);
         notif(carlos, TipoNotificacion.NUEVA_VALORACION, "Nueva valoraciÃ³n de 5 estrellas â­",
-              "MarÃ­a te ha valorado con 5 estrellas: 'Producto exactamente como se describÃ­a...'", "/perfil", true, -26);
+                "MarÃ­a te ha valorado con 5 estrellas: 'Producto exactamente como se describÃ­a...'", "/perfil", true,
+                -26);
         notif(carlos, TipoNotificacion.NUEVA_COMPRA, "Â¡Nueva venta! LG OLED 55\"",
-              "Pedro ha comprado tu LG OLED 55\" por 820â‚¬. Confirma la entrega en persona.", "/ventas", true, -7);
+                "Pedro ha comprado tu LG OLED 55\" por 820â‚¬. Confirma la entrega en persona.", "/ventas", true, -7);
         notif(carlos, TipoNotificacion.SISTEMA, "Verifica tu identidad",
-              "Para incrementar la confianza, verifica tu identidad subiendo tu DNI. Mejora tu reputaciÃ³n.", "/ajustes", false, -5);
+                "Para incrementar la confianza, verifica tu identidad subiendo tu DNI. Mejora tu reputaciÃ³n.",
+                "/ajustes", false, -5);
 
         // Para pedro (vendedor y comprador)
         notif(pedro, TipoNotificacion.DEVOLUCION, "Solicitud de devoluciÃ³n de LucÃ­a",
-              "LucÃ­a ha abierto una disputa sobre la RTX 4070 Ti. Tienes 48h para responder.", "/ventas", false, -7);
+                "LucÃ­a ha abierto una disputa sobre la RTX 4070 Ti. Tienes 48h para responder.", "/ventas", false, -7);
         notif(pedro, TipoNotificacion.NUEVO_MENSAJE, "Nuevo mensaje de SofÃ­a sobre el MacBook",
-              "SofÃ­a: 'Â¿El MacBook tiene alguna mancha en la pantalla?'", "/chat", true, -50);
+                "SofÃ­a: 'Â¿El MacBook tiene alguna mancha en la pantalla?'", "/chat", true, -50);
         notif(pedro, TipoNotificacion.ENVIO_ACTUALIZADO, "Pedido en trÃ¡nsito hacia Madrid",
-              "El MacBook Pro estÃ¡ en camino a SofÃ­a. NÃºmero de seguimiento: SEUR20241122334455", "/ventas", false, -2);
+                "El MacBook Pro estÃ¡ en camino a SofÃ­a. NÃºmero de seguimiento: SEUR20241122334455", "/ventas", false,
+                -2);
 
         // Para sofia (compradora)
         notif(sofia, TipoNotificacion.COMPRA_CONFIRMADA, "Pago procesado - MacBook Pro M2",
-              "Tu compra del MacBook Pro M2 ha sido confirmada. Pedro estÃ¡ preparando el envÃ­o.", "/compras", false, -3);
+                "Tu compra del MacBook Pro M2 ha sido confirmada. Pedro estÃ¡ preparando el envÃ­o.", "/compras", false,
+                -3);
         notif(sofia, TipoNotificacion.ENVIO_ACTUALIZADO, "El MacBook estÃ¡ en camino",
-              "Pedro ha enviado tu MacBook Pro. Seguimiento SEUR: SEUR20241122334455. LlegarÃ¡ maÃ±ana.", "/compras", false, -2);
+                "Pedro ha enviado tu MacBook Pro. Seguimiento SEUR: SEUR20241122334455. LlegarÃ¡ maÃ±ana.", "/compras",
+                false, -2);
 
         // Para elena (disputas)
         notif(elena, TipoNotificacion.SISTEMA, "Disputa abierta por LucÃ­a",
-              "Se ha abierto una disputa en la compra de la RTX 4070 Ti. El equipo de Nexus estÃ¡ revisando el caso.", "/ventas", false, -7);
+                "Se ha abierto una disputa en la compra de la RTX 4070 Ti. El equipo de Nexus estÃ¡ revisando el caso.",
+                "/ventas", false, -7);
 
         // Para andres (mensaje sin leer)
         notif(andres, TipoNotificacion.NUEVO_MENSAJE, "Mensaje de Carlos sobre la PS5",
-              "Carlos: 'Spider-Man 2 y Returnal son fÃ­sicos. Horizon FW es cÃ³digo digital.'", "/chat", false, -185);
+                "Carlos: 'Spider-Man 2 y Returnal son fÃ­sicos. Horizon FW es cÃ³digo digital.'", "/chat", false, -185);
         notif(andres, TipoNotificacion.NUEVA_VALORACION, "Has recibido una valoraciÃ³n",
-              "Revisa la valoraciÃ³n que has recibido de Carlos en tu perfil de vendedor.", "/perfil", true, -18);
+                "Revisa la valoraciÃ³n que has recibido de Carlos en tu perfil de vendedor.", "/perfil", true, -18);
 
         System.out.println("=== PopulateDB completado con Ã©xito ===");
         System.out.println("  - CategorÃ­as:    " + categoriaRepository.count());
@@ -1668,9 +1678,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         System.out.println("  - Contratos:     " + contratoRepository.count());
         System.out.println("  - Newsletter:    " + newsletterRepository.count());
         System.out.println("  - Notificaciones:" + notificacionRepository.count());
-        
-// --- PERSISTENCIA FINAL PARA LIMPIAR WARNINGS Y ASEGURAR GUARDADO ---
-        
+
+        // --- PERSISTENCIA FINAL PARA LIMPIAR WARNINGS Y ASEGURAR GUARDADO ---
+
         // Productos
         productoRepository.save(iphone14);
         productoRepository.save(samsungS23);
@@ -1707,7 +1717,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
         // Ofertas y Chats
         ofertaRepository.save(ofertaLego);
-        
+
         chatMensajeRepository.save(chat1);
         chatMensajeRepository.save(chat2);
         chatMensajeRepository.save(chat3);
@@ -1735,24 +1745,26 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** CategorÃ­a idempotente por slug con actualizaciÃ³n de icono/color. */
     private Categoria cat(String nombre, String slug, String icono, String color,
-                           Categoria parent, int orden) {
+            Categoria parent, int orden) {
         Categoria c = categoriaRepository.findBySlug(slug).orElse(new Categoria(nombre, slug, icono));
         c.setNombre(nombre);
         c.setIcono(icono);
         c.setColor(color);
         c.setOrden(orden);
         c.setActiva(true);
-        if (parent != null) c.setParent(parent);
+        if (parent != null)
+            c.setParent(parent);
         return categoriaRepository.save(c);
     }
 
     /** Crea y persiste un Usuario completo. */
     private Usuario usuario(String user, String email, String ubicacion,
-                             String bio, double reputacion, int totalVentas, boolean verificado) {
+            String bio, double reputacion, int totalVentas, boolean verificado) {
         Usuario u = usuarioRepository.findByUsername(user).orElse(new Usuario());
         u.setUser(user);
         u.setEmail(email);
-        if (u.getId() == null) u.setPassword(passwordEncoder.encode("Password123!"));
+        if (u.getId() == null)
+            u.setPassword(passwordEncoder.encode("Password123!"));
         u.setCuentaVerificada(true);
         u.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + user);
         u.setBiografia(bio);
@@ -1768,10 +1780,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** Crea y persiste un Producto. */
     private Producto producto(String titulo, String descripcion, Double precio,
-                               TipoOferta tipo, Actor vendedor, Categoria categoria,
-                               String marca, String modelo, CondicionProducto condicion,
-                               boolean admiteEnvio, Double precioEnvio,
-                               boolean negociable, String ubicacion, String imagen) {
+            TipoOferta tipo, Actor vendedor, Categoria categoria,
+            String marca, String modelo, CondicionProducto condicion,
+            boolean admiteEnvio, Double precioEnvio,
+            boolean negociable, String ubicacion, String imagen) {
         Producto p = new Producto(titulo, descripcion, precio, tipo, vendedor, imagen);
         p.setCategoria(categoria);
         p.setMarca(marca);
@@ -1787,12 +1799,12 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** Crea y persiste un VehÃ­culo. */
     private Vehiculo vehiculo(String titulo, String descripcion, Double precio,
-                               TipoVehiculo tipoVehiculo, Actor publicador, Categoria categoria,
-                               String marca, String modelo, Integer anio, Integer km,
-                               String combustible, String cambio, Integer potencia,
-                               Integer cilindrada, String color, Integer numPuertas,
-                               Integer plazas, String matricula, Boolean itv, Boolean garantia,
-                               String ubicacion, String imagen) {
+            TipoVehiculo tipoVehiculo, Actor publicador, Categoria categoria,
+            String marca, String modelo, Integer anio, Integer km,
+            String combustible, String cambio, Integer potencia,
+            Integer cilindrada, String color, Integer numPuertas,
+            Integer plazas, String matricula, Boolean itv, Boolean garantia,
+            String ubicacion, String imagen) {
         Vehiculo v = new Vehiculo();
         v.setTitulo(titulo);
         v.setDescripcion(descripcion);
@@ -1827,9 +1839,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
      * Sobrecarga para fecha de expiraciÃ³n LocalDateTime directa.
      */
     private Oferta oferta(String titulo, String descripcion, Double precio, Double original,
-                           String tienda, String url, Categoria cat, Actor actor,
-                           BadgeOferta badge, LocalDateTime fechaExpiracion, String imagen,
-                           int sparks, int drips, int vistas, int compartidos) {
+            String tienda, String url, Categoria cat, Actor actor,
+            BadgeOferta badge, LocalDateTime fechaExpiracion, String imagen,
+            int sparks, int drips, int vistas, int compartidos) {
         Oferta o = new Oferta();
         o.setTitulo(titulo);
         o.setDescripcion(descripcion);
@@ -1847,18 +1859,20 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         o.setEsActiva(true);
         o.setBadge(badge);
         o.setFechaPublicacion(LocalDateTime.now().minusHours(Math.abs(sparks % 72) + 1));
-        if (fechaExpiracion != null) o.setFechaExpiracion(fechaExpiracion);
+        if (fechaExpiracion != null)
+            o.setFechaExpiracion(fechaExpiracion);
         return ofertaRepository.save(o);
     }
 
     /**
      * Sobrecarga con horasAtras negativas para fecha de publicaciÃ³n.
-     * Si horasAtras > 0 es minusHours, si == COLLAZO_ALIAS (especial) usa el badge dado.
+     * Si horasAtras > 0 es minusHours, si == COLLAZO_ALIAS (especial) usa el badge
+     * dado.
      */
     private Oferta oferta(String titulo, String descripcion, Double precio, Double original,
-                           String tienda, String url, Categoria cat, Actor actor,
-                           BadgeOferta badge, long horasAtrasPublicacion, String imagen,
-                           int sparks, int drips, int vistas, int compartidos) {
+            String tienda, String url, Categoria cat, Actor actor,
+            BadgeOferta badge, long horasAtrasPublicacion, String imagen,
+            int sparks, int drips, int vistas, int compartidos) {
         Oferta o = new Oferta();
         o.setTitulo(titulo);
         o.setDescripcion(descripcion);
@@ -1882,7 +1896,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** ChatMensaje de tipo TEXTO. */
     private ChatMensaje chatTexto(Producto producto, Usuario remitente, Usuario receptor,
-                                   String texto, long minutosAtras) {
+            String texto, long minutosAtras) {
         ChatMensaje m = new ChatMensaje();
         m.setProducto(producto);
         m.setRemitente(remitente);
@@ -1896,7 +1910,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** ChatMensaje de tipo OFERTA_PRECIO (propuesta). */
     private ChatMensaje chatPropuesta(Producto producto, Usuario remitente, Usuario receptor,
-                                       Double precio, long minutosAtras) {
+            Double precio, long minutosAtras) {
         ChatMensaje m = new ChatMensaje();
         m.setProducto(producto);
         m.setRemitente(remitente);
@@ -1928,7 +1942,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
     /** NotificaciÃ³n in-app. */
     private void notif(Usuario actor, TipoNotificacion tipo, String titulo, String mensaje,
-                        String url, boolean leida, long horasAtras) {
+            String url, boolean leida, long horasAtras) {
         NotificacionInApp n = new NotificacionInApp();
         n.setActor(actor);
         n.setTipo(tipo);
@@ -1936,11 +1950,12 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         n.setMensaje(mensaje);
         n.setUrl(url);
         n.setLeida(leida);
-        
+
         // Calculamos la fecha en base al offset de horas que pasamos por parÃ¡metro
-        // (Como le pasas valores negativos en la invocaciÃ³n como -30, -29, etc., plusHours restarÃ¡ ese tiempo)
+        // (Como le pasas valores negativos en la invocaciÃ³n como -30, -29, etc.,
+        // plusHours restarÃ¡ ese tiempo)
         n.setFecha(LocalDateTime.now().plusHours(horasAtras));
-        
+
         notificacionRepository.save(n);
     }
 }

@@ -26,7 +26,7 @@ public class MarketplaceSearchService {
 
     @Autowired
     private VehiculoService vehiculoService;
-    
+
     @Autowired
     private CategoriaService categoriaService;
 
@@ -73,15 +73,19 @@ public class MarketplaceSearchService {
         }
 
         // 1. Patrocinados (Inyección Proactiva)
-        List<Map<String, Object>> sponsoredItems = fetchSponsoredItems(q, tipo, categorySlugs, precioMin, precioMax, minLat, maxLat, minLng, maxLng);
+        List<Map<String, Object>> sponsoredItems = fetchSponsoredItems(q, tipo, categorySlugs, precioMin, precioMax,
+                minLat, maxLat, minLng, maxLng);
 
         // Construir Sort para los sub-servicios
-        org.springframework.data.domain.Sort subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
-        
+        org.springframework.data.domain.Sort subSort = org.springframework.data.domain.Sort
+                .by(org.springframework.data.domain.Sort.Direction.DESC, "fechaPublicacion");
+
         if ("precio_asc".equalsIgnoreCase(orden)) {
-            subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "precio");
+            subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC,
+                    "precio");
         } else if ("precio_desc".equalsIgnoreCase(orden)) {
-            subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "precio");
+            subSort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,
+                    "precio");
         }
 
         PageRequest subPage = PageRequest.of(pageable.getPageNumber(), sizePerType, subSort);
@@ -103,11 +107,9 @@ public class MarketplaceSearchService {
         // 2. Buscar Ofertas
         Page<Oferta> paginaOfertas = Page.empty();
         if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "OFERTA".equalsIgnoreCase(tipo)) {
-            // Usar la lista completa de slugs para ofertas también
-            String catForSpec = categorySlugs.isEmpty() ? null : String.join(",", categorySlugs);
             paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
-                catForSpec, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
-                minLat, maxLat, minLng, maxLng, subPage);
+                    categoria, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
+                    minLat, maxLat, minLng, maxLng, subPage);
         }
 
         // 3. Buscar Productos
@@ -116,14 +118,15 @@ public class MarketplaceSearchService {
             // Pasamos null si no hay slugs para que no filtre
             String catForSpec = categorySlugs.isEmpty() ? null : String.join(",", categorySlugs);
             paginaProductos = productoService.buscarConFiltrosPaginado(
-                catForSpec, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
-                minLat, maxLat, minLng, maxLng, subPage);
+                    catForSpec, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
+                    minLat, maxLat, minLng, maxLng, subPage);
         }
 
         // 4. Buscar Vehículos
         boolean esCategoriaVehiculo = false;
         if (categoria != null && !categoria.isBlank()) {
-            List<String> slugsMotor = List.of("motor", "vehiculos", "coches", "motos", "furgonetas", "caravanas", "otros-vehiculos", "scooters");
+            List<String> slugsMotor = List.of("motor", "vehiculos", "coches", "motos", "furgonetas", "caravanas",
+                    "otros-vehiculos", "scooters");
             esCategoriaVehiculo = slugsMotor.contains(categoria.toLowerCase());
         }
 
@@ -131,7 +134,8 @@ public class MarketplaceSearchService {
         if ((tipo == null || "TODOS".equalsIgnoreCase(tipo) || "VEHICULO".equalsIgnoreCase(tipo))) {
             if (esCategoriaVehiculo || (categoria == null || categoria.isBlank())) {
                 paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
-                        null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null, null,
+                        null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null,
+                        null,
                         null, null,
                         minLat, maxLat, minLng, maxLng, subPage);
             }
@@ -147,7 +151,8 @@ public class MarketplaceSearchService {
             m.put("imagenPrincipal", o.getImagenPrincipal());
             m.put("precioOriginal", o.getPrecioOriginal() != null ? o.getPrecioOriginal() : 0);
             m.put("precioOferta", o.getPrecioOferta() != null ? o.getPrecioOferta() : 0);
-            m.put("precio", o.getPrecioOferta() != null ? o.getPrecioOferta() : (o.getPrecioOriginal() != null ? o.getPrecioOriginal() : 0));
+            m.put("precio", o.getPrecioOferta() != null ? o.getPrecioOferta()
+                    : (o.getPrecioOriginal() != null ? o.getPrecioOriginal() : 0));
             m.put("fechaPublicacion", o.getFechaPublicacion());
             m.put("searchType", "OFERTA");
             m.put("ubicacion", o.getCiudadOferta());
@@ -256,11 +261,13 @@ public class MarketplaceSearchService {
                 "size", pageable.getPageSize());
     }
 
-    private List<Map<String, Object>> fetchSponsoredItems(String q, String tipo, List<String> categorySlugs, Double precioMin, Double precioMax,
-                                                           Double minLat, Double maxLat, Double minLng, Double maxLng) {
+    private List<Map<String, Object>> fetchSponsoredItems(String q, String tipo, List<String> categorySlugs,
+            Double precioMin, Double precioMax,
+            Double minLat, Double maxLat, Double minLng, Double maxLng) {
         List<Map<String, Object>> sponsored = new ArrayList<>();
-        
-        // Si se pide específicamente algo que no sea productos, no devolvemos patrocinados (que son productos)
+
+        // Si se pide específicamente algo que no sea productos, no devolvemos
+        // patrocinados (que son productos)
         if (tipo != null && !"TODOS".equalsIgnoreCase(tipo) && !"PRODUCTO".equalsIgnoreCase(tipo)) {
             return sponsored;
         }
@@ -274,17 +281,23 @@ public class MarketplaceSearchService {
                         if (p.getEstado() == com.nexus.entity.EstadoProducto.DISPONIBLE) {
                             // Filtro de precio (¡CRÍTICO!)
                             double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
-                            if ((precioMin == null || precio >= precioMin) && (precioMax == null || precio <= precioMax)) {
+                            if ((precioMin == null || precio >= precioMin)
+                                    && (precioMax == null || precio <= precioMax)) {
                                 // Filtro básico de query si existe
                                 if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
                                     // Filtro de categoría si existe
-                                    boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null && categorySlugs.contains(p.getCategoria().getSlug()));
+                                    boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null
+                                            && categorySlugs.contains(p.getCategoria().getSlug()));
                                     if (matchCat) {
                                         // Filtro geográfico
                                         boolean inRange = true;
-                                        if (minLat != null && p.getLatitude() != null && (p.getLatitude() < minLat || p.getLatitude() > maxLat)) inRange = false;
-                                        if (minLng != null && p.getLongitude() != null && (p.getLongitude() < minLng || p.getLongitude() > maxLng)) inRange = false;
-                                        
+                                        if (minLat != null && p.getLatitude() != null
+                                                && (p.getLatitude() < minLat || p.getLatitude() > maxLat))
+                                            inRange = false;
+                                        if (minLng != null && p.getLongitude() != null
+                                                && (p.getLongitude() < minLng || p.getLongitude() > maxLng))
+                                            inRange = false;
+
                                         if (inRange) {
                                             sponsored.add(transformToMap(p));
                                         }
@@ -300,21 +313,24 @@ public class MarketplaceSearchService {
             List<Producto> pPatrocinados = productoRepository.findByEstado(com.nexus.entity.EstadoProducto.DISPONIBLE);
             for (Producto p : pPatrocinados) {
                 if (p.getPatrocinado()) {
-                     if (sponsored.size() < 5) { // Un máximo de 5 patrocinados por flag
-                         boolean alreadyIn = sponsored.stream().anyMatch(it -> it.get("id").equals(p.getId()) && "PRODUCTO".equals(it.get("searchType")));
-                         if (!alreadyIn) {
-                             // Filtro de precio
-                             double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
-                             if ((precioMin == null || precio >= precioMin) && (precioMax == null || precio <= precioMax)) {
-                                 if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
-                                     boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null && categorySlugs.contains(p.getCategoria().getSlug()));
-                                     if (matchCat) {
-                                         sponsored.add(transformToMap(p));
-                                     }
-                                 }
-                             }
-                         }
-                     }
+                    if (sponsored.size() < 5) { // Un máximo de 5 patrocinados por flag
+                        boolean alreadyIn = sponsored.stream().anyMatch(
+                                it -> it.get("id").equals(p.getId()) && "PRODUCTO".equals(it.get("searchType")));
+                        if (!alreadyIn) {
+                            // Filtro de precio
+                            double precio = p.getPrecio() != null ? p.getPrecio() : 0.0;
+                            if ((precioMin == null || precio >= precioMin)
+                                    && (precioMax == null || precio <= precioMax)) {
+                                if (q == null || q.isBlank() || p.getTitulo().toLowerCase().contains(q.toLowerCase())) {
+                                    boolean matchCat = categorySlugs.isEmpty() || (p.getCategoria() != null
+                                            && categorySlugs.contains(p.getCategoria().getSlug()));
+                                    if (matchCat) {
+                                        sponsored.add(transformToMap(p));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
