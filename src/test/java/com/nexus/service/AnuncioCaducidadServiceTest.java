@@ -55,7 +55,7 @@ class AnuncioCaducidadServiceTest {
 
         anuncioCaducidadService.ejecutarDiario();
 
-        verify(productoRepository).save(argThat(pr -> pr.getEstado() == EstadoProducto.EXPIRADO));
+        verify(productoRepository).save(argThat((Producto pr) -> pr.getEstado() == EstadoProducto.EXPIRADO));
     }
 
     @Test
@@ -71,7 +71,7 @@ class AnuncioCaducidadServiceTest {
 
         anuncioCaducidadService.ejecutarDiario();
 
-        verify(vehiculoRepository).save(argThat(vh -> vh.getEstadoVehiculo() == EstadoVehiculo.EXPIRADO));
+        verify(vehiculoRepository).save(argThat((Vehiculo vh) -> vh.getEstadoVehiculo() == EstadoVehiculo.EXPIRADO));
     }
 
     @Test
@@ -88,7 +88,7 @@ class AnuncioCaducidadServiceTest {
 
         anuncioCaducidadService.ejecutarDiario();
 
-        verify(productoRepository).save(argThat(pr -> pr.getFechaCaducidad() != null
+        verify(productoRepository).save(argThat((Producto pr) -> pr.getFechaCaducidad() != null
                 && pr.getFechaCaducidad().equals(pub.plusDays(180))));
         assertEquals(EstadoProducto.DISPONIBLE, p.getEstado());
     }
