@@ -147,8 +147,14 @@ public class UsuarioService implements UserDetailsService {
 
         GoogleIdToken.Payload p = t.getPayload();
         String email = p.getEmail();
-        String nombre = (String) p.get("given_name");
+        String nombreRaw = (String) p.get("name");
+        String nombre = (nombreRaw != null) ? nombreRaw : (String) p.get("given_name");
         String foto = (String) p.get("picture");
+        
+        if (foto == null || foto.trim().isEmpty()) {
+            foto = (String) p.get("thumbnailUrl"); // Otra opción común
+        }
+
         if (foto == null || foto.trim().isEmpty()) {
             String baseName = nombre != null ? nombre : email.split("@")[0];
             foto = "https://ui-avatars.com/api/?name="

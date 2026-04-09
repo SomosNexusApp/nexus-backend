@@ -637,10 +637,6 @@ public class UsuarioController {
                 dispTemp = "Apple iPad";
             else if (userAgent.contains("Android"))
                 dispTemp = "Móvil Android";
-            if (userAgent.contains("Chrome"))
-                dispTemp += " (Chrome)";
-            else if (userAgent.contains("Safari") && !userAgent.contains("Chrome"))
-                dispTemp += " (Safari)";
         }
         final String dispositivoActual = dispTemp;
 
@@ -669,7 +665,13 @@ public class UsuarioController {
 
             Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", s.getId());
-            map.put("dispositivo", s.getDispositivo() != null ? s.getDispositivo() : "Desconocido");
+            
+            String disp = s.getDispositivo() != null ? s.getDispositivo() : "Desconocido";
+            if (disp.contains("(")) {
+                disp = disp.substring(0, disp.indexOf("(")).trim();
+            }
+            map.put("dispositivo", disp);
+            
             map.put("ip", s.getIp());
             map.put("fechaLogin", s.getFechaLogin());
             map.put("actual", esActual);

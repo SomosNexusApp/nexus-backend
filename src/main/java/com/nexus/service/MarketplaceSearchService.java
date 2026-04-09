@@ -159,11 +159,21 @@ public class MarketplaceSearchService {
             m.put("latitude", o.getLatitude());
             m.put("longitude", o.getLongitude());
             m.put("esOnline", o.getEsOnline());
+            m.put("tienda", o.getTienda());
+            m.put("urlOferta", o.getUrlOferta());
+            m.put("urlExterna", o.getUrlOferta());
+            m.put("numeroComentarios", o.getNumeroComentarios());
             if (o.getCategoria() != null) {
                 Map<String, Object> catMap = new java.util.HashMap<>();
                 catMap.put("nombre", o.getCategoria().getNombre());
                 catMap.put("slug", o.getCategoria().getSlug());
                 m.put("categoria", catMap);
+            }
+            if (o.getActor() != null) {
+                Map<String, Object> vendMap = new java.util.HashMap<>();
+                vendMap.put("nombre", o.getActor().getNombre() != null ? o.getActor().getNombre() : o.getActor().getUser());
+                vendMap.put("verificado", o.getActor().isCuentaVerificada());
+                m.put("vendedor", vendMap);
             }
             if (o.getMiVoto() != null)
                 m.put("miVoto", o.getMiVoto());
