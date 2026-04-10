@@ -22,16 +22,21 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
        List<ChatMensaje> findByProductoId(Integer productoId);
 
        @EntityGraph(attributePaths = { "remitente", "receptor", "producto", "producto.vendedor", "producto.categoria" })
-       @Query("SELECT m FROM ChatMensaje m WHERE m.roomId = ?1 ORDER BY m.fechaEnvio ASC")
-       List<ChatMensaje> findByRoomId(String roomId);
+       @Query("SELECT m FROM ChatMensaje m WHERE m.roomId = ?1 " +
+                     "AND ((m.remitente.id = ?2 AND (m.eliminadoParaRemitente IS NULL OR m.eliminadoParaRemitente = false)) " +
+                     "OR (m.receptor.id = ?2 AND (m.eliminadoParaReceptor IS NULL OR m.eliminadoParaReceptor = false))) " +
+                     "ORDER BY m.fechaEnvio ASC")
+       List<ChatMensaje> findByRoomId(String roomId, Integer requesterId);
 
        // Historial entre dos usuarios sobre un producto/room
        @EntityGraph(attributePaths = { "remitente", "receptor", "producto", "producto.vendedor", "producto.categoria" })
        @Query("SELECT m FROM ChatMensaje m WHERE m.roomId = ?1 " +
                      "AND ((m.remitente.id = ?2 AND m.receptor.id = ?3) " +
                      "OR (m.remitente.id = ?3 AND m.receptor.id = ?2)) " +
+                     "AND ((m.remitente.id = ?4 AND (m.eliminadoParaRemitente IS NULL OR m.eliminadoParaRemitente = false)) " +
+                     "OR (m.receptor.id = ?4 AND (m.eliminadoParaReceptor IS NULL OR m.eliminadoParaReceptor = false))) " +
                      "ORDER BY m.fechaEnvio ASC")
-       List<ChatMensaje> findConversacion(String roomId, Integer usuario1Id, Integer usuario2Id);
+       List<ChatMensaje> findConversacion(String roomId, Integer usuario1Id, Integer usuario2Id, Integer requesterId);
 
        // Mensajes no leídos de un usuario
        @Query("SELECT m FROM ChatMensaje m WHERE m.receptor.id = ?1 AND m.leido = false ORDER BY m.fechaEnvio DESC")
@@ -66,8 +71,10 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
        @Query("SELECT m FROM ChatMensaje m WHERE m.roomId IN " +
                      "(SELECT DISTINCT m2.roomId FROM ChatMensaje m2 WHERE m2.remitente.id = ?1 OR m2.receptor.id = ?1) "
                      +
-                     "AND m.fechaEnvio = (SELECT MAX(m3.fechaEnvio) FROM ChatMensaje m3 WHERE m3.roomId = m.roomId) "
+                     "AND m.fechaEnvio = (SELECT MAX(m3.fechaEnvio) FROM ChatMensaje m3 WHERE m3.roomId = m.roomId " +
+                     "AND ((m3.remitente.id = ?1 AND (m3.eliminadoParaRemitente IS NULL OR m3.eliminadoParaRemitente = false)) OR (m3.receptor.id = ?1 AND (m3.eliminadoParaReceptor IS NULL OR m3.eliminadoParaReceptor = false)))) "
                      +
+                     "AND ((m.remitente.id = ?1 AND (m.eliminadoParaRemitente IS NULL OR m.eliminadoParaRemitente = false)) OR (m.receptor.id = ?1 AND (m.eliminadoParaReceptor IS NULL OR m.eliminadoParaReceptor = false))) " +
                      "ORDER BY m.fechaEnvio DESC")
        List<ChatMensaje> findUltimosMensajesPorUsuario(Integer usuarioId);
 

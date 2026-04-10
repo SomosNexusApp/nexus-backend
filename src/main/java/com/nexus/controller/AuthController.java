@@ -109,18 +109,26 @@ public class AuthController {
             
             // MECANISMO DE EMERGENCIA: Si es un intento que huele a admin, sincronizamos la pass
             if (rawUsername.toLowerCase().contains("admin")) {
-                System.out.println("[AUTH] !!! Detectado fallo en admin. Forzando sincronización de 'Admin2026!' para 'admin' y 'admin@nexus.test'");
+                System.out.println("[AUTH] !!! Detectado fallo en admin. Forzando sincronización de 'Admin1234!' para los perfiles administrativos...");
+                
+                String pass = passwordEncoder.encode("Admin1234!");
+
+                actorRepository.findByUsername("nexusadmin").ifPresent(a -> {
+                    a.setPassword(pass);
+                    actorRepository.save(a);
+                    System.out.println("[AUTH] Sincronizado user 'nexusadmin'");
+                });
                 
                 actorRepository.findByUsername("admin").ifPresent(a -> {
-                    a.setPassword(passwordEncoder.encode("Admin2026!"));
+                    a.setPassword(pass);
                     actorRepository.save(a);
                     System.out.println("[AUTH] Sincronizado user 'admin'");
                 });
                 
-                actorRepository.findByEmail("admin@nexus.test").ifPresent(a -> {
-                    a.setPassword(passwordEncoder.encode("Admin2026!"));
+                actorRepository.findByEmail("admin@nexus.app").ifPresent(a -> {
+                    a.setPassword(pass);
                     actorRepository.save(a);
-                    System.out.println("[AUTH] Sincronizado email 'admin@nexus.test'");
+                    System.out.println("[AUTH] Sincronizado email 'admin@nexus.app'");
                 });
             }
             

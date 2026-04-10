@@ -145,7 +145,6 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         if (done || actorRepository.count() > 0) {
             // --- INYECCIÓN BAJO DEMANDA DE MODA FALTANTE ---
             if (productoRepository.findByTitulo("Chaqueta de Cuero Biker Premium - AllSaints").isEmpty()) {
-                System.out.println("=== PopulateDB: Inyectando moda faltante ===");
                 Usuario lucia_fashion = usuarioRepository.findByUsername("lucia_moda")
                         .orElseGet(() -> usuario("lucia_moda", "lucia@moda.com", "Sevilla",
                                 "Apasionada de la moda y el estilo.", 4.8, 12, true));
@@ -1265,8 +1264,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         envio3.setPais("EspaÃ±a");
         envio3.setTelefono("600555666");
         envio3.setTransportista("SEUR");
-        envio3.setNumeroSeguimiento("SEUR20241122334455");
-        envio3.setUrlSeguimiento("https://www.seur.com/seguimiento/?ref=SEUR20241122334455");
+        envio3.setNumeroSeguimiento("SEUR-PROBAR-123");
+        envio3.setUrlSeguimiento("https://www.google.com");
         envio3.setPrecioEnvio(15.0);
         envio3.setFechaEnvio(LocalDateTime.now().minusDays(2));
         envio3.setFechaEstimadaEntrega(LocalDateTime.now().plusDays(1));

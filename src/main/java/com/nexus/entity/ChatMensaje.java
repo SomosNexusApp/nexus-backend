@@ -55,6 +55,9 @@ public class ChatMensaje extends DomainEntity {
     private Double precioPropuesto;
     private String estadoPropuesta;
 
+    private Boolean eliminadoParaRemitente = false;
+    private Boolean eliminadoParaReceptor = false;
+
     public ChatMensaje() {
         super();
         this.fechaEnvio = LocalDateTime.now();
@@ -171,5 +174,21 @@ public class ChatMensaje extends DomainEntity {
 
     public void setRoomId(String r) {
         this.roomId = r;
+    }
+
+    public Boolean getEliminadoParaRemitente() {
+        return eliminadoParaRemitente != null && eliminadoParaRemitente;
+    }
+
+    public void setEliminadoParaRemitente(Boolean eliminadoParaRemitente) {
+        this.eliminadoParaRemitente = eliminadoParaRemitente;
+    }
+
+    public Boolean getEliminadoParaReceptor() {
+        return eliminadoParaReceptor != null && eliminadoParaReceptor;
+    }
+
+    public void setEliminadoParaReceptor(Boolean eliminadoParaReceptor) {
+        this.eliminadoParaReceptor = eliminadoParaReceptor;
     }
 }

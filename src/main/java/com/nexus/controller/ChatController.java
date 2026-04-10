@@ -34,8 +34,8 @@ public class ChatController {
     private NotificacionService notificacionService;
 
     @GetMapping("/historial/{roomId}")
-    public ResponseEntity<List<ChatMensaje>> historial(@PathVariable String roomId) {
-        return ResponseEntity.ok(chatService.getHistorial(roomId));
+    public ResponseEntity<List<ChatMensaje>> historial(@PathVariable String roomId, @RequestParam Integer requesterId) {
+        return ResponseEntity.ok(chatService.getHistorial(roomId, requesterId));
     }
 
     /**
@@ -79,8 +79,8 @@ public class ChatController {
 
     @GetMapping("/conversacion/{roomId}")
     public ResponseEntity<List<ChatMensaje>> conversacion(@PathVariable String roomId,
-            @RequestParam Integer usuario1Id, @RequestParam Integer usuario2Id) {
-        return ResponseEntity.ok(chatService.getConversacion(roomId, usuario1Id, usuario2Id));
+            @RequestParam Integer usuario1Id, @RequestParam Integer usuario2Id, @RequestParam Integer requesterId) {
+        return ResponseEntity.ok(chatService.getConversacion(roomId, usuario1Id, usuario2Id, requesterId));
     }
 
     @GetMapping("/conversaciones/{usuarioId}")
@@ -204,5 +204,15 @@ public class ChatController {
             @RequestParam Integer compradorId) {
         Double precio = chatService.getPrecioNegociado(productoId, compradorId);
         return ResponseEntity.ok(Map.of("precio", precio != null ? precio : 0));
+    }
+
+    @DeleteMapping("/mensaje/{mensajeId}/eliminar")
+    public ResponseEntity<?> eliminarMensaje(@PathVariable Integer mensajeId, @RequestParam Integer usuarioId) {
+        try {
+            chatService.eliminarMensajeParaUsuario(mensajeId, usuarioId);
+            return ResponseEntity.ok(Map.of("mensaje", "Mensaje eliminado para el usuario"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

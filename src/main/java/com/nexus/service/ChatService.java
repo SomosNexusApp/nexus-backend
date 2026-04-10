@@ -143,12 +143,12 @@ public class ChatService {
         return chatMensajeRepository.save(msg);
     }
 
-    public List<ChatMensaje> getHistorial(String roomId) {
-        return chatMensajeRepository.findByRoomId(roomId);
+    public List<ChatMensaje> getHistorial(String roomId, Integer requesterId) {
+        return chatMensajeRepository.findByRoomId(roomId, requesterId);
     }
 
-    public List<ChatMensaje> getConversacion(String roomId, Integer u1, Integer u2) {
-        return chatMensajeRepository.findConversacion(roomId, u1, u2);
+    public List<ChatMensaje> getConversacion(String roomId, Integer u1, Integer u2, Integer requesterId) {
+        return chatMensajeRepository.findConversacion(roomId, u1, u2, requesterId);
     }
 
     public List<ChatMensaje> getUltimasConversaciones(Integer usuarioId) {
@@ -171,6 +171,22 @@ public class ChatService {
     @Transactional
     public void marcarRecibidos(String roomId, Integer receptorId) {
         chatMensajeRepository.marcarComoRecibidosEnRoom(roomId, receptorId);
+    }
+
+    @Transactional
+    public void eliminarMensajeParaUsuario(Integer mensajeId, Integer usuarioId) {
+        ChatMensaje msg = chatMensajeRepository.findById(mensajeId)
+                .orElseThrow(() -> new IllegalArgumentException("Mensaje no encontrado"));
+        
+        if (msg.getRemitente().getId().equals(usuarioId)) {
+            msg.setEliminadoParaRemitente(true);
+        } else if (msg.getReceptor() != null && msg.getReceptor().getId().equals(usuarioId)) {
+            msg.setEliminadoParaReceptor(true);
+        } else {
+            throw new IllegalArgumentException("El usuario no participa en este mensaje");
+        }
+        
+        chatMensajeRepository.save(msg);
     }
 
     public Double getPrecioNegociado(Integer productoId, Integer compradorId) {

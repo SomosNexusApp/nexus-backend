@@ -1,9 +1,11 @@
 package com.nexus.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -18,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import com.nexus.service.UsuarioService;
 
@@ -39,23 +42,20 @@ public class SecurityConfiguration {
         private PasswordEncoder passwordEncoder;
 
         @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of(
-                                "http://localhost:*",
-                                "https://localhost:*",
-                                "https://*.nexus.app",
-                                "https://nexus.app"));
-                config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept",
-                                "X-Requested-With", "Cache-Control"));
-                config.setExposedHeaders(List.of("Authorization"));
-                config.setAllowCredentials(true);
-                config.setMaxAge(3600L);
-
+        public FilterRegistrationBean<CorsFilter> corsFilter() {
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowCredentials(true);
+                config.addAllowedOrigin("http://localhost:4200");
+                config.addAllowedOrigin("http://127.0.0.1:4200");
+                config.addAllowedOrigin("http://localhost:4201");
+                config.addAllowedHeader("*");
+                config.addAllowedMethod("*");
+                config.addExposedHeader("Authorization");
                 source.registerCorsConfiguration("/**", config);
-                return source;
+                FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
+                bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+                return bean;
         }
 
         @Bean
@@ -77,7 +77,6 @@ public class SecurityConfiguration {
 
                 http
                                 .csrf(csrf -> csrf.disable())
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))
                                 .authenticationProvider(authenticationProvider())
