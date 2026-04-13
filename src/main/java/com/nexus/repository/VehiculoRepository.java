@@ -56,6 +56,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
             "AND (:busqueda      IS NULL OR LOWER(v.titulo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) " +
             "                           OR LOWER(v.marca)  LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) " +
             "                           OR LOWER(v.modelo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%'))) " +
+            "AND (:condicion IS NULL OR CAST(v.condicion AS string) = :condicion OR (:condicion = 'USADO' AND v.condicion <> com.nexus.entity.CondicionProducto.NUEVO)) " +
             "AND (:potenciaMin   IS NULL OR v.potencia      >= :potenciaMin) " +
             "AND (:cilindradaMin IS NULL OR v.cilindrada    >= :cilindradaMin) " +
             "AND (:color         IS NULL OR LOWER(v.color)  LIKE LOWER(CONCAT('%', CAST(:color AS string), '%'))) " +
@@ -84,6 +85,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
             "AND (:busqueda      IS NULL OR LOWER(v.titulo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) " +
             "                           OR LOWER(v.marca)  LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%')) " +
             "                           OR LOWER(v.modelo) LIKE LOWER(CONCAT('%', CAST(:busqueda AS string), '%'))) " +
+            "AND (:condicion IS NULL OR CAST(v.condicion AS string) = :condicion OR (:condicion = 'USADO' AND v.condicion <> com.nexus.entity.CondicionProducto.NUEVO)) " +
             "AND (:potenciaMin   IS NULL OR v.potencia      >= :potenciaMin) " +
             "AND (:cilindradaMin IS NULL OR v.cilindrada    >= :cilindradaMin) " +
             "AND (:color         IS NULL OR LOWER(v.color)  LIKE LOWER(CONCAT('%', CAST(:color AS string), '%'))) " +
@@ -108,6 +110,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
             @Param("combustible")   TipoCombustible  combustible,
             @Param("cambio")        String           cambio,
             @Param("busqueda")      String           busqueda,
+            @Param("condicion")     String           condicion,
             @Param("potenciaMin")   Integer          potenciaMin,
             @Param("cilindradaMin") Integer          cilindradaMin,
             @Param("color")         String           color,

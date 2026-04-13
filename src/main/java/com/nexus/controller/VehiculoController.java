@@ -58,6 +58,7 @@ public class VehiculoController {
             @RequestParam(required = false) TipoCombustible combustible,
             @RequestParam(required = false) String cambio,
             @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String condicion,
             @RequestParam(required = false) Integer potenciaMin,
             @RequestParam(required = false) Integer cilindradaMin,
             @RequestParam(required = false) String color,
@@ -73,7 +74,7 @@ public class VehiculoController {
 
         Page<Vehiculo> r = vehiculoService.buscarPaginado(tipo, marca, modelo,
                 precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
-                cambio, busqueda, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
+                cambio, busqueda, condicion, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
                 garantia, itv, PageRequest.of(page, size, sort));
                 
         return ResponseEntity.ok(Map.of(

@@ -136,19 +136,19 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       @Param("maxLng") Double maxLng,
       Pageable pageable);
 
-  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY (o.sparkCount - o.dripCount) DESC")
+  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND (o.fechaExpiracion IS NULL OR o.fechaExpiracion > CURRENT_TIMESTAMP) ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findTopBySparkScore(Pageable pageable);
 
-  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY (o.sparkCount - o.dripCount) DESC")
+  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND (o.fechaExpiracion IS NULL OR o.fechaExpiracion > CURRENT_TIMESTAMP) ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findTop10ByOrderBySparkScoreDesc(Pageable pageable);
 
   List<Oferta> findByEsFlashTrueAndEsActivaTrueOrderByFechaPublicacionDesc();
 
-  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND o.fechaPublicacion >= :desde " +
+  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND (o.fechaExpiracion IS NULL OR o.fechaExpiracion > CURRENT_TIMESTAMP) AND o.fechaPublicacion >= :desde " +
       "ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findTrending(@Param("desde") LocalDateTime hace24h, Pageable pageable);
 
-  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true ORDER BY o.fechaPublicacion DESC")
+  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND (o.fechaExpiracion IS NULL OR o.fechaExpiracion > CURRENT_TIMESTAMP) ORDER BY o.fechaPublicacion DESC")
   List<Oferta> findRecientes(Pageable pageable);
 
   @Query("SELECT o FROM Oferta o WHERE o.esActiva = true " +
@@ -162,7 +162,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
   @Query("SELECT o FROM Oferta o WHERE o.actor.id = :actorId ORDER BY o.fechaPublicacion DESC")
   List<Oferta> findByActorId(@Param("actorId") Integer actorId);
 
-  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true " +
+  @Query("SELECT o FROM Oferta o WHERE o.esActiva = true AND (o.fechaExpiracion IS NULL OR o.fechaExpiracion > CURRENT_TIMESTAMP) " +
       "AND (o.sparkCount - o.dripCount) >= 10 AND o.fechaPublicacion >= :desde " +
       "ORDER BY (o.sparkCount - o.dripCount) DESC")
   List<Oferta> findDestacadas(@Param("desde") LocalDateTime hace7dias, Pageable pageable);

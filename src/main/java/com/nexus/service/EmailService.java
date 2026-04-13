@@ -768,11 +768,6 @@ public class EmailService {
     @Async
     public void enviarContratoActivado(String to, String empresaNombre, String tipoContrato) {
         String tipoDesc = "BANNER".equalsIgnoreCase(tipoContrato) ? "Banner publicitario" : "Producto patrocinado";
-        String tipoDetalle = "BANNER".equalsIgnoreCase(tipoContrato)
-                ? "Tu banner está siendo mostrado en las secciones estratégicas de Nexus. " +
-                  "Los usuarios que hagan clic serán redirigidos a la URL que configuraste en la propuesta."
-                : "Tu producto aparece ahora en las primeras posiciones del marketplace con el badge " +
-                  "\"⚡ Patrocinado\", maximizando la visibilidad ante compradores con intención de compra activa.";
         String contenido =
             "<h2>¡Tu campaña en Nexus ya está en marcha! 🚀</h2>" +
             "<p class=\"lead\">¡Enhorabuena, <strong>" + escapeHtml(empresaNombre) + "</strong>! " +

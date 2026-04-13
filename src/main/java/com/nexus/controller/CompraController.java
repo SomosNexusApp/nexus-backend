@@ -34,8 +34,6 @@ public class CompraController {
     @Autowired
     private ProductoService productoService;
     @Autowired
-    private UsuarioService usuarioService;
-    @Autowired
     private StripeService stripeService;
     @Autowired
     private ShippingPriceService shippingPriceService;

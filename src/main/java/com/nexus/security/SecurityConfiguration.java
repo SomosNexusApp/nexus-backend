@@ -8,23 +8,19 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import com.nexus.service.UsuarioService;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -37,9 +33,6 @@ public class SecurityConfiguration {
         @Autowired
         @Lazy
         private UsuarioService usuarioService;
-
-        @Autowired
-        private PasswordEncoder passwordEncoder;
 
         @Bean
         public FilterRegistrationBean<CorsFilter> corsFilter() {
@@ -59,14 +52,6 @@ public class SecurityConfiguration {
         }
 
         @Bean
-        public DaoAuthenticationProvider authenticationProvider() {
-                DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-                provider.setUserDetailsService(usuarioService);
-                provider.setPasswordEncoder(passwordEncoder);
-                return provider;
-        }
-
-        @Bean
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
                         throws Exception {
                 return config.getAuthenticationManager();
@@ -79,18 +64,19 @@ public class SecurityConfiguration {
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))
-                                .authenticationProvider(authenticationProvider())
 
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                                                 .permitAll()
-                                                .requestMatchers("/auth/login", "/auth/registro", "/api/auth/login", "/api/auth/verify-2fa").permitAll()
+                                                .requestMatchers("/auth/login", "/auth/registro", "/api/auth/login",
+                                                                "/api/auth/verify-2fa")
+                                                .permitAll()
                                                 .requestMatchers("/api/auth/me").authenticated()
                                                 .requestMatchers("/auth/**", "/api/auth/**").permitAll()
 
                                                 // BLOQUE 0 – ACCESO PÚBLICO GENERAL (PUBLICIDAD Y PERFILES)
-                                                .requestMatchers(HttpMethod.GET, 
+                                                .requestMatchers(HttpMethod.GET,
                                                                 "/api/public/**", "/public/**",
                                                                 "/usuario/username/**", "/api/usuarios/username/**",
                                                                 "/usuario/*/perfil", "/api/usuarios/*/perfil")
@@ -179,19 +165,22 @@ public class SecurityConfiguration {
                                                 .requestMatchers(HttpMethod.GET, "/votos/**", "/api/spark-votos/**")
                                                 .permitAll()
 
-                                                 // BLOQUE 14 – BÚSQUEDA UNIFICADA (Público)
-                                                 .requestMatchers(HttpMethod.GET, "/market/**", "/api/market/**").permitAll()
+                                                // BLOQUE 14 – BÚSQUEDA UNIFICADA (Público)
+                                                .requestMatchers(HttpMethod.GET, "/market/**", "/api/market/**")
+                                                .permitAll()
 
-                                                 // BLOQUE 16 – FAVORITOS (Público para lectura, Auth para escritura)
-                                                 .requestMatchers(HttpMethod.GET, "/api/favoritos/usuario/**", "/favoritos/usuario/**")
-                                                 .permitAll()
-                                                 .requestMatchers("/favorito/**", "/api/favoritos/**")
-                                                 .authenticated()
+                                                // BLOQUE 16 – FAVORITOS (Público para lectura, Auth para escritura)
+                                                .requestMatchers(HttpMethod.GET, "/api/favoritos/usuario/**",
+                                                                "/favoritos/usuario/**")
+                                                .permitAll()
+                                                .requestMatchers("/favorito/**", "/api/favoritos/**")
+                                                .authenticated()
 
-                                                 // BLOQUE 15 – SOLO ADMIN
+                                                // BLOQUE 15 – SOLO ADMIN
                                                 .requestMatchers("/admin/**", "/api/admin/**")
                                                 .hasAuthority("ROLE_ADMIN")
-                                                // check-text lo usan TODOS los usuarios autenticados (publicar producto/oferta/vehículo)
+                                                // check-text lo usan TODOS los usuarios autenticados (publicar
+                                                // producto/oferta/vehículo)
                                                 .requestMatchers(HttpMethod.POST, "/api/moderation/check-text")
                                                 .authenticated()
                                                 .requestMatchers("/api/moderation/**").hasAuthority("ROLE_ADMIN")

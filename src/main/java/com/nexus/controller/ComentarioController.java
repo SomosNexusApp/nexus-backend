@@ -10,14 +10,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Comentario;
-import com.nexus.entity.Oferta;
-import com.nexus.entity.Vehiculo;
 import com.nexus.repository.ActorRepository;
 import com.nexus.repository.ComentarioRepository;
 import com.nexus.repository.OfertaRepository;
 import com.nexus.repository.VehiculoRepository;
 
-import io.swagger.v3.oas.annotations.Operation;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController

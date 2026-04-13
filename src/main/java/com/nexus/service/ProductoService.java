@@ -82,6 +82,7 @@ public class ProductoService {
                 categoriaNorm,
                 precioMin,
                 precioMax,
+                condicion,
                 vendedorId,
                 bloqueoService.getRelacionesBloqueo(currentUserId),
                 minLat, maxLat, minLng, maxLng);

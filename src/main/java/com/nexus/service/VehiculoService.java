@@ -74,6 +74,7 @@ public class VehiculoService {
             Double precioMin, Double precioMax,
             Integer anioMin, Integer anioMax, Integer kmMax,
             TipoCombustible combustible, String cambio, String busqueda,
+            String condicion,
             Integer potenciaMin, Integer cilindradaMin, String color,
             Integer numeroPuertas, Integer plazas, Boolean garantia, Boolean itv,
             Pageable pageable) {
@@ -81,7 +82,7 @@ public class VehiculoService {
         return vehiculoRepository.buscarPaginadoGeografico(
             tipo, marca, modelo, precioMin, precioMax,
             anioMin, anioMax, kmMax, combustible, cambio,
-            busqueda, potenciaMin, cilindradaMin, color,
+            busqueda, condicion, potenciaMin, cilindradaMin, color,
             numeroPuertas, plazas, garantia, itv, 
             null, null, null, null, pageable
         );
@@ -93,6 +94,7 @@ public class VehiculoService {
             Double precioMin, Double precioMax,
             Integer anioMin, Integer anioMax, Integer kmMax,
             TipoCombustible combustible, String cambio, String busqueda,
+            String condicion,
             Integer potenciaMin, Integer cilindradaMin, String color,
             Integer numeroPuertas, Integer plazas, Boolean garantia, Boolean itv,
             Double minLat, Double maxLat, Double minLng, Double maxLng,
@@ -101,7 +103,7 @@ public class VehiculoService {
         return vehiculoRepository.buscarPaginadoGeografico(
             tipo, marca, modelo, precioMin, precioMax,
             anioMin, anioMax, kmMax, combustible, cambio,
-            busqueda, potenciaMin, cilindradaMin, color,
+            busqueda, condicion, potenciaMin, cilindradaMin, color,
             numeroPuertas, plazas, garantia, itv, 
             minLat, maxLat, minLng, maxLng, pageable
         );

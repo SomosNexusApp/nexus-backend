@@ -18,7 +18,6 @@ import com.nexus.dto.BannerPublicDTO;
 import com.nexus.entity.Contrato;
 import com.nexus.entity.Empresa;
 import com.nexus.entity.EstadoContrato;
-import com.nexus.entity.Producto;
 import com.nexus.entity.TipoContrato;
 import com.nexus.repository.ContratoRepository;
 import com.nexus.repository.ProductoRepository;

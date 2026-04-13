@@ -69,6 +69,7 @@ public class ProductoController {
             @RequestParam(required = false) Double precioMin,
             @RequestParam(required = false) Double precioMax,
             @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String condicion,
             @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false) Integer vendedorId,
             @RequestParam(required = false) Boolean conEnvio,
@@ -94,7 +95,7 @@ public class ProductoController {
         org.springframework.data.domain.Sort sort = getSort(orden);
 
         Page<Producto> r = productoService.buscarConFiltrosPaginado(
-                categoria, null, precioMin, precioMax, null, busqueda, ubicacion, vendedorId,
+                categoria, null, precioMin, precioMax, condicion, busqueda, ubicacion, vendedorId,
                 vendedorId != null ? vendedorId : 0, 
                 minLat, maxLat, minLng, maxLng,
                 PageRequest.of(page, size, sort));

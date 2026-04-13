@@ -149,10 +149,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         .orElseGet(() -> usuario("lucia_moda", "lucia@moda.com", "Sevilla",
                                 "Apasionada de la moda y el estilo.", 4.8, 12, true));
 
-                Categoria catModa = categoriaRepository.findBySlug("moda").orElse(null);
+
                 Categoria catRopaHombre = categoriaRepository.findBySlug("moda-hombre").orElse(null);
                 Categoria catRopaMujer = categoriaRepository.findBySlug("moda-mujer").orElse(null);
-                Categoria catZapas = categoriaRepository.findBySlug("zapatillas").orElse(null);
+
 
                 if (catRopaHombre != null) {
                     Producto chaquetaCuero = producto("Chaqueta de Cuero Biker Premium - AllSaints",
@@ -546,21 +546,21 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 CondicionProducto.COMO_NUEVO, true, 3.99, false, "Sevilla",
                 "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
 
-        Producto abrigoMassimoDutti = producto(
+        producto(
                 "Abrigo de Lana Premium Massimo Dutti M",
                 "Abrigo de lana 100% italiano Massimo Dutti colecciÃ³n Studio. Color camel clÃ¡sico. Perfecto para la oficina o eventos formales. Usado un par de veces.",
                 145.0, TipoOferta.VENTA, sofia, catRopaMujer, "Massimo Dutti", "Lana Studio",
                 CondicionProducto.COMO_NUEVO, true, 5.99, true, "Madrid",
                 "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
 
-        Producto sudaderaBalenciaga = producto(
+        producto(
                 "Sudadera Balenciaga Logo - Talla M (Oversize)",
                 "Sudadera Balenciaga autÃ©ntica con logo bordado en el pecho. Corte oversize. AlgodÃ³n grueso de alta calidad. Factura demostrable.",
                 350.0, TipoOferta.VENTA, pedro, catRopaHombre, "Balenciaga", "Logo Hoodie",
                 CondicionProducto.MUY_BUEN_ESTADO, true, 12.0, false, "Valencia",
                 "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800");
 
-        Producto jordan4 = producto(
+        producto(
                 "Air Jordan 4 Retro 'Bred Reimagined' - Talla 43",
                 "Zapatillas Air Jordan 4 Bred ediciÃ³n Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
                 280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
@@ -871,7 +871,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         viajeMaldivas.setDestacada(true);
         ofertaRepository.save(viajeMaldivas);
 
-        Oferta viajeJapon = oferta(
+        oferta(
                 "Vuelo + 10 dÃ­as en JapÃ³n (Tokio y Kioto) - Â¡Chollazo!",
                 "IncreÃ­ble pack para visitar el paÃ­s del sol naciente. Incluye vuelos directos, hoteles cÃ©ntricos y JR Pass para 7 dÃ­as.",
                 1250.0, 1890.0, "Logitravel", "https://logitravel.com/japon",
@@ -879,7 +879,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
                 550, 12, 12500, 890);
 
-        Oferta viajeBali = oferta(
+        oferta(
                 "7 noches en Villa Privada en Bali con piscina",
                 "RelÃ¡jate en el paraÃ­so de Ubud. Villa privada con vistas a los arrozales, desayuno incluido y traslado al aeropuerto.",
                 450.0, 800.0, "Booking", "https://booking.com/bali-villa",
@@ -887,7 +887,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800",
                 420, 5, 8900, 420);
 
-        Oferta cruceroMed = oferta(
+        oferta(
                 "Crucero Todo Incluido por el MediterrÃ¡neo - MSC World Europa",
                 "Salida desde Barcelona. Itinerario: Marsella, GÃ©nova, NÃ¡poles, Mesina y La Valeta. Lo mejor de MS. Todo incluido.",
                 599.0, 950.0, "MSC Cruceros", "https://msc.com/mediterraneo",

@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nexus.entity.*;
 import com.nexus.repository.*;
 import com.nexus.controller.ChatWebSocketController;
-import com.nexus.dto.PuntoRecogidaDTO;
+
 
 @Service
 public class EnvioService {
@@ -166,7 +166,6 @@ public class EnvioService {
         Actor comprador = compra.getComprador();
         Actor seller = prod.getPublicador();
         notificacionService.notificarEnvio(comprador.getId(), prod.getTitulo());
-        String urlCompra = "/perfil?tab=compras&compraId=" + compra.getId();
         notificacionService.notificarSeguimientoVendedor(seller.getId(), prod.getTitulo(), trackingFinal,
                 "/compras/" + compra.getId() + "/enviar");
         if (comprador.getEmail() != null) {

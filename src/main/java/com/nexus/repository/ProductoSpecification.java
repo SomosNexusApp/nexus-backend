@@ -2,6 +2,7 @@ package com.nexus.repository;
 
 import com.nexus.entity.EstadoProducto;
 import com.nexus.entity.Producto;
+import com.nexus.entity.CondicionProducto;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class ProductoSpecification {
             String categoria,
             Double precioMin,
             Double precioMax,
+            String condicion,
             Integer vendedorId,
             List<Integer> excludedVendedorIds,
             Double minLat, Double maxLat, Double minLng, Double maxLng) {
@@ -78,6 +80,19 @@ public class ProductoSpecification {
                 where.add(cb.greaterThanOrEqualTo(root.get("precio"), precioMin));
             if (precioMax != null)
                 where.add(cb.lessThanOrEqualTo(root.get("precio"), precioMax));
+
+            // ── Condición ────────────────────────────────────────────────
+            if (condicion != null && !condicion.isBlank()) {
+                if (condicion.contains(",")) {
+                    List<String> conds = java.util.Arrays.asList(condicion.split(","));
+                    where.add(root.get("condicion").as(String.class).in(conds));
+                } else if ("USADO".equalsIgnoreCase(condicion)) {
+                    where.add(cb.notEqual(root.get("condicion"), CondicionProducto.NUEVO));
+                } else {
+                    where.add(cb.equal(root.get("condicion"), condicion));
+                }
+            }
+
 
             // ── Bloqueos ──────────────────────────────────────────────────
             if (excludedVendedorIds != null && !excludedVendedorIds.isEmpty()) {

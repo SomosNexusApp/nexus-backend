@@ -42,6 +42,7 @@ public class MarketplaceSearchService {
             String categoria,
             Double precioMin,
             Double precioMax,
+            String condicion,
             String ubicacion,
             Double lat,
             Double lng,
@@ -104,9 +105,9 @@ public class MarketplaceSearchService {
             dirOferta = "desc";
         }
 
-        // 2. Buscar Ofertas
+        // 2. Buscar Ofertas (Las ofertas no tienen condición, así que las ocultamos si se filtra por condición)
         Page<Oferta> paginaOfertas = Page.empty();
-        if (tipo == null || "TODOS".equalsIgnoreCase(tipo) || "OFERTA".equalsIgnoreCase(tipo)) {
+        if ((tipo == null || "TODOS".equalsIgnoreCase(tipo) || "OFERTA".equalsIgnoreCase(tipo)) && (condicion == null || condicion.isBlank())) {
             paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
                     categoria, null, precioMin, precioMax, q, true, sortOferta, dirOferta, null, usuarioId,
                     minLat, maxLat, minLng, maxLng, subPage);
@@ -118,7 +119,7 @@ public class MarketplaceSearchService {
             // Pasamos null si no hay slugs para que no filtre
             String catForSpec = categorySlugs.isEmpty() ? null : String.join(",", categorySlugs);
             paginaProductos = productoService.buscarConFiltrosPaginado(
-                    catForSpec, null, precioMin, precioMax, null, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
+                    catForSpec, null, precioMin, precioMax, condicion, q, ubicacion, null, usuarioId != null ? usuarioId : 0,
                     minLat, maxLat, minLng, maxLng, subPage);
         }
 
@@ -134,8 +135,9 @@ public class MarketplaceSearchService {
         if ((tipo == null || "TODOS".equalsIgnoreCase(tipo) || "VEHICULO".equalsIgnoreCase(tipo))) {
             if (esCategoriaVehiculo || (categoria == null || categoria.isBlank())) {
                 paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
-                        null, null, null, precioMin, precioMax, null, null, null, null, null, q, null, null, null, null,
+                        null, null, null, precioMin, precioMax, null, null, null, null, null, q, condicion, null, null,
                         null,
+                        null, null,
                         null, null,
                         minLat, maxLat, minLng, maxLng, subPage);
             }

@@ -31,6 +31,7 @@ public class MarketplaceSearchController {
             @RequestParam(required = false) String categoria,
             @RequestParam(required = false) Double precioMin,
             @RequestParam(required = false) Double precioMax,
+            @RequestParam(required = false) String condicion,
             @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
@@ -41,7 +42,7 @@ public class MarketplaceSearchController {
             @RequestParam(defaultValue = "20") int size) {
         
         Map<String, Object> results = searchService.buscarTodo(
-                q, tipo, categoria, precioMin, precioMax, ubicacion, lat, lng, radius, usuarioId, orden, PageRequest.of(page, size));
+                q, tipo, categoria, precioMin, precioMax, condicion, ubicacion, lat, lng, radius, usuarioId, orden, PageRequest.of(page, size));
         
         return ResponseEntity.ok(results);
     }

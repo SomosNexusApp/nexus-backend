@@ -29,11 +29,6 @@ public class CarrierApiService {
 
     private static final Logger log = LoggerFactory.getLogger(CarrierApiService.class);
 
-    /**
-     * Margen mínimo sobre coste real del transportista (cubre gastos operativos).
-     * Si un día la API devuelve 4,00 €, al comprador se le cobran 4,30 €.
-     */
-    private static final double MARGEN = 0.30;
 
     @Value("${correos.client-id:}")
     private String correosClientId;
@@ -214,7 +209,7 @@ public class CarrierApiService {
         }
 
         try {
-            // TODO: Implementar cuando tengas credenciales de Correos Click&Send
+            // Nota: Implementar cuando tengas credenciales de Correos Click&Send
             // 1. POST https://apisandbox.correos.es/oauth/token
             // (grant_type=client_credentials)
             // → bearer token

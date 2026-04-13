@@ -6,7 +6,6 @@ import com.nexus.entity.Envio;
 import com.nexus.entity.Producto;
 import com.nexus.repository.CompraRepository;
 import com.nexus.repository.EnvioRepository;
-import com.nexus.repository.ProductoRepository;
 import com.nexus.service.CompraService;
 import com.nexus.service.EnvioService;
 import com.nexus.service.NotificacionService;
@@ -50,8 +49,6 @@ public class AdminComprasController {
     @Autowired
     private NotificacionService notificacionService;
 
-    @Autowired
-    private ProductoRepository productoRepository;
     @Autowired
     private EmailService emailService;
 
