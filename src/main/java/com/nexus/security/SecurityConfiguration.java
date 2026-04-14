@@ -98,8 +98,9 @@ public class SecurityConfiguration {
 
                                                 // BLOQUE 1 – INFRAESTRUCTURA
                                                 .requestMatchers(
-                                                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-                                                                "/actuator/health", "/error", "/favicon.ico",
+                                                                "/", "/logo.webp", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                                                "/actuator/health", "/error", "/favicon.ico", "/ecentia-icon.ico",
+                                                                "/postman-icon.webp", "/swagger-logo.webp",
                                                                 "/api/webhooks/**",
                                                                 "/envio/correos/evento")
                                                 .permitAll()
