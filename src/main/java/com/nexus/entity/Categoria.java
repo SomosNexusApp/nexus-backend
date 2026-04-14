@@ -35,7 +35,7 @@ public class Categoria extends DomainEntity {
     @JsonIgnore
     private Categoria parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"hijos", "parent"})
     private List<Categoria> hijos = new ArrayList<>();
 

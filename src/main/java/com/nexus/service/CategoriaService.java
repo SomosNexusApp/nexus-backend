@@ -3,6 +3,8 @@ package com.nexus.service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.nexus.entity.Categoria;
@@ -14,13 +16,31 @@ public class CategoriaService {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
-    public List<Categoria> getRaizActivas()         { return categoriaRepository.findRaizActivas(); }
-    public List<Categoria> getTodas()               { return categoriaRepository.findByActivaTrueOrderByNombreAsc(); }
-    public List<Categoria> getHijas(Integer pid)    { return categoriaRepository.findByParentIdAndActivaTrue(pid); }
-    public Optional<Categoria> findBySlug(String s) { return categoriaRepository.findBySlug(s); }
-    public Optional<Categoria> findById(Integer id) { return categoriaRepository.findById(id); }
+    @Cacheable("categorias-raiz")
+    public List<Categoria> getRaizActivas() {
+        return categoriaRepository.findRaizActivas();
+    }
+
+    @Cacheable("categorias-todas")
+    public List<Categoria> getTodas() {
+        return categoriaRepository.findByActivaTrueOrderByNombreAsc();
+    }
+
+    @Cacheable(value = "categorias-hijas", key = "#pid")
+    public List<Categoria> getHijas(Integer pid) {
+        return categoriaRepository.findByParentIdAndActivaTrue(pid);
+    }
+
+    public Optional<Categoria> findBySlug(String s) {
+        return categoriaRepository.findBySlug(s);
+    }
+
+    public Optional<Categoria> findById(Integer id) {
+        return categoriaRepository.findById(id);
+    }
 
     @Transactional
+    @CacheEvict(value = {"categorias-raiz", "categorias-todas", "categorias-hijas"}, allEntries = true)
     public Categoria crear(Categoria categoria) {
         if (categoria.getSlug() != null
                 && categoriaRepository.findBySlug(categoria.getSlug()).isPresent())
@@ -29,6 +49,7 @@ public class CategoriaService {
     }
 
     @Transactional
+    @CacheEvict(value = {"categorias-raiz", "categorias-todas", "categorias-hijas"}, allEntries = true)
     public Categoria actualizar(Integer id, Categoria datos) {
         Categoria c = categoriaRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
@@ -42,6 +63,7 @@ public class CategoriaService {
     }
 
     @Transactional
+    @CacheEvict(value = {"categorias-raiz", "categorias-todas", "categorias-hijas"}, allEntries = true)
     public void eliminar(Integer id) {
         categoriaRepository.deleteById(id);
     }

@@ -44,22 +44,21 @@ public class SecurityConfiguration {
 	public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
 		org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
 		config.setAllowCredentials(true);
-		
-		// Lista explícita de orígenes permitidos
-		config.setAllowedOrigins(java.util.List.of(
+
+		// Patrones de orígenes permitidos (soporta wildcards con allowCredentials=true)
+		config.setAllowedOriginPatterns(java.util.List.of(
 			"https://nexus-app.es",
-			"https://www.nexus-app.es",
-			"https://admin.nexus-app.es",
-			"https://www.admin.nexus-app.es",
+			"https://*.nexus-app.es",
+			"https://*.vercel.app",
 			"http://localhost:4200",
 			"http://localhost:4201",
 			"http://127.0.0.1:4200"
 		));
-		
+
 		config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
 		config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-		config.setExposedHeaders(java.util.List.of("Authorization"));
-		
+		config.setExposedHeaders(java.util.List.of("Authorization", "Cache-Control", "X-Cache-Status"));
+
 		org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;

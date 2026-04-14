@@ -142,7 +142,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
             System.err.println("=== PopulateDB: Error al migrar FKs: " + e.getMessage());
         }
 
-        if (done || actorRepository.count() > 0) {
+        if (done || (actorRepository.count() > 0 && productoRepository.count() > 5 && categoriaRepository.count() > 10)) {
             // --- INYECCIÓN BAJO DEMANDA DE MODA FALTANTE ---
             if (productoRepository.findByTitulo("Chaqueta de Cuero Biker Premium - AllSaints").isEmpty()) {
                 Usuario lucia_fashion = usuarioRepository.findByUsername("lucia_moda")
