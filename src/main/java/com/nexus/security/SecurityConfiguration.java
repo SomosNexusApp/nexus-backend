@@ -34,22 +34,33 @@ public class SecurityConfiguration {
         @Lazy
         private UsuarioService usuarioService;
 
-        @Bean
-        public FilterRegistrationBean<CorsFilter> corsFilter() {
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                CorsConfiguration config = new CorsConfiguration();
-                config.setAllowCredentials(true);
-                config.addAllowedOrigin("http://localhost:4200");
-                config.addAllowedOrigin("http://127.0.0.1:4200");
-                config.addAllowedOrigin("http://localhost:4201");
-                config.addAllowedHeader("*");
-                config.addAllowedMethod("*");
-                config.addExposedHeader("Authorization");
-                source.registerCorsConfiguration("/**", config);
-                FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
-                bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-                return bean;
-        }
+	@org.springframework.beans.factory.annotation.Value("${nexus.frontend.url:http://localhost:4200}")
+	private String frontendUrl;
+
+	@org.springframework.beans.factory.annotation.Value("${nexus.admin.url:http://localhost:4201}")
+	private String adminUrl;
+
+	@Bean
+	public FilterRegistrationBean<CorsFilter> corsFilter() {
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowCredentials(true);
+		
+		// Añadir los orígenes de las propiedades y los locales
+		config.addAllowedOrigin(frontendUrl);
+		config.addAllowedOrigin(adminUrl);
+		config.addAllowedOrigin("http://localhost:4200");
+		config.addAllowedOrigin("http://127.0.0.1:4200");
+		config.addAllowedOrigin("http://localhost:4201");
+		
+		config.addAllowedHeader("*");
+		config.addAllowedMethod("*");
+		config.addExposedHeader("Authorization");
+		source.registerCorsConfiguration("/**", config);
+		FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
+		bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+		return bean;
+	}
 
         @Bean
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
