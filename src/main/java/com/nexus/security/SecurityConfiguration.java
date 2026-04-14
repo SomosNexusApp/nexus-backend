@@ -41,28 +41,30 @@ public class SecurityConfiguration {
 	private String adminUrl;
 
 	@Bean
-	public FilterRegistrationBean<CorsFilter> corsFilter() {
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowCredentials(true);
 		
-		// Añadir los orígenes de las propiedades y los locales
-		config.addAllowedOrigin(frontendUrl);
-		config.addAllowedOrigin(adminUrl);
+		// Añadir orígenes permitidos
+		if (org.springframework.util.StringUtils.hasText(frontendUrl)) config.addAllowedOrigin(frontendUrl);
+		if (org.springframework.util.StringUtils.hasText(adminUrl)) config.addAllowedOrigin(adminUrl);
+		
 		config.addAllowedOrigin("http://localhost:4200");
 		config.addAllowedOrigin("http://127.0.0.1:4200");
 		config.addAllowedOrigin("http://localhost:4201");
 		config.addAllowedOrigin("https://nexus-app.es");
+		config.addAllowedOrigin("https://www.nexus-app.es");
 		config.addAllowedOrigin("https://admin.nexus-app.es");
+		config.addAllowedOrigin("https://www.admin.nexus-app.es");
 		config.addAllowedOrigin("https://api.nexus-app.es");
 		
 		config.addAllowedHeader("*");
 		config.addAllowedMethod("*");
 		config.addExposedHeader("Authorization");
+		
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
-		FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
-		bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-		return bean;
+		return source;
 	}
 
         @Bean
@@ -75,6 +77,7 @@ public class SecurityConfiguration {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
                 http
+                                .cors(org.springframework.security.config.Customizer.withDefaults())
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))

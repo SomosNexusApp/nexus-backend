@@ -239,8 +239,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
             // --- TEST: Asegurar Ofertas de Viajes y Flash ---
             Categoria catViajes = categoriaRepository.findBySlug("viajes").orElse(null);
-            if (catViajes != null && !ofertaRepository.findAll().stream().anyMatch(
-                    o -> "Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash".equals(o.getTitulo()))) {
+            if (catViajes != null && ofertaRepository.findByTitulo("Viaje de Lujo: 7 dÃ­as en Maldivas todo incluido - Oferta Flash").isEmpty()) {
                 Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
                 if (tech == null)
                     tech = actorRepository.findAll().stream().filter(a -> a instanceof Empresa).findFirst()
