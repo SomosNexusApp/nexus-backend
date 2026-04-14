@@ -1,9 +1,11 @@
 package com.nexus.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -17,17 +19,32 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Autowired
     private WebSocketAuthInterceptor webSocketAuthInterceptor;
 
+    /**
+     * TaskScheduler mínimo para el heartbeat del SimpleBroker.
+     * Sin este bean, setHeartbeatValue lanza IllegalArgumentException al arrancar.
+     * Un solo thread es suficiente para los pings de keep-alive en instancias pequeñas.
+     */
+    @Bean
+    public ThreadPoolTaskScheduler webSocketTaskScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("ws-heartbeat-");
+        scheduler.initialize();
+        return scheduler;
+    }
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Broker en memoria: prefijo /topic (broadcast) y /queue (por usuario)
-        // Heartbeat reducido para ahorrar recursos en instancias pequeñas:
-        // [server-send-interval-ms, server-receive-interval-ms]
+        // Broker en memoria con scheduler explícito para heartbeat.
+        // Heartbeat cada 25 s (send, receive) — suficiente para mantener conexiones vivas
+        // sin desperdiciar CPU en instancias de 0.1 vCPU.
         config.enableSimpleBroker("/topic", "/queue")
-              .setHeartbeatValue(new long[]{25000, 25000});
+              .setHeartbeatValue(new long[]{25000, 25000})
+              .setTaskScheduler(webSocketTaskScheduler());
 
         // Prefijo para mensajes que van al @MessageMapping de los controllers
         config.setApplicationDestinationPrefixes("/app");
-        // Prefijo para mensajes dirigidos a un usuario especifico
+        // Prefijo para mensajes dirigidos a un usuario específico
         config.setUserDestinationPrefix("/user");
     }
 
@@ -69,9 +86,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             .withSockJS()
                 // Reducir el timeout de desconexión de SockJS (default 5 min → 1 min)
                 .setDisconnectDelay(60_000)
-                // Heartbeat de SockJS cada 25 s (default 25 s, explícito para claridad)
+                // Heartbeat de SockJS cada 25 s
                 .setHeartbeatTime(25_000)
-                // Deshabilitar sesiones JSR-356 para reducir overhead de classpath scanning
+                // Sin cookie de sesión — reduce overhead en entornos stateless
                 .setSessionCookieNeeded(false);
     }
 }
