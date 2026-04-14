@@ -52,6 +52,9 @@ public class SecurityConfiguration {
 		config.addAllowedOrigin("http://localhost:4200");
 		config.addAllowedOrigin("http://127.0.0.1:4200");
 		config.addAllowedOrigin("http://localhost:4201");
+		config.addAllowedOrigin("https://nexus-app.es");
+		config.addAllowedOrigin("https://admin.nexus-app.es");
+		config.addAllowedOrigin("https://api.nexus-app.es");
 		
 		config.addAllowedHeader("*");
 		config.addAllowedMethod("*");
