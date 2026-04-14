@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/public/publicidad")
-@CrossOrigin
 @Tag(name = "Publicidad pública", description = "Banners patrocinados activos")
 public class PublicidadPublicController {
 

@@ -49,9 +49,11 @@ public class JWTUtils {
     @Value("${jwt.expiration:86400000}")
     private long extensionToken;
 
-    // Genera una Key segura compatible con la nueva versión de JJWT
     private Key getSigningKey() {
         byte[] keyBytes = jwtFirma.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            keyBytes = java.util.Arrays.copyOf(keyBytes, 32);
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

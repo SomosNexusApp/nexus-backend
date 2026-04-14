@@ -9,4 +9,10 @@ FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/nexus-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-Xmx300m", "-Xss512k", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-Xmx350m", "-Xms64m", "-Xss512k", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxMetaspaceSize=128m", \
+  "-XX:+UseSerialGC", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]

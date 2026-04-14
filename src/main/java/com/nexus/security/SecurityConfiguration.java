@@ -42,27 +42,25 @@ public class SecurityConfiguration {
 
 	@Bean
 	public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration config = new CorsConfiguration();
+		org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
 		config.setAllowCredentials(true);
 		
-		// Añadir orígenes permitidos
-		if (org.springframework.util.StringUtils.hasText(frontendUrl)) config.addAllowedOrigin(frontendUrl);
-		if (org.springframework.util.StringUtils.hasText(adminUrl)) config.addAllowedOrigin(adminUrl);
+		// Lista explícita de orígenes permitidos
+		config.setAllowedOrigins(java.util.List.of(
+			"https://nexus-app.es",
+			"https://www.nexus-app.es",
+			"https://admin.nexus-app.es",
+			"https://www.admin.nexus-app.es",
+			"http://localhost:4200",
+			"http://localhost:4201",
+			"http://127.0.0.1:4200"
+		));
 		
-		config.addAllowedOrigin("http://localhost:4200");
-		config.addAllowedOrigin("http://127.0.0.1:4200");
-		config.addAllowedOrigin("http://localhost:4201");
-		config.addAllowedOrigin("https://nexus-app.es");
-		config.addAllowedOrigin("https://www.nexus-app.es");
-		config.addAllowedOrigin("https://admin.nexus-app.es");
-		config.addAllowedOrigin("https://www.admin.nexus-app.es");
-		config.addAllowedOrigin("https://api.nexus-app.es");
+		config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+		config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+		config.setExposedHeaders(java.util.List.of("Authorization"));
 		
-		config.addAllowedHeader("*");
-		config.addAllowedMethod("*");
-		config.addExposedHeader("Authorization");
-		
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;
 	}
@@ -77,7 +75,7 @@ public class SecurityConfiguration {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
                 http
-                                .cors(org.springframework.security.config.Customizer.withDefaults())
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))
