@@ -61,7 +61,7 @@ public class SoporteAiService {
         try {
             String responseText = callGemini(ultimoUsuario, historialUltimos);
             SoporteAiResponse resObj = new SoporteAiResponse(responseText);
-            
+
             // Simple heuristic to attach a card if the AI mentions a specific product/offer ID
             // In a real scenario, we'd use function calling or a structured prompt.
             if (responseText.toLowerCase().contains("producto #")) {
@@ -91,8 +91,8 @@ public class SoporteAiService {
     }
 
     private String callGemini(String ultimoUsuario, List<String> historialUltimos) throws Exception {
-        // Usamos gemini-flash-latest por ser el alias estable más compatible
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="
+        // Usamos gemini-2.0-flash-lite por ser el modelo más económico y rápido disponible actualmente
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key="
                 + geminiApiKey;
 
         StringBuilder ctx = new StringBuilder();

@@ -138,28 +138,54 @@ public class DatabaseMigrationInitializer {
     }
 
     /**
-     * Inserta una categoría raíz si no existe todavía (idempotente por slug).
+     * Inserta una categoría raíz si no existe (idempotente por slug).
+     * Hace el INSERT con ASCII para evitar problemas de encoding en el SQL literal,
+     * y luego un UPDATE vía JDBC parametrizado para escribir el nombre correcto con tildes.
      */
     private void seedCat(String parentSlug, String nombre, String slug,
                          String icono, String color, int orden) {
-        if (parentSlug == null) {
-            run("INSERT INTO categoria (nombre, slug, icono, color, orden, activa) " +
-                "SELECT '" + nombre + "', '" + slug + "', '" + icono + "', '" + color + "', " + orden + ", true " +
-                "WHERE NOT EXISTS (SELECT 1 FROM categoria WHERE slug = '" + slug + "')");
+        String nombreAscii = nombre
+            .replace("é","e").replace("ó","o").replace("á","a")
+            .replace("í","i").replace("ú","u").replace("ñ","n")
+            .replace("É","E").replace("Ó","O").replace("Á","A")
+            .replace("Í","I").replace("Ú","U").replace("Ñ","N")
+            .replace("'","''");
+        run("INSERT INTO categoria (nombre, slug, icono, color, orden, activa) " +
+            "SELECT '" + nombreAscii + "', '" + slug + "', '" + icono + "', '" + color + "', " + orden + ", true " +
+            "WHERE NOT EXISTS (SELECT 1 FROM categoria WHERE slug = '" + slug + "')");
+        try {
+            jdbc.update("UPDATE categoria SET nombre=?, icono=?, color=?, orden=? WHERE slug=?",
+                nombre, icono, color, orden, slug);
+        } catch (Exception e) {
+            log.warn("seedCat UPDATE {}: {}", slug, e.getMessage());
         }
     }
 
     /**
      * Inserta una subcategoría hija (referenciando parent por slug) si no existe.
-     * Usa una subquery para obtener el parent_id dinámicamente.
+     * Hace el INSERT con ASCII y luego UPDATE JDBC parametrizado para el nombre con tildes
+     * y para garantizar que parent_id quede correctamente asignado.
      */
     private void seedCatHija(String parentSlug, String nombre, String slug,
                               String icono, String color, int orden) {
+        String nombreAscii = nombre
+            .replace("é","e").replace("ó","o").replace("á","a")
+            .replace("í","i").replace("ú","u").replace("ñ","n")
+            .replace("É","E").replace("Ó","O").replace("Á","A")
+            .replace("Í","I").replace("Ú","U").replace("Ñ","N")
+            .replace("'","''");
         run("INSERT INTO categoria (nombre, slug, icono, color, orden, activa, parent_id) " +
-            "SELECT '" + nombre + "', '" + slug + "', '" + icono + "', '" + color + "', " + orden + ", true, " +
+            "SELECT '" + nombreAscii + "', '" + slug + "', '" + icono + "', '" + color + "', " + orden + ", true, " +
             "(SELECT id FROM categoria WHERE slug = '" + parentSlug + "' LIMIT 1) " +
             "WHERE NOT EXISTS (SELECT 1 FROM categoria WHERE slug = '" + slug + "') " +
             "AND EXISTS (SELECT 1 FROM categoria WHERE slug = '" + parentSlug + "')");
+        try {
+            jdbc.update("UPDATE categoria SET nombre=?, icono=?, color=?, orden=?, " +
+                "parent_id=(SELECT id FROM categoria WHERE slug=? LIMIT 1) WHERE slug=?",
+                nombre, icono, color, orden, parentSlug, slug);
+        } catch (Exception e) {
+            log.warn("seedCatHija UPDATE {}: {}", slug, e.getMessage());
+        }
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────
