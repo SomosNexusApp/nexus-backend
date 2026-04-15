@@ -283,8 +283,8 @@ public class SecurityConfiguration {
                                                 .authenticated()
                                                 .requestMatchers("/empresa/**", "/api/empresas/**").authenticated()
 
-                                                // BLOQUE 16 – DENY BY DEFAULT
-                                                .anyRequest().authenticated())
+                                                // BLOQUE 16 – PERMIT ALL BY DEFAULT (para permitir que rutas no mapeadas lleguen al 404)
+                                                .anyRequest().permitAll())
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
