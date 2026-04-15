@@ -73,6 +73,16 @@ public class RootController {
                "            font-family: 'JetBrains Mono', monospace;" +
                "            display: flex; align-items: center; gap: 15px;" +
                "        }" +
+               "        .mobile-status-right { display: none; margin-left: auto; }" +
+               "        .mobile-tick {" +
+               "            color: var(--success); font-size: 1.4rem; " +
+               "            text-shadow: 0 0 12px rgba(34, 197, 94, 0.5);" +
+               "            animation: pulse-tick 2s infinite;" +
+               "        }" +
+               "        @keyframes pulse-tick {" +
+               "            0%, 100% { transform: scale(1); opacity: 1; filter: brightness(1); }" +
+               "            50% { transform: scale(1.15); opacity: 0.7; filter: brightness(1.4); }" +
+               "        }" +
                "        .status-text {" +
                "            font-size: 0.75rem; letter-spacing: 2px; color: var(--success); font-weight: 500;" +
                "            border-right: 2px solid var(--success); padding-right: 10px;" +
@@ -179,13 +189,30 @@ public class RootController {
                "        /* Responsive */" +
                "        @media (max-width: 1024px) {" +
                "            .hero h1 { font-size: 4rem; }" +
-               "            .c-1, .c-2, .c-3, .c-4, .c-5 { grid-column: span 12; }" +
+               "            .c-1, .c-2, .c-3, .c-4, .c-5, .c-6 { grid-column: span 12; }" +
                "            header, .layout, footer { padding: 1.5rem 2rem; }" +
                "            .metric-grid { grid-template-columns: 1fr; }" +
                "            .topo-row { flex-direction: column; }" +
                "            .topo-arrow { width: 1px; height: 30px; }" +
                "            .topo-arrow::after { transform: rotate(90deg); bottom: -10px; right: -5px; top: auto; }" +
                "            .faq-grid { grid-template-columns: 1fr; }" +
+               "        }" +
+               "        @media (max-width: 768px) {" +
+               "            header { padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }" +
+               "            .status-header { display: none; }" +
+               "            .mobile-status-right { display: flex; align-items: center; }" +
+               "            .logo-nav { display: flex; align-items: center; }" +
+               "            .hero h1 { font-size: 2.8rem; letter-spacing: -2px; }" +
+               "            .hero p { font-size: 1.1rem; padding-left: 15px; }" +
+               "            .layout { padding: 40px 1.5rem; }" +
+               "            .section-title { font-size: 1.8rem; }" +
+               "            .bento-card { padding: 25px; }" +
+               "            .metric-grid { gap: 15px; }" +
+               "            .dev-tools { flex-direction: column; }" +
+               "            .dev-btn { justify-content: center; }" +
+               "            .win-body { padding: 15px; font-size: 0.75rem; }" +
+               "            footer { padding: 60px 1.5rem; }" +
+               "            .footer-info { gap: 40px; }" +
                "        }" +
                "    </style>" +
                "</head>" +
@@ -198,6 +225,9 @@ public class RootController {
                "    <header>" +
                "        <div class='logo-nav'>" +
                "            <img src='/logo.webp' alt='Nexus'>" +
+               "        </div>" +
+               "        <div class='mobile-status-right'>" +
+               "            <span class='mobile-tick'>✔</span>" +
                "        </div>" +
                "        <div class='status-header'>" +
                "            <span class='status-text'>BACKEND OPERATIVO</span>" +
