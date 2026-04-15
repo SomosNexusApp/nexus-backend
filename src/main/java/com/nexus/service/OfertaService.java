@@ -244,9 +244,13 @@ public class OfertaService {
                 : Sort.by(Sort.Direction.DESC, columna);
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
+        List<Integer> excluded = bloqueoService.getRelacionesBloqueo(currentUserId);
+        boolean hasExcluded = (excluded != null && !excluded.isEmpty());
+        if (excluded != null && excluded.isEmpty()) excluded = null;
+
         return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
-                bloqueoService.getRelacionesBloqueo(currentUserId), 
+                excluded, hasExcluded,
                 minLat, maxLat, minLng, maxLng, pageable);
     }
 
@@ -264,9 +268,13 @@ public class OfertaService {
                 : Sort.by(Sort.Direction.DESC, columna);
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
+        List<Integer> excluded = bloqueoService.getRelacionesBloqueo(currentUserId);
+        boolean hasExcluded = (excluded != null && !excluded.isEmpty());
+        if (excluded != null && excluded.isEmpty()) excluded = null;
+
         return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
-                bloqueoService.getRelacionesBloqueo(currentUserId), 
+                excluded, hasExcluded,
                 minLat, maxLat, minLng, maxLng, pageable);
     }
 
@@ -276,9 +284,14 @@ public class OfertaService {
             Integer actorId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Direction.DESC, "fecha_publicacion"));
+        
+        List<Integer> excluded = bloqueoService.getRelacionesBloqueo(null);
+        boolean hasExcluded = excluded != null && !excluded.isEmpty();
+        if (excluded != null && excluded.isEmpty()) excluded = null;
+
         return ofertaRepository.buscarConFiltrosGeograficos(
                 categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, 
-                bloqueoService.getRelacionesBloqueo(null), 
+                excluded, hasExcluded,
                 null, null, null, null, pageable);
     }
 

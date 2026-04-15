@@ -76,18 +76,18 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
-        (CAST(:actorId AS NUMERIC) IS NULL
-          OR o.actor_id = CAST(:actorId AS NUMERIC))
+        (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
+          OR o.actor_id = CAST(CAST(:actorId AS TEXT) AS NUMERIC))
         AND
-        (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
+        (:hasExcluded = FALSE OR o.actor_id NOT IN (:excludedActorIds))
         AND
-        (CAST(:minLat AS NUMERIC) IS NULL OR o.latitude >= CAST(:minLat AS NUMERIC))
+        (CAST(CAST(:minLat AS TEXT) AS NUMERIC) IS NULL OR o.latitude >= CAST(CAST(:minLat AS TEXT) AS NUMERIC))
         AND
-        (CAST(:maxLat AS NUMERIC) IS NULL OR o.latitude <= CAST(:maxLat AS NUMERIC))
+        (CAST(CAST(:maxLat AS TEXT) AS NUMERIC) IS NULL OR o.latitude <= CAST(CAST(:maxLat AS TEXT) AS NUMERIC))
         AND
-        (CAST(:minLng AS NUMERIC) IS NULL OR o.longitude >= CAST(:minLng AS NUMERIC))
+        (CAST(CAST(:minLng AS TEXT) AS NUMERIC) IS NULL OR o.longitude >= CAST(CAST(:minLng AS TEXT) AS NUMERIC))
         AND
-        (CAST(:maxLng AS NUMERIC) IS NULL OR o.longitude <= CAST(:maxLng AS NUMERIC))
+        (CAST(CAST(:maxLng AS TEXT) AS NUMERIC) IS NULL OR o.longitude <= CAST(CAST(:maxLng AS TEXT) AS NUMERIC))
       """, countQuery = """
       SELECT COUNT(*) FROM oferta o
       LEFT JOIN categoria c ON c.id = o.categoria_id
@@ -110,18 +110,18 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
-        (CAST(:actorId AS NUMERIC) IS NULL
-          OR o.actor_id = CAST(:actorId AS NUMERIC))
+        (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
+          OR o.actor_id = CAST(CAST(:actorId AS TEXT) AS NUMERIC))
         AND
-        (COALESCE(:excludedActorIds, NULL) IS NULL OR o.actor_id NOT IN (:excludedActorIds))
+        (:hasExcluded = FALSE OR o.actor_id NOT IN (:excludedActorIds))
         AND
-        (CAST(:minLat AS NUMERIC) IS NULL OR o.latitude >= CAST(:minLat AS NUMERIC))
+        (CAST(CAST(:minLat AS TEXT) AS NUMERIC) IS NULL OR o.latitude >= CAST(CAST(:minLat AS TEXT) AS NUMERIC))
         AND
-        (CAST(:maxLat AS NUMERIC) IS NULL OR o.latitude <= CAST(:maxLat AS NUMERIC))
+        (CAST(CAST(:maxLat AS TEXT) AS NUMERIC) IS NULL OR o.latitude <= CAST(CAST(:maxLat AS TEXT) AS NUMERIC))
         AND
-        (CAST(:minLng AS NUMERIC) IS NULL OR o.longitude >= CAST(:minLng AS NUMERIC))
+        (CAST(CAST(:minLng AS TEXT) AS NUMERIC) IS NULL OR o.longitude >= CAST(CAST(:minLng AS TEXT) AS NUMERIC))
         AND
-        (CAST(:maxLng AS NUMERIC) IS NULL OR o.longitude <= CAST(:maxLng AS NUMERIC))
+        (CAST(CAST(:maxLng AS TEXT) AS NUMERIC) IS NULL OR o.longitude <= CAST(CAST(:maxLng AS TEXT) AS NUMERIC))
       """, nativeQuery = true)
   Page<Oferta> buscarConFiltrosGeograficos(
       @Param("categoria") String categoria,
@@ -132,6 +132,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       @Param("soloActivas") boolean soloActivas,
       @Param("actorId") Integer actorId,
       @Param("excludedActorIds") List<Integer> excludedActorIds,
+      @Param("hasExcluded") boolean hasExcluded,
       @Param("minLat") Double minLat,
       @Param("maxLat") Double maxLat,
       @Param("minLng") Double minLng,
