@@ -1,0 +1,184 @@
+{
+  "properties": [
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secreto para la firma de tokens JWT."
+    },
+    {
+      "name": "jwt.expiration",
+      "type": "java.lang.Long",
+      "description": "Tiempo de expiración de los tokens JWT en milisegundos."
+    },
+    {
+      "name": "google.client.id",
+      "type": "java.lang.String",
+      "description": "ID de cliente para Google OAuth."
+    },
+    {
+      "name": "facebook.app.id",
+      "type": "java.lang.String",
+      "description": "ID de aplicación para Facebook OAuth."
+    },
+    {
+      "name": "facebook.app.secret",
+      "type": "java.lang.String",
+      "description": "Secreto de aplicación para Facebook OAuth."
+    },
+    {
+      "name": "nexus.mail.from",
+      "type": "java.lang.String",
+      "description": "Dirección de correo remitente para notificaciones."
+    },
+    {
+      "name": "nexus.frontend.url",
+      "type": "java.lang.String",
+      "description": "URL base del frontend principal."
+    },
+    {
+      "name": "nexus.admin.url",
+      "type": "java.lang.String",
+      "description": "URL base del frontend de administración."
+    },
+    {
+      "name": "nexus.api.url",
+      "type": "java.lang.String",
+      "description": "URL base de la API del backend."
+    },
+    {
+      "name": "cloudinary.cloud_name",
+      "type": "java.lang.String",
+      "description": "Nombre del cloud en Cloudinary."
+    },
+    {
+      "name": "cloudinary.api_key",
+      "type": "java.lang.String",
+      "description": "API Key de Cloudinary."
+    },
+    {
+      "name": "cloudinary.api_secret",
+      "type": "java.lang.String",
+      "description": "API Secret de Cloudinary."
+    },
+    {
+      "name": "stripe.api.key",
+      "type": "java.lang.String",
+      "description": "API Key de Stripe."
+    },
+    {
+      "name": "stripe.currency",
+      "type": "java.lang.String",
+      "description": "Moneda usada en Stripe (ej. eur)."
+    },
+    {
+      "name": "stripe.webhook.secret",
+      "type": "java.lang.String",
+      "description": "Secreto para verificar webhooks de Stripe."
+    },
+    {
+      "name": "recaptcha.secret.key",
+      "type": "java.lang.String",
+      "description": "Clave secreta de Google reCAPTCHA."
+    },
+    {
+      "name": "recaptcha.verify.url",
+      "type": "java.lang.String",
+      "description": "URL de verificación de reCAPTCHA."
+    },
+    {
+      "name": "recaptcha.min.score",
+      "type": "java.lang.Double",
+      "description": "Puntaje mínimo aceptable para reCAPTCHA v3."
+    },
+    {
+      "name": "totp.issuer",
+      "type": "java.lang.String",
+      "description": "Nombre del emisor para 2FA TOTP."
+    },
+    {
+      "name": "nexus.password-reset.expiry-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutos de validez para el token de reseteo de contraseña."
+    },
+    {
+      "name": "nexus.verification.expiry-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutos de validez para el token de verificación de cuenta."
+    },
+    {
+      "name": "nexus.two-factor-email.expiry-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutos de validez para el código 2FA por email."
+    },
+    {
+      "name": "nexus.anuncio.vida-dias",
+      "type": "java.lang.Integer",
+      "description": "Días que un anuncio permanece activo."
+    },
+    {
+      "name": "nexus.envio.plazo-dias",
+      "type": "java.lang.Integer",
+      "description": "Plazo máximo para realizar un envío tras pago."
+    },
+    {
+      "name": "nexus.newsletter.version-politica",
+      "type": "java.lang.String",
+      "description": "Versión de la política de newsletter."
+    },
+    {
+      "name": "nexus.upvotes.recalculo-minutos",
+      "type": "java.lang.Integer",
+      "description": "Intervalo para recálculo de upvotes."
+    },
+    {
+      "name": "spring.websocket.max-text-message-size",
+      "type": "java.lang.Integer",
+      "description": "Tamaño máximo de mensaje de texto en WebSocket."
+    },
+    {
+      "name": "spring.websocket.max-binary-message-size",
+      "type": "java.lang.Integer",
+      "description": "Tamaño máximo de mensaje binario en WebSocket."
+    },
+    {
+      "name": "correos.client-id",
+      "type": "java.lang.String",
+      "description": "Client ID para API de Correos."
+    },
+    {
+      "name": "correos.client-secret",
+      "type": "java.lang.String",
+      "description": "Client Secret para API de Correos."
+    },
+    {
+      "name": "nexus.shipping.tracking-provider-url",
+      "type": "java.lang.String",
+      "description": "URL del proveedor de tracking de envíos."
+    },
+    {
+      "name": "nexus.shipping.tracking-provider-token",
+      "type": "java.lang.String",
+      "description": "Token del proveedor de tracking de envíos."
+    },
+    {
+      "name": "nexus.shipping.tracking-refresh-ms",
+      "type": "java.lang.Long",
+      "description": "Frecuencia de refresco de tracking en ms."
+    },
+    {
+      "name": "nexus.shipping.carrier-webhook-secret",
+      "type": "java.lang.String",
+      "description": "Secreto para webhooks del transportista."
+    },
+    {
+      "name": "nexus.soporte.gemini-api-key",
+      "type": "java.lang.String",
+      "description": "API Key de Google Gemini para IA de soporte."
+    },
+    {
+      "name": "nexus.soporte.email-escalacion",
+      "type": "java.lang.String",
+      "description": "Email para escalación de soporte manual."
+    }
+  ]
+}
