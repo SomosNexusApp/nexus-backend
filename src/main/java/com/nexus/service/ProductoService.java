@@ -101,7 +101,7 @@ public class ProductoService {
             Pageable pageable) {
 
         return buscarConFiltrosPaginado(
-                categoria, null, precioMin, precioMax, null, busqueda, null, null, currentUserId, 
+                categoria, null, precioMin, precioMax, null, busqueda, null, null, currentUserId,
                 null, null, null, null, pageable);
     }
 
@@ -173,18 +173,18 @@ public class ProductoService {
     public Producto cambiarEstado(Integer id, EstadoProducto nuevo) {
         Producto p = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + id));
-        
+
         if (nuevo == EstadoProducto.VENDIDO && p.getEstado() != EstadoProducto.VENDIDO) {
             p.setFechaVenta(LocalDateTime.now());
         } else if (nuevo != EstadoProducto.VENDIDO) {
             p.setFechaVenta(null);
         }
-        
+
         p.setEstado(nuevo);
         return productoRepository.save(p);
     }
 
-    /** Reactiva un anuncio caducado (Wallapop): nueva ventana de vigencia. */
+    /** Reactiva un anuncio caducado: nueva ventana de vigencia. */
     @Transactional
     public Producto renovar(Integer id, Integer vendedorId) {
         Producto p = productoRepository.findById(id)

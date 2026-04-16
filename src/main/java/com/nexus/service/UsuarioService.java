@@ -305,6 +305,7 @@ public class UsuarioService implements UserDetailsService {
     public void convertirAEmpresa(Usuario u, Map<String, String> datosEmpresa) {
         Integer actorId = u.getId();
         String cif = datosEmpresa.getOrDefault("cif", "");
+        String nombreComercial = datosEmpresa.getOrDefault("nombreComercial", "");
         String web = datosEmpresa.getOrDefault("web", "");
         String telefono = datosEmpresa.get("telefonoEmpresa");
 
@@ -338,27 +339,60 @@ public class UsuarioService implements UserDetailsService {
                 .executeUpdate();
 
         // AQUÍ ESTABA EL ERROR: Las columnas correctas son remitente_id y receptor_id
-        entityManager.createNativeQuery("DELETE FROM chat_mensaje WHERE remitente_id = :id OR receptor_id = :id")
-                .setParameter("id", actorId)
-                .executeUpdate();
+    public void convertirAEmpresa(Integer actorId, Map<String, String> datosEmpresa) {
+        String cif = datosEmpresa.get("cif");
+        String nombreComercial = datosEmpresa.get("nombreComercial");
+        String web = datosEmpresa.get("web");
+        String desc = datosEmpresa.getOrDefault("descripcion", "");
 
+        // 1. LIMPIEZA DRÁSTICA DE HIBERNATE
+        // Forzamos a que Hibernate escriba lo que tenga pendiente y olvide los objetos actuales.
+        // Esto es necesario porque vamos a manipular las tablas hijas por debajo con SQL nativo.
+        entityManager.flush();
+        entityManager.clear();
+
+        // 2. LIMPIEZA DE DEPENDENCIAS QUE APUNTAN A 'USUARIO' (OPCIONAL SEGÚN TU ESQUEMA)
+        // Si tienes tablas que solo apuntan a 'usuario' (borrado en cascada), hazlo aquí.
+        // NOTA: Como usamos Actor id para casi todo, muchas FKs son seguras. 
+        // Pero 'chat_mensaje' o 'favoritos' a veces se ligan al ID de Actor.
+        
         // 3. CAMBIO DE IDENTIDAD (El corazón de la herencia JOINED)
-        // Como hemos limpiado las dependencias, PostgreSQL nos dejará borrar al
-        // usuario.
-        entityManager.createNativeQuery("DELETE FROM usuario WHERE actor_id = :id")
+        // Borramos el perfil de Usuario manteniendo el Actor base.
+        entityManager.createNativeQuery("DELETE FROM usuario WHERE id = :id")
                 .setParameter("id", actorId)
                 .executeUpdate();
 
-        // Insertamos el registro en la tabla hija 'empresa'
-        entityManager
-                .createNativeQuery(
-                        "INSERT INTO empresa (actor_id, cif, web, verificada) VALUES (:id, :cif, :web, false)")
+        // Verificamos si ya existe en la tabla empresa (por reintentos o errores previos)
+        Number count = (Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM empresa WHERE actor_id = :id")
                 .setParameter("id", actorId)
-                .setParameter("cif", cif)
-                .setParameter("web", web)
-                .executeUpdate();
+                .getSingleResult();
 
-        // 4. Limpiamos la caché de Hibernate
+        if (count.intValue() == 0) {
+            // Insertamos el registro en la tabla hija 'empresa'
+            entityManager
+                    .createNativeQuery(
+                            "INSERT INTO empresa (actor_id, cif, nombre_comercial, descripcion, web, verificada) " +
+                            "VALUES (:id, :cif, :nom, :desc, :web, false)")
+                    .setParameter("id", actorId)
+                    .setParameter("cif", cif)
+                    .setParameter("nom", nombreComercial)
+                    .setParameter("desc", desc)
+                    .setParameter("web", web)
+                    .executeUpdate();
+        } else {
+            // Actualizamos si ya existía
+            entityManager
+                    .createNativeQuery(
+                            "UPDATE empresa SET cif = :cif, nombre_comercial = :nom, descripcion = :desc, web = :web WHERE actor_id = :id")
+                    .setParameter("id", actorId)
+                    .setParameter("cif", cif)
+                    .setParameter("nom", nombreComercial)
+                    .setParameter("desc", desc)
+                    .setParameter("web", web)
+                    .executeUpdate();
+        }
+
+        // 4. Limpiamos la caché de Hibernate para que refresque el proxy a Empresa
         entityManager.clear();
     }
 

@@ -260,6 +260,17 @@ public abstract class Actor extends DomainEntity {
         this.customAvatarUrl = c;
     }
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean onboardingCompletado = false;
+
+    public boolean isOnboardingCompletado() {
+        return onboardingCompletado;
+    }
+
+    public void setOnboardingCompletado(boolean b) {
+        this.onboardingCompletado = b;
+    }
+
     public ActorNotificacionConfig getNotificacionConfig() {
         return notificacionConfig;
     }
