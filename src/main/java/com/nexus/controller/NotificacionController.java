@@ -34,9 +34,10 @@ public class NotificacionController {
     @Operation(summary = "Listar notificaciones paginadas")
     public ResponseEntity<Page<NotificacionInApp>> listar(
             @PathVariable Integer actorId,
+            @RequestParam(required = false) String filter,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(notificacionService.getNotificaciones(actorId, page, size));
+        return ResponseEntity.ok(notificacionService.getNotificaciones(actorId, filter, page, size));
     }
 
     /**

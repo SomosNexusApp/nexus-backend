@@ -173,6 +173,13 @@ public class ProductoService {
     public Producto cambiarEstado(Integer id, EstadoProducto nuevo) {
         Producto p = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + id));
+        
+        if (nuevo == EstadoProducto.VENDIDO && p.getEstado() != EstadoProducto.VENDIDO) {
+            p.setFechaVenta(LocalDateTime.now());
+        } else if (nuevo != EstadoProducto.VENDIDO) {
+            p.setFechaVenta(null);
+        }
+        
         p.setEstado(nuevo);
         return productoRepository.save(p);
     }

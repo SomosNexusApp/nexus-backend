@@ -128,6 +128,20 @@ public class OfertaService {
         ofertaRepository.deleteById(id);
     }
 
+    @Transactional
+    public Oferta cambiarEstado(Integer id, EstadoOferta nuevo) {
+        Oferta o = findByIdOrThrow(id);
+        
+        if (nuevo == EstadoOferta.AGOTADA && o.getEstado() != EstadoOferta.AGOTADA) {
+            o.setFechaFinalizado(LocalDateTime.now());
+        } else if (nuevo != EstadoOferta.AGOTADA) {
+            o.setFechaFinalizado(null);
+        }
+        
+        o.setEstado(nuevo);
+        return ofertaRepository.save(o);
+    }
+
     // ── Crear con imagenes ───────────────────────────────────────────────
 
     @Transactional

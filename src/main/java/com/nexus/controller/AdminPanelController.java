@@ -176,9 +176,16 @@ public class AdminPanelController {
     @PatchMapping("/usuarios/{id}/verificar")
     @Transactional
     public ResponseEntity<Void> verificar(@PathVariable Integer id, @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = actorRepo.findById(id).orElseThrow();
-        u.setCuentaVerificada(true);
-        actorRepo.save(u);
+        var a = actorRepo.findById(id).orElseThrow();
+        a.setCuentaVerificada(true);
+        
+        if (a instanceof Usuario) {
+            ((Usuario) a).setEsVerificado(true);
+        } else if (a instanceof Empresa) {
+            ((Empresa) a).setVerificada(true);
+        }
+        
+        actorRepo.save(a);
         audit(ud, "VERIFICAR_USUARIO", "USUARIO", id.longValue(), "Usuario verificado", req);
         notificacionService.notificarAccionAdmin(id, "Cuenta verificada",
                 "Tu cuenta ha sido verificada por el equipo de Nexus.", "/perfil?tab=configuracion");

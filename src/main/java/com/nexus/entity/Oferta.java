@@ -215,4 +215,16 @@ public class Oferta extends DomainEntity {
         if (precioOriginal == null || precioOriginal <= 0 || precioOferta == null) return 0;
         return Math.round(((precioOriginal - precioOferta) / precioOriginal) * 100.0);
     }
+
+    private LocalDateTime fechaFinalizado;
+
+    public LocalDateTime getFechaFinalizado() { return fechaFinalizado; }
+    public void setFechaFinalizado(LocalDateTime f) { this.fechaFinalizado = f; }
+
+    /** Calculado: días que faltan para que desaparezca de la app si está agotada. */
+    public Long getDiasRestantesAgotado() {
+        if (estado != EstadoOferta.AGOTADA || fechaFinalizado == null) return null;
+        long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDateTime.now(), fechaFinalizado.plusDays(14));
+        return Math.max(0, days);
+    }
 }

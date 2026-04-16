@@ -298,13 +298,13 @@ public class OfertaController {
             return ResponseEntity.badRequest().body(Map.of("error", "Falta el campo 'estado'"));
 
         try {
-            EstadoOferta nuevoEstado = EstadoOferta.valueOf(nuevoEstadoStr);
-            return ofertaService.findById(id).map(o -> {
-                o.setEstado(nuevoEstado);
-                return ResponseEntity.ok(ofertaService.save(o));
-            }).orElse(ResponseEntity.notFound().build());
+            EstadoOferta nuevoEstado = EstadoOferta.valueOf(nuevoEstadoStr.toUpperCase());
+            Oferta actualizada = ofertaService.cambiarEstado(id, nuevoEstado);
+            return ResponseEntity.ok(actualizada);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Estado no válido"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
 }

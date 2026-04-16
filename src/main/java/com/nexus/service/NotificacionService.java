@@ -37,8 +37,14 @@ public class NotificacionService {
         return notificacionRepository.findByActorIdOrderByFechaDesc(actorId);
     }
 
-    public Page<NotificacionInApp> getNotificaciones(Integer actorId, int page, int size) {
-        return notificacionRepository.findByActorIdOrderByFechaDesc(actorId, PageRequest.of(page, size));
+    public Page<NotificacionInApp> getNotificaciones(Integer actorId, String filter, int page, int size) {
+        PageRequest pr = PageRequest.of(page, size);
+        if ("no-leidas".equals(filter)) {
+            return notificacionRepository.findByActorIdAndLeidaFalseOrderByFechaDesc(actorId, pr);
+        } else if ("destacadas".equals(filter)) {
+            return notificacionRepository.findByActorIdAndDestacadaTrueOrderByFechaDesc(actorId, pr);
+        }
+        return notificacionRepository.findByActorIdOrderByFechaDesc(actorId, pr);
     }
 
     public List<NotificacionInApp> getDestacadasPendientes(Integer actorId) {

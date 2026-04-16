@@ -18,6 +18,7 @@ import com.nexus.entity.Oferta;
 public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
 
   long countByEstado(EstadoOferta estado);
+  List<Oferta> findByEstado(EstadoOferta estado);
   
   java.util.Optional<Oferta> findByTitulo(String titulo);
 

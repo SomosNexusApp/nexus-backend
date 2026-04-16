@@ -174,4 +174,11 @@ public class Vehiculo extends DomainEntity {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();
         galeriaImagenes.add(url);
     }
-}
+
+    /** Calculado: días que faltan para que desaparezca de la app si está expirado. */
+    public Long getDiasRestantesExpirado() {
+        if (estadoVehiculo != EstadoVehiculo.EXPIRADO || fechaCaducidad == null) return null;
+        long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDateTime.now(), fechaCaducidad.plusDays(14));
+        return Math.max(0, days);
+    }
+}

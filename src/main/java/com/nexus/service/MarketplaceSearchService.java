@@ -386,6 +386,18 @@ public class MarketplaceSearchService {
                     "nombre",     nombre,
                     "verificado", p.getVendedor().isCuentaVerificada()));
         }
+
+        if (p.getEstado() == EstadoProducto.VENDIDO && p.getFechaVenta() != null) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(
+                java.time.LocalDateTime.now(), 
+                p.getFechaVenta().plusDays(14)
+            );
+            m.put("diasRestantesVendido", Math.max(0, days));
+            m.put("estado", "VENDIDO");
+        } else {
+            m.put("estado", p.getEstado().name());
+        }
+
         return m;
     }
 

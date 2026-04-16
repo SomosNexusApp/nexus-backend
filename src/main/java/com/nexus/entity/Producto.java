@@ -105,6 +105,9 @@ public class Producto extends DomainEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean patrocinado = false;
 
+    /** Fecha en la que el producto pasó a VENDIDO. */
+    private LocalDateTime fechaVenta;
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTORES
     // ═══════════════════════════════════════════════════════════════════════
@@ -239,8 +242,25 @@ public class Producto extends DomainEntity {
     public Boolean          getPatrocinado()                    { return patrocinado != null && patrocinado; }
     public void             setPatrocinado(Boolean p)          { this.patrocinado = p != null ? p : false; }
 
+    public LocalDateTime    getFechaVenta()                     { return fechaVenta; }
+    public void             setFechaVenta(LocalDateTime f)      { this.fechaVenta = f; }
+
+    /** Calculado: días que faltan para que desaparezca de la app si está vendido. */
+    public Long getDiasRestantesVendido() {
+        if (estado != EstadoProducto.VENDIDO || fechaVenta == null) return null;
+        long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDateTime.now(), fechaVenta.plusDays(14));
+        return Math.max(0, days);
+    }
+
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();
         galeriaImagenes.add(url);
     }
-}
+
+    /** Calculado: días que faltan para que desaparezca de la app si está expirado. */
+    public Long getDiasRestantesExpirado() {
+        if (estado != EstadoProducto.EXPIRADO || fechaCaducidad == null) return null;
+        long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDateTime.now(), fechaCaducidad.plusDays(14));
+        return Math.max(0, days);
+    }
+}

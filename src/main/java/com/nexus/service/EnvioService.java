@@ -451,7 +451,11 @@ public class EnvioService {
     private void completarCompra(Compra compra) {
         compra.setEstado(EstadoCompra.COMPLETADA);
         compra.setFechaCompletada(LocalDateTime.now());
-        compra.getProducto().setEstadoProducto(EstadoProducto.VENDIDO);
+        
+        Producto p = compra.getProducto();
+        p.setEstadoProducto(EstadoProducto.VENDIDO);
+        p.setFechaVenta(LocalDateTime.now());
+        
         compraRepository.save(compra);
 
         // Aumentar reputación del vendedor (si es Usuario particular)

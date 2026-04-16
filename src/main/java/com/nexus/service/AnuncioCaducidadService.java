@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nexus.entity.EstadoProducto;
+import com.nexus.entity.EstadoOferta;
 import com.nexus.entity.EstadoVehiculo;
 import com.nexus.entity.Producto;
+import com.nexus.entity.Oferta;
 import com.nexus.entity.Vehiculo;
 import com.nexus.repository.ProductoRepository;
 import com.nexus.repository.VehiculoRepository;
@@ -26,6 +28,8 @@ public class AnuncioCaducidadService {
     @Autowired
     private VehiculoRepository vehiculoRepository;
     @Autowired
+    private com.nexus.repository.OfertaRepository ofertaRepository;
+    @Autowired
     private NotificacionService notificacionService;
 
     @Value("${nexus.anuncio.vida-dias:180}")
@@ -35,6 +39,9 @@ public class AnuncioCaducidadService {
     public void ejecutarDiario() {
         procesarProductos();
         procesarVehiculos();
+        limpiarProductosVendidos();
+        limpiarOfertasAgotadas();
+        limpiarExpirados();
     }
 
     private void procesarProductos() {
@@ -101,6 +108,54 @@ public class AnuncioCaducidadService {
                     vehiculoRepository.save(v);
                     break;
                 }
+            }
+        }
+    }
+
+    private void limpiarProductosVendidos() {
+        // Obtenemos productos vendidos. 
+        // Nota: asumo que productoRepository tiene findByEstado(EstadoProducto)
+        List<Producto> vendidos = productoRepository.findByEstado(EstadoProducto.VENDIDO);
+        java.time.LocalDateTime limite = java.time.LocalDateTime.now().minusDays(14);
+        
+        for (Producto p : vendidos) {
+            if (p.getFechaVenta() != null && p.getFechaVenta().isBefore(limite)) {
+                p.setEstado(EstadoProducto.ELIMINADO);
+                productoRepository.save(p);
+            }
+        }
+    }
+
+    private void limpiarOfertasAgotadas() {
+        List<Oferta> agotadas = ofertaRepository.findByEstado(EstadoOferta.AGOTADA);
+        java.time.LocalDateTime limite = java.time.LocalDateTime.now().minusDays(14);
+        
+        for (Oferta o : agotadas) {
+            if (o.getFechaFinalizado() != null && o.getFechaFinalizado().isBefore(limite)) {
+                o.setEstado(EstadoOferta.ELIMINADA);
+                ofertaRepository.save(o);
+            }
+        }
+    }
+
+    private void limpiarExpirados() {
+        java.time.LocalDateTime limite = java.time.LocalDateTime.now().minusDays(14);
+
+        // Productos
+        List<Producto> productosExpirados = productoRepository.findByEstado(EstadoProducto.EXPIRADO);
+        for (Producto p : productosExpirados) {
+            if (p.getFechaCaducidad() != null && p.getFechaCaducidad().isBefore(limite)) {
+                p.setEstado(EstadoProducto.ELIMINADO);
+                productoRepository.save(p);
+            }
+        }
+
+        // Vehículos
+        List<Vehiculo> vehiculosExpirados = vehiculoRepository.findByEstadoVehiculo(EstadoVehiculo.EXPIRADO);
+        for (Vehiculo v : vehiculosExpirados) {
+            if (v.getFechaCaducidad() != null && v.getFechaCaducidad().isBefore(limite)) {
+                v.setEstadoVehiculo(EstadoVehiculo.ELIMINADO);
+                vehiculoRepository.save(v);
             }
         }
     }
