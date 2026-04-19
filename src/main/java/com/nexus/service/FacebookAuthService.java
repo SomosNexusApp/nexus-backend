@@ -17,6 +17,7 @@ import com.nexus.entity.Usuario;
 import com.nexus.repository.ActorRepository;
 import com.nexus.repository.UsuarioRepository;
 
+@Deprecated // Facebook OAuth eliminado. Mantener para compatibilidad de columnas en BD.
 @Service
 public class FacebookAuthService {
 
