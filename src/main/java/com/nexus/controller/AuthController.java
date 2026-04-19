@@ -2,8 +2,10 @@ package com.nexus.controller;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,6 +15,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
 import com.nexus.entity.Actor;
 import com.nexus.entity.Admin;
 import com.nexus.entity.SesionDispositivo;
@@ -20,6 +27,7 @@ import com.nexus.entity.Usuario;
 import com.nexus.entity.Empresa;
 import com.nexus.repository.ActorRepository;
 import com.nexus.repository.SesionDispositivoRepository;
+import com.nexus.repository.UsuarioRepository;
 import com.nexus.security.JWTUtils;
 import com.nexus.service.CaptchaService;
 import com.nexus.service.UsuarioService;
@@ -37,9 +45,14 @@ public class AuthController {
     @Autowired
     private ActorRepository actorRepository;
     @Autowired
+    private UsuarioRepository usuarioRepository;
+    @Autowired
     private UsuarioService usuarioService;
     @Autowired
     private CaptchaService captchaService;
+
+    @Value("${google.client.id}")
+    private String googleClientId;
 
     // --- dependencias para el login y sesiones ---
     @Autowired
@@ -71,6 +84,98 @@ public class AuthController {
         public String username;
         public String password;
         public String captchaToken;
+    }
+
+    // ── GOOGLE OAUTH ─────────────────────────────────────────────────────────────
+    @PostMapping("/google")
+    @Operation(summary = "Login/registro con Google. Valida el ID token y devuelve un JWT de Nexus.")
+    public ResponseEntity<?> loginConGoogle(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        String idTokenString = body.get("token");
+        if (idTokenString == null || idTokenString.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token de Google requerido."));
+        }
+
+        try {
+            // 1. Verificar el token con la API de Google
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(java.util.Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Token de Google inválido o expirado."));
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String googleId   = payload.getSubject();
+            String email      = payload.getEmail();
+            String nombre     = (String) payload.get("given_name");
+            String apellidos  = (String) payload.get("family_name");
+            String avatarUrl  = (String) payload.get("picture");
+
+            System.out.println("[GOOGLE] Login OAuth para: " + email + " (googleId=" + googleId + ")");
+
+            // 2. Buscar usuario existente por googleId o email
+            Actor actor = usuarioRepository.findByGoogleId(googleId)
+                    .map(u -> (Actor) u)
+                    .or(() -> usuarioRepository.findByEmail(email).map(u -> (Actor) u))
+                    .map(a -> {
+                        // usuario existente: actualizamos googleId y avatar si faltan
+                        if (a instanceof Usuario u) {
+                            if (u.getGoogleId() == null) u.setGoogleId(googleId);
+                            if (avatarUrl != null && u.getGoogleAvatarUrl() == null)
+                                u.setGoogleAvatarUrl(avatarUrl);
+                            usuarioRepository.save(u);
+                        }
+                        return a;
+                    })
+                    .orElseGet(() -> {
+                        // 3. Usuario nuevo: crear cuenta automáticamente
+                        String baseUser = email.contains("@") ? email.substring(0, email.indexOf("@")) : googleId;
+                        // generar username único
+                        String username = baseUser.replaceAll("[^a-zA-Z0-9_]", "").toLowerCase();
+                        int suffix = 0;
+                        String candidato = username;
+                        while (actorRepository.findByUsername(candidato).isPresent()) {
+                            candidato = username + (++suffix);
+                        }
+                        Usuario nuevo = new Usuario();
+                        nuevo.setUser(candidato);
+                        nuevo.setEmail(email);
+                        nuevo.setNombre(nombre != null ? nombre : candidato);
+                        nuevo.setApellidos(apellidos);
+                        nuevo.setGoogleId(googleId);
+                        nuevo.setGoogleAvatarUrl(avatarUrl);
+                        nuevo.setAvatarSource("GOOGLE");
+                        nuevo.setCuentaVerificada(true);
+                        nuevo.setOnboardingCompletado(false);
+                        nuevo.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                        System.out.println("[GOOGLE] Nuevo usuario creado: " + candidato);
+                        return usuarioRepository.save(nuevo);
+                    });
+
+            // 4. Generar JWT de Nexus para el usuario
+            String jwt = jwtUtils.generateTokenForUser(actor);
+
+            // 5. Registrar la sesión del dispositivo
+            SesionDispositivo sesion = new SesionDispositivo();
+            sesion.setActorId(actor.getId());
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
+            sesion.setIp(ip);
+            sesion.setDispositivo("Google OAuth");
+            sesion.setFechaLogin(LocalDateTime.now());
+            sesionDispositivoRepository.save(sesion);
+
+            return ResponseEntity.ok(Map.of("token", jwt));
+
+        } catch (Exception e) {
+            System.err.println("[GOOGLE] Error verificando token: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al verificar el token de Google."));
+        }
     }
 
     @PostMapping("/login")
