@@ -14,7 +14,28 @@ public class RootController {
                 "<head>" +
                 "    <meta charset='UTF-8'>" +
                 "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "    <title>Nexus | Infraestructura Backend</title>" +
+                "    <title>Nexus API | Infraestructura Backend Core</title>" +
+                "    <meta name='description' content='Portal de infraestructura Core de Nexus App. Accede a nuestra API REST, ecosistema de WebSockets y microservicios del marketplace oficial de chollos.'>" +
+                "    <meta name='keywords' content='nexus api, backend nexus, infraestructura, rest api, websockets, marketplace api, nexus desarrollo, swagger nexus, api chollos, nexus developers'>" +
+                "    <meta name='robots' content='index, follow, max-snippet:-1, max-image-preview:large'>" +
+                "    <meta name='author' content='Nexus Engineering' />" +
+                "    <link rel='canonical' href='https://api.nexus-app.es/' />" +
+                "    <meta property='og:title' content='Nexus API | Infraestructura y Servicios Cloud' />" +
+                "    <meta property='og:description' content='Arquitectura escalable de microservicios de Nexus Marketplace. Explora endpoints y documentación técnica.' />" +
+                "    <meta property='og:type' content='website' />" +
+                "    <meta property='og:url' content='https://api.nexus-app.es/' />" +
+                "    <meta name='twitter:card' content='summary' />" +
+                "    <meta name='twitter:title' content='Nexus Backend API' />" +
+                "    <meta name='twitter:description' content='Infraestructura backend, API REST y servicios de baja latencia del mercado de segunda mano Nexus.' />" +
+                "    <script type='application/ld+json'>" +
+                "    {" +
+                "      \"@context\": \"https://schema.org\"," +
+                "      \"@type\": \"WebAPI\"," +
+                "      \"name\": \"Nexus API Gateway\"," +
+                "      \"url\": \"https://api.nexus-app.es/\"," +
+                "      \"description\": \"Gateway central de infraestructura, autenticación y transacciones para Nexus Marketplace.\"" +
+                "    }" +
+                "    </script>" +
                 "    <link rel='icon' type='image/x-icon' href='/favicon.ico'>" +
                 "    <link rel='shortcut icon' type='image/x-icon' href='/favicon.ico'>" +
                 "    <link rel='preconnect' href='https://fonts.googleapis.com'>" +
