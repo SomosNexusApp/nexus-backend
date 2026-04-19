@@ -6,6 +6,15 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/**
+ * Configuracion del envio automatico del newsletter.
+ * Hay solo una fila en esta tabla (configuracion global del sistema).
+ *
+ * NOTA de diseno: Esta entidad podria haberse implementado usando AdminConfig (key-value)
+ * pero se decidio mantenerla separada porque tiene tipos especificos (LocalTime, int)
+ * que no encajan bien en un string generico de AdminConfig.
+ * Para el UML puede representarse como una tabla de configuracion singleton.
+ */
 @Entity
 @Table(name = "newsletter_config")
 public class NewsletterConfig extends DomainEntity {

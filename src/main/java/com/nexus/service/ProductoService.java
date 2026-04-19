@@ -18,6 +18,7 @@ import com.nexus.repository.ActorRepository;
 import com.nexus.repository.ProductoRepository;
 import com.nexus.repository.ProductoSpecification;
 
+// servicio de productos: CRUD, busqueda con filtros y gestion de estados
 @Service
 public class ProductoService {
 
@@ -28,12 +29,14 @@ public class ProductoService {
     @Autowired
     private BloqueoService bloqueoService;
     @Autowired
+    // servicio de sinonimos: convierte "ps5" en ["ps5", "playstation 5", "sony playstation 5"], etc.
     private SynonymService synonymService;
     @Autowired
+    // detecta contenido inapropiado en titulos y descripciones antes de guardar
     private ModerationService moderationService;
 
     @Value("${nexus.anuncio.vida-dias:180}")
-    private int vidaAnuncioDias;
+    private int vidaAnuncioDias; // duracion de un anuncio en dias (configurable)
 
     // ── Lecturas ─────────────────────────────────────────────────────────────
 
@@ -53,8 +56,10 @@ public class ProductoService {
     }
 
     /**
-     * Búsqueda principal con sinónimos y filtros.
-     * "ps5" encontrará "PlayStation 5", "portatil" encontrará "laptop", etc.
+     * Busqueda principal del marketplace: aplica sinonimos, filtros de precio, categoria,
+     * condicion, ubicacion (por bounding box) y excluye usuarios bloqueados.
+     * "ps5" encontrara "PlayStation 5", "portatil" encontrara "laptop", etc.
+     * Los resultados vienen ordenados con patrocinados primero, luego por fecha.
      */
     @Transactional(readOnly = true)
     public Page<Producto> buscarConFiltrosPaginado(
@@ -70,11 +75,10 @@ public class ProductoService {
             Double minLat, Double maxLat, Double minLng, Double maxLng,
             Pageable pageable) {
 
-        // Expandir el término con sinónimos
+        // el servicio de sinonimos expande el termino de busqueda con variantes equivalentes
         List<String> terms = synonymService.expand(busqueda);
 
-        // Si no hay términos de búsqueda ni filtros de texto, terms queda vacío → trae
-        // todo
+        // si terms esta vacio, la specification no filtrara por texto (devuelve todo)
         String categoriaNorm = (categoria != null && !categoria.isBlank()) ? categoria : null;
 
         Specification<Producto> spec = ProductoSpecification.buscarConFiltros(
@@ -84,6 +88,7 @@ public class ProductoService {
                 precioMax,
                 condicion,
                 vendedorId,
+                // excluimos productos de usuarios que se han bloqueado mutuamente con el comprador
                 bloqueoService.getRelacionesBloqueo(currentUserId),
                 minLat, maxLat, minLng, maxLng);
 
@@ -140,6 +145,9 @@ public class ProductoService {
     @Autowired
     private com.nexus.repository.SparkVotoRepository sparkVotoRepository;
 
+    // sistema de votos Spark/Drip: cada usuario puede dar thumbs up (SPARK) o thumbs down (DRIP) a un producto
+    // si vota lo mismo que ya tenia, se cancela el voto (queda en NONE)
+    // si vota lo contrario, cambia el voto
     @Transactional
     public java.util.Map<String, Object> votarProducto(Integer actorId, Integer productoId, Boolean isUpvote) {
         int valor = Boolean.TRUE.equals(isUpvote) ? 1 : -1;
@@ -148,20 +156,23 @@ public class ProductoService {
         com.nexus.entity.Actor actor = actorRepository.findById(actorId)
                 .orElseThrow(() -> new IllegalArgumentException("Actor no encontrado"));
 
-        Boolean nuevoMiVoto = isUpvote;
+        Boolean nuevoMiVoto = isUpvote; // este valor lo devolvemos al cliente
         java.util.Optional<com.nexus.entity.SparkVoto> prev = sparkVotoRepository.findByActorIdAndProductoId(actorId,
                 productoId);
 
         if (prev.isPresent()) {
             com.nexus.entity.SparkVoto v = prev.get();
             if (v.getValor() == valor) {
+                // voto igual: lo cancelamos (toggle)
                 sparkVotoRepository.deleteByActorAndProducto(actorId, productoId);
-                nuevoMiVoto = null;
+                nuevoMiVoto = null; // null significa que ya no tiene voto
             } else {
+                // voto diferente: cambiamos el valor
                 v.setValor(valor);
                 sparkVotoRepository.save(v);
             }
         } else {
+            // voto nuevo: lo creamos
             sparkVotoRepository.save(new com.nexus.entity.SparkVoto(actor, producto, Boolean.TRUE.equals(isUpvote)));
         }
 
@@ -184,22 +195,24 @@ public class ProductoService {
         return productoRepository.save(p);
     }
 
-    /** Reactiva un anuncio caducado: nueva ventana de vigencia. */
+    /** Reactiva un anuncio caducado dando una nueva ventana de vigencia completa. */
     @Transactional
     public Producto renovar(Integer id, Integer vendedorId) {
         Producto p = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        // solo el vendedor puede renovar su propio producto
         if (!p.getVendedor().getId().equals(vendedorId)) {
             throw new IllegalStateException("No autorizado");
         }
+        // solo se puede renovar si esta en estado EXPIRADO
         if (p.getEstado() != EstadoProducto.EXPIRADO) {
             throw new IllegalStateException("Solo se puede renovar un producto expirado");
         }
         LocalDateTime now = LocalDateTime.now();
         p.setEstado(EstadoProducto.DISPONIBLE);
         p.setFechaPublicacion(now);
-        p.setFechaCaducidad(now.plusDays(vidaAnuncioDias));
-        p.setUltimoAvisoCaducidadDias(null);
+        p.setFechaCaducidad(now.plusDays(vidaAnuncioDias)); // nueva ventana de vigencia
+        p.setUltimoAvisoCaducidadDias(null); // reseteamos el contador de avisos
         return productoRepository.save(p);
     }
 }

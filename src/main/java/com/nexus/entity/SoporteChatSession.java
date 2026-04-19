@@ -8,25 +8,28 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
+// -- SoporteChatSession: representa una sesion de chat con el bot/agente de soporte --
+// contiene el historial de mensajes (via SoporteChatMessage), el estado de la sesion
+// y la encuesta de satisfaccion al cerrar (antes era SoporteEncuesta, ahora esta aqui)
 @Entity
 @Table(name = "soporte_chat_session")
 public class SoporteChatSession extends DomainEntity {
 
     @Column(nullable = false, unique = true, length = 64)
-    private String sessionToken;
+    private String sessionToken; // token unico para identificar la sesion (UUID)
 
-    /** Usuario logueado, si aplica */
+    /** usuario logueado, null si es anonimo */
     private Integer usuarioId;
 
     @Column(nullable = false)
-    private boolean humanTakeover = false;
+    private boolean humanTakeover = false; // true cuando un agente humano toma el control
 
-    /** Veces que pidió hablar con persona / agente */
+    /** veces que el usuario ha pedido hablar con una persona */
     @Column(nullable = false)
     private int insistenciaAgente = 0;
 
     @Column(nullable = false)
-    private boolean escalacionMostrada = false;
+    private boolean escalacionMostrada = false; // true si ya se le mostro la opcion de escalar
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -34,6 +37,14 @@ public class SoporteChatSession extends DomainEntity {
 
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
+
+    // ---- encuesta de satisfaccion (antes era la entidad SoporteEncuesta) ----
+    // movemos los campos aqui para no tener una tabla extra solo para 2 columnas
+    @Column(name = "encuesta_valoracion")
+    private Integer encuestaValoracion; // valoracion del 1 al 5, null si no ha respondido
+
+    @Column(name = "encuesta_comentario", columnDefinition = "TEXT")
+    private String encuestaComentario; // comentario opcional del usuario sobre el soporte recibido
 
     @jakarta.persistence.PreUpdate
     public void touch() {
@@ -68,4 +79,10 @@ public class SoporteChatSession extends DomainEntity {
 
     public SoporteSessionStatus getStatus() { return status; }
     public void setStatus(SoporteSessionStatus status) { this.status = status; }
+
+    // getters/setters de la encuesta fusionada
+    public Integer getEncuestaValoracion() { return encuestaValoracion; }
+    public void setEncuestaValoracion(Integer v) { this.encuestaValoracion = v; }
+    public String getEncuestaComentario() { return encuestaComentario; }
+    public void setEncuestaComentario(String c) { this.encuestaComentario = c; }
 }

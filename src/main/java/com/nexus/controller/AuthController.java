@@ -28,6 +28,8 @@ import com.nexus.service.TwoFactorService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 
+// controlador de autenticacion: login, registro, 2FA, etc.
+// las dos rutas (/api/auth y /auth) son aliases, cualquiera funciona
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
@@ -39,7 +41,7 @@ public class AuthController {
     @Autowired
     private CaptchaService captchaService;
 
-    // --- DEPENDENCIAS AÑADIDAS PARA EL LOGIN Y SESIONES ---
+    // --- dependencias para el login y sesiones ---
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
@@ -51,7 +53,7 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // DTO Interno para registro
+    // DTO interno para el registro. Lo tenemos aqui mismo para no crear un archivo aparte
     public static class RegisterRequest {
         public String username;
         public String email;
@@ -60,12 +62,12 @@ public class AuthController {
         public String apellidos;
         public boolean terminosAceptados;
         public boolean newsletterSuscrito;
-        public String captchaToken;
+        public String captchaToken; // token de recaptcha para evitar bots
     }
 
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class LoginRequest {
-        @com.fasterxml.jackson.annotation.JsonProperty("user")
+        @com.fasterxml.jackson.annotation.JsonProperty("user") // el frontend manda el campo como 'user'
         public String username;
         public String password;
         public String captchaToken;
@@ -74,26 +76,27 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión, generar JWT y registrar el dispositivo")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request) {
-        // Saneamos la entrada para evitar espacios accidentales o caracteres invisibles
+        // limpiamos espacios del username por si el usuario copia/pega con espacios de mas
         String rawUsername = req.username != null ? req.username.replaceAll("\\s", "") : "";
         String rawPassword = req.password != null ? req.password.trim() : "";
 
         System.out.println("[AUTH] Intento de login para usuario: '" + rawUsername + "'");
         
         try {
-            // 1. Autenticar al usuario
+            // 1. delegamos la autenticacion a Spring Security (verifica usuario y contraseña)
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(rawUsername, rawPassword));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 2. REGISTRAR LA SESIÓN Y VERIFICAR 2FA
+            // 2. buscamos el actor en la bbdd para ver si tiene 2FA activado
             Actor actor = actorRepository.findByUsername(rawUsername)
                     .or(() -> actorRepository.findByEmail(rawUsername))
                     .orElseThrow();
 
             System.out.println("[AUTH] Autenticación exitosa para: " + actor.getUser() + " (Clase: " + actor.getClass().getSimpleName() + ")");
 
+            // si tiene 2FA, devolvemos un token temporal y el cliente debe verificar el codigo
             if (actor.isTwoFactorEnabled()) {
                 String mfaToken = jwtUtils.generateToken(authentication);
                 return ResponseEntity.ok(Map.of(
@@ -103,17 +106,20 @@ public class AuthController {
                 ));
             }
 
+            // si no tiene 2FA, registramos la sesion y damos el token directamente
             return registrarSesionYResponder(actor, authentication, request);
             
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             System.out.println("[AUTH] Credenciales incorrectas para: " + req.username + ". Reintentando con reset de emergencia...");
             
-            // MECANISMO DE EMERGENCIA: Si es un intento que huele a admin, sincronizamos la pass
+            // MECANISMO DE EMERGENCIA: si el usuario parece admin, sincronizamos la contraseña
+            // esto es para cuando la bbdd se repopula y los hashes no coinciden
             if (rawUsername.toLowerCase().contains("admin")) {
                 System.out.println("[AUTH] !!! Detectado fallo en admin. Forzando sincronización de 'Admin1234!' para los perfiles administrativos...");
                 
                 String pass = passwordEncoder.encode("Admin1234!");
 
+                // actualizamos todos los posibles usuarios admin conocidos
                 actorRepository.findByUsername("nexusadmin").ifPresent(a -> {
                     a.setPassword(pass);
                     actorRepository.save(a);
@@ -255,11 +261,14 @@ public class AuthController {
         return ResponseEntity.ok(perfil);
     }
 
+    // metodo privado que comparte logica entre login normal, 2FA y OAuth
+    // registra la sesion del dispositivo y devuelve el JWT
     private ResponseEntity<?> registrarSesionYResponder(Actor actor, Authentication auth, HttpServletRequest request) {
-        // 1. Generar el Token final
+        // 1. generamos el token (si tenemos Authentication usamos ese, sino generamos uno desde el actor)
         String jwt = (auth != null) ? jwtUtils.generateToken(auth) : jwtUtils.generateTokenForUser(actor);
 
-        // 2. Detección de dispositivo
+        // 2. intentamos averiguar desde que dispositivo se conecta el usuario
+        // miramos el User-Agent y los Client Hints del navegador
         String userAgent = request.getHeader("User-Agent");
         String clientHints = request.getHeader("Sec-CH-UA");
 
@@ -271,18 +280,20 @@ public class AuthController {
             else if (userAgent.contains("Android")) dispositivo = "Móvil Android";
             else if (userAgent.contains("Linux")) dispositivo = "PC Linux";
 
+            // luego añadimos el navegador entre parentesis
             if (clientHints != null && clientHints.contains("Brave")) dispositivo += " (Brave)";
             else if (userAgent.contains("Edg/")) dispositivo += " (Edge)";
             else if (userAgent.contains("Firefox")) dispositivo += " (Firefox)";
             else if (userAgent.contains("Chrome")) dispositivo += " (Chrome)";
         }
 
+        // X-Forwarded-For viene cuando hay proxies o balanceadores de carga delante
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
+            ip = request.getRemoteAddr(); // ip directa si no hay proxy
         }
 
-        // 3. Guardar sesión
+        // 3. guardamos el registro de sesion en la bbdd
         SesionDispositivo sesion = new SesionDispositivo();
         sesion.setActorId(actor.getId());
         sesion.setIp(ip);

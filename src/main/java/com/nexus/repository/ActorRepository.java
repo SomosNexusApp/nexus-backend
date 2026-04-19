@@ -15,4 +15,8 @@ public interface ActorRepository extends JpaRepository<Actor, Integer> {
 
     @Query("SELECT a FROM Actor a WHERE a.email = ?1 AND a.cuentaEliminada = false")
     Optional<Actor> findByEmail(String email);
-}
+
+    // busca un actor por su token de reset de contrasena (sustituye a PasswordResetTokenRepository)
+    @Query("SELECT a FROM Actor a WHERE a.resetToken = ?1")
+    Optional<Actor> findByResetToken(String token);
+}

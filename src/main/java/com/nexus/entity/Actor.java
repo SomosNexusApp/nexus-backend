@@ -6,22 +6,26 @@ import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+// Actor es la clase base de todos los usuarios del sistema.
+// Usamos herencia tipo JOINED: cada subtipo (Usuario, Empresa, Admin) tiene su propia tabla
+// pero comparten la tabla 'actor' para los campos comunes.
+// Es una arquitectura limpia pero tiene sus complicaciones (ver UsuarioService.convertirAEmpresa)
 @Entity
 @Table(name = "actor")
 @Inheritance(strategy = InheritanceType.JOINED)
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" }) // evitamos excepciones de Hibernate al serializar
 public abstract class Actor extends DomainEntity {
 
     @Column(name = "username", nullable = false, unique = true)
-    private String user;
+    private String user; // el campo se llama 'user' en Java pero 'username' en la bbdd
 
     @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false)
-    private String password;
+    private String password; // siempre hasheada con bcrypt, nunca en texto plano
 
-    // ---- NUEVOS CAMPOS -------------------------------------------------
+    // ---- CAMPOS GENERALES del actor -------------------------------------------------
     @Column
     private String nombre;
 
@@ -34,69 +38,96 @@ public abstract class Actor extends DomainEntity {
     @Column(columnDefinition = "TEXT")
     private String avatar; // Movido desde Usuario y Empresa
 
-    // ---- 2FA -----------------------------------------------------------
+    // ---- 2FA (autenticacion de dos factores) -----------------------------------
     @Column(nullable = false)
-    private boolean twoFactorEnabled = false;
+    private boolean twoFactorEnabled = false; // por defecto viene desactivado
 
-    private String twoFactorMethod; // "TOTP" o "EMAIL"
-    private String twoFactorSecret; // Secret TOTP (encriptado)
+    private String twoFactorMethod; // puede ser "TOTP" (app autenticadora) o "EMAIL" (codigo por correo)
+    private String twoFactorSecret; // la clave secreta TOTP, que debe estar encriptada en la bbdd
 
-    // ---- Sesiones -------------------------------------------------------
+    // ---- control de sesiones ----------------------------------------------------
     @Column(nullable = false)
-    private int jwtVersion = 0;
+    private int jwtVersion = 0; // cuando sube, invalida todos los tokens anteriores del usuario
 
-    // ---- Estado de la cuenta --------------------------------------------
+    // ---- estado de la cuenta --------------------------------------------
     @Column(nullable = false)
-    private boolean cuentaEliminada = false;
+    private boolean cuentaEliminada = false; // soft delete: no borramos de la bbdd, solo marcamos
 
     @Column(nullable = false)
-    private boolean cuentaVerificada = false;
+    private boolean cuentaVerificada = false; // true cuando el usuario confirma su email
 
     private LocalDateTime fechaRegistro;
 
     @Column(columnDefinition = "TEXT")
-    private String googleAvatarUrl;
+    private String googleAvatarUrl; // url del avatar que viene de Google (puede ser larga)
 
     @Column
-    private String googleId;
+    private String googleId; // identificador unico de Google, para vincular cuentas OAuth
 
     @Column
-    private String facebookId;
+    private String facebookId; // igual que googleId pero para Facebook
 
     @Column
-    private String avatarSource; // "GOOGLE", "INITIALS", "CUSTOM"
+    private String avatarSource; // de donde viene el avatar: "GOOGLE", "INITIALS" (iniciales) o "CUSTOM"
     
     @Column(columnDefinition = "TEXT")
-    private String customAvatarUrl;
+    private String customAvatarUrl; // url del avatar subido por el usuario
 
-    /** Ban permanente */
+    /** Ban permanente — el usuario no puede acceder a la plataforma */
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean baneado = false;
 
     @Column(columnDefinition = "TEXT")
-    private String motivoBan;
+    private String motivoBan; // texto que ve el usuario cuando intenta entrar
 
-    /** Suspensión temporal — null = no suspendido */
+    /** Suspension temporal — null significa que no está suspendido en este momento */
     @Column(name = "suspendido_hasta")
     private LocalDateTime suspendidoHasta;
 
     @Column(name = "motivo_suspension", columnDefinition = "TEXT")
     private String motivoSuspension;
 
-    /** Fraude flag */
+    /** Marca de fraude para alertar al equipo de moderacion, no bloquea al usuario */
     @Column(name = "flag_fraude", nullable = false, columnDefinition = "boolean default false")
     private boolean flagFraude = false;
 
     @Column(name = "motivo_flag", columnDefinition = "TEXT")
     private String motivoFlag;
 
-    // ---- Notificaciones -------------------------------------------------
+    // ---- config de notificaciones embebida en la misma tabla de actor ---
     @Embedded
     private ActorNotificacionConfig notificacionConfig = new ActorNotificacionConfig();
 
+    // id del cliente en Stripe, para gestionar pagos y reembolsos
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
 
+    // ---- reset de contraseña (antes era una entidad separada PasswordResetToken) ----
+    // almacenar el token aqui evita tener que hacer JOIN con otra tabla
+    // el token es un UUID que se manda al email del usuario
+    @Column(name = "reset_token", unique = true)
+    private String resetToken;
+
+    @Column(name = "reset_token_expira")
+    private LocalDateTime resetTokenExpira; // cuando caduca el enlace de reset (15 min por defecto)
+
+    // ---- ultima sesion de dispositivo (antes era SesionDispositivo) ----
+    // guardar solo la ultima sesion evita tener una tabla de historial grande
+    // si se necesita historial completo se puede ver en los logs del servidor
+    @Column(name = "ultimo_ip")
+    private String ultimoIp;
+
+    @Column(name = "ultimo_dispositivo")
+    private String ultimoDispositivo; // user-agent o descripcion del dispositivo
+
+    @Column(name = "ultima_ubicacion")
+    private String ultimaUbicacion; // ciudad/pais aproximado (de la IP)
+
+    @Column(name = "ultimo_login")
+    private LocalDateTime ultimoLogin;
+
+    // se ejecuta antes de insertar en la bbdd por primera vez
+    // nos aseguramos de que ciertos campos tengan valor por defecto
     @PrePersist
     protected void onActorCreate() {
         if (fechaRegistro == null)
@@ -105,7 +136,7 @@ public abstract class Actor extends DomainEntity {
             notificacionConfig = new ActorNotificacionConfig();
     }
 
-    // ---- Getters / Setters -----------------------------------------------
+    // ---- Getters y Setters — nada especial aqui, solo encapsulamiento standard ----
 
     public String getUser() {
         return user;
@@ -123,6 +154,7 @@ public abstract class Actor extends DomainEntity {
         this.email = e;
     }
 
+    // @JsonIgnore evita que la contraseña hasheada aparezca en las respuestas JSON
     @JsonIgnore
     public String getPassword() {
         return password;
@@ -299,4 +331,18 @@ public abstract class Actor extends DomainEntity {
     public void    setFlagFraude(boolean f)              { this.flagFraude = f; }
     public String  getMotivoFlag()                       { return motivoFlag; }
     public void    setMotivoFlag(String m)               { this.motivoFlag = m; }
+
+    // getters/setters del resetToken y sesion de dispositivo fusionados
+    public String              getResetToken()              { return resetToken; }
+    public void                setResetToken(String t)      { this.resetToken = t; }
+    public LocalDateTime       getResetTokenExpira()        { return resetTokenExpira; }
+    public void                setResetTokenExpira(LocalDateTime e) { this.resetTokenExpira = e; }
+    public String              getUltimoIp()                { return ultimoIp; }
+    public void                setUltimoIp(String ip)       { this.ultimoIp = ip; }
+    public String              getUltimoDispositivo()       { return ultimoDispositivo; }
+    public void                setUltimoDispositivo(String d) { this.ultimoDispositivo = d; }
+    public String              getUltimaUbicacion()         { return ultimaUbicacion; }
+    public void                setUltimaUbicacion(String u) { this.ultimaUbicacion = u; }
+    public LocalDateTime       getUltimoLogin()             { return ultimoLogin; }
+    public void                setUltimoLogin(LocalDateTime l) { this.ultimoLogin = l; }
 }

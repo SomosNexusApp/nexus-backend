@@ -7,6 +7,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+// entidad principal para los productos de segunda mano del marketplace
+// tiene indices en vendedor, estado y categoria para que las busquedas vayan rapido
 @Entity
 @Table(name = "producto", indexes = {
     @Index(name = "idx_producto_vendedor",  columnList = "vendedor_id"),
@@ -25,16 +27,17 @@ public class Producto extends DomainEntity {
     private Double precio = 0.0;
 
     @Enumerated(EnumType.STRING)
-    private TipoOferta tipoOferta = TipoOferta.VENTA;
+    private TipoOferta tipoOferta = TipoOferta.VENTA; // VENTA, DONACION o INTERCAMBIO
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoProducto estado = EstadoProducto.DISPONIBLE;
 
     @Enumerated(EnumType.STRING)
-    private CondicionProducto condicion;
+    private CondicionProducto condicion; // NUEVO, COMO_NUEVO, BUENO, ACEPTABLE, PARA_PIEZAS
 
-    // ── Asociaciones EAGER + @JsonIgnoreProperties para evitar LazyInitializationException ──
+    // usamos EAGER para que la categoria y el vendedor carguen siempre con el producto
+    // y ponemos @JsonIgnoreProperties para evitar bucles infinitos en la serializacion JSON
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_id")
@@ -45,21 +48,21 @@ public class Producto extends DomainEntity {
     @JoinColumn(name = "vendedor_id", nullable = false)
     @JsonIgnoreProperties({
         "hibernateLazyInitializer", "handler",
-        "password", "twoFactorSecret", "jwtVersion",
+        "password", "twoFactorSecret", "jwtVersion", // campos sensibles que no deben exponerse
         "notificacionConfig", "cuentaEliminada", "cuentaVerificada"
     })
     private Actor vendedor;
 
-    // ── Campos de producto de segunda mano ──────────────────────────────────
+    // ── campos propios de productos de segunda mano ──────────────────────────────────
 
     private String  marca;
     private String  modelo;
-    private Double  peso;
+    private Double  peso; // en kilos, se usa para calcular el precio de envio
     private Boolean admiteEnvio    = false;
-    private Double  precioEnvio    = 0.0;
+    private Double  precioEnvio    = 0.0; // si el vendedor lo manda con envio, cuanto cobra
     private Boolean precioNegociable = false;
     private String  ubicacion;
-    private Double  latitude;
+    private Double  latitude;  // coordenadas para el mapa (pueden ser null si no se proporcionan)
     private Double  longitude;
 
     @Column(name = "numero_vistas", nullable = false)
@@ -68,7 +71,9 @@ public class Producto extends DomainEntity {
     @Column(name = "numero_favoritos", nullable = false)
     private int numeroFavoritos = 0;
 
-    // ── Imágenes ─────────────────────────────────────────────────────────────
+    // ── imagenes ─────────────────────────────────────────────────────────────
+    // la imagen principal va como campo propio para mostrarla en las tarjetas
+    // las demas van en una tabla separada (producto_imagenes)
 
     @Column(columnDefinition = "TEXT")
     private String imagenPrincipal;
@@ -78,34 +83,34 @@ public class Producto extends DomainEntity {
     @Column(name = "url", columnDefinition = "TEXT")
     private List<String> galeriaImagenes = new ArrayList<>();
 
-    // ── Fechas ────────────────────────────────────────────────────────────────
+    // ── fechas ────────────────────────────────────────────────────────────────
 
     private LocalDateTime fechaPublicacion;
 
-    /** Fin de vigencia del anuncio (estilo Wallapop). Si pasa, pasa a EXPIRADO. */
+    /** Fecha limite del anuncio. Si pasa, el estado cambia a EXPIRADO automaticamente. */
     private LocalDateTime fechaCaducidad;
 
-    /** Último hito de aviso enviado (días restantes: 30, 14, 7 o 1). Null = ninguno. */
+    /** Ultimo hito de caducidad notificado (dias: 30, 14, 7 o 1). Null si no se ha avisado aun. */
     private Integer ultimoAvisoCaducidadDias;
 
-    // ── Campos admin ─────────────────────────────────────────────────────────
+    // ── campos de gestion admin ─────────────────────────────────────────────
 
-    /** Fecha hasta la que el producto está pausado por el admin. Null = no pausado por admin. */
+    /** Si el admin pausa el producto, hasta cuando dura la pausa. Null = no pausado por admin. */
     private LocalDateTime pausadoHasta;
 
-    /** Motivo de la pausa admin (visible al vendedor). */
+    /** Motivo de la pausa (lo ve el vendedor en su panel). */
     @Column(columnDefinition = "TEXT")
     private String motivoPausa;
 
-    /** True = aparece primero en búsquedas y home. */
+    /** si esta a true, el producto sale el primero en busquedas y en la home. */
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean destacado = false;
 
-    /** Contrato de publicidad pagado: prioridad en listados y etiqueta Patrocinado. */
+    /** si tiene un contrato publicitario activo, aparece con la etiqueta 'Patrocinado'. */
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean patrocinado = false;
 
-    /** Fecha en la que el producto pasó a VENDIDO. */
+    /** cuando se vendio, se usa para calcular cuando hay que ocultar el producto de la lista. */
     private LocalDateTime fechaVenta;
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -132,10 +137,12 @@ public class Producto extends DomainEntity {
     // LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════════
 
+    // se ejecuta antes de insertar en la bbdd.
+    // establece los valores por defecto para todos los campos que pueden venir null
     @PrePersist
     protected void onCreate() {
         if (fechaPublicacion == null) fechaPublicacion = LocalDateTime.now();
-        if (fechaCaducidad == null) fechaCaducidad = fechaPublicacion.plusDays(180);
+        if (fechaCaducidad == null) fechaCaducidad = fechaPublicacion.plusDays(180); // 6 meses de vida
         if (estado           == null) estado           = EstadoProducto.DISPONIBLE;
         if (tipoOferta       == null) tipoOferta       = TipoOferta.VENTA;
         if (galeriaImagenes  == null) galeriaImagenes  = new ArrayList<>();

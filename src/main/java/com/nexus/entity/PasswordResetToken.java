@@ -5,6 +5,13 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+/**
+ * @deprecated Esta entidad ya NO se usa. El token de reset y su fecha de expiracion
+ * se guardan directamente en los campos 'resetToken' y 'resetTokenExpira' de Actor.
+ * Se mantiene el archivo para no romper migaciones existentes de la base de datos,
+ * pero PasswordResetService ya no la utiliza.
+ * Para el UML, esta tabla puede omitirse — la logica vive en Actor.
+ */
 @Entity
 @Table(name = "password_reset_token")
 public class PasswordResetToken {

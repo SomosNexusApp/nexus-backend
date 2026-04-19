@@ -4,6 +4,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
+/**
+ * @deprecated Esta entidad ya NO se usa. Los campos de encuesta (valoracion y comentario)
+ * se fusionaron directamente en SoporteChatSession como 'encuestaValoracion' y 'encuestaComentario'.
+ * Esto simplifica el modelo: en lugar de hacer JOIN entre dos tablas para ver la encuesta
+ * de una sesion, esta todo en la misma fila de soporte_chat_session.
+ * Para el UML, esta tabla puede omitirse.
+ */
 @Entity
 @Table(name = "soporte_encuesta")
 public class SoporteEncuesta extends DomainEntity {

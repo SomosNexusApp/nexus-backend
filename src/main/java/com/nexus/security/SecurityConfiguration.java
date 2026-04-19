@@ -20,18 +20,23 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.nexus.service.UsuarioService;
 
+// configuracion principal de seguridad de la aplicacion
+// aqui definimos: CORS, CSRF, sesiones, y que rutas necesitan autenticacion
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true) // permite usar @PreAuthorize en los controladores
 public class SecurityConfiguration {
 
         @Autowired
         private JWTAuthenticationFilter jwtAuthenticationFilter;
 
+        // usamos @Lazy para romper dependencia circular con UsuarioService
         @Autowired
         @Lazy
         private UsuarioService usuarioService;
 
+	// urls del frontend y admin, se leen desde application.properties
+	// el valor despues de : es el valor por defecto si no esta configurado
 	@org.springframework.beans.factory.annotation.Value("${nexus.frontend.url:http://localhost:4200}")
 	private String frontendUrl;
 
@@ -41,22 +46,25 @@ public class SecurityConfiguration {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowCredentials(true);
+		config.setAllowCredentials(true); // necesario para enviar cookies o cabeceras de autenticacion
 
-		// Patrones de orígenes permitidos (soporta wildcards con allowCredentials=true)
+		// origins permitidos: produccion, vercel y localhost para desarrollo
+		// usamos patrones con wildcard porque allowCredentials=true no permite "*"
 		config.setAllowedOriginPatterns(java.util.List.of(
 			"https://nexus-app.es",
 			"https://*.nexus-app.es",
-			"https://*.vercel.app",
+			"https://*.vercel.app", // para previews en vercel
 			"http://localhost:4200",
 			"http://localhost:4201",
 			"http://127.0.0.1:4200"
 		));
 
+		// cabeceras que el frontend puede mandar y las que puede leer de la respuesta
 		config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
 		config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 		config.setExposedHeaders(java.util.List.of("Authorization", "Cache-Control", "X-Cache-Status"));
 
+		// aplicamos la configuracion a todas las rutas
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;
@@ -68,14 +76,16 @@ public class SecurityConfiguration {
                 return config.getAuthenticationManager();
         }
 
+        // aqui configuramos que rutas necesitan autenticacion y cuales son publicas
+        // el orden importa: Spring evalua las reglas de arriba a abajo, primera que coincida gana
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf.disable())
+                                .csrf(csrf -> csrf.disable()) // deshabilitamos CSRF porque usamos JWT (stateless)
                                 .sessionManagement(session -> session.sessionCreationPolicy(
-                                                SessionCreationPolicy.STATELESS))
+                                                SessionCreationPolicy.STATELESS)) // sin sesiones en servidor, todo es JWT
 
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import com.nexus.service.AnuncioCaducidadService;
 
+// scheduler de caducidad: se ejecuta automaticamente una vez al dia
+// delega toda la logica en AnuncioCaducidadService — este archivo solo es el "despertador"
 @Component
 public class AnuncioCaducidadScheduler {
 
@@ -17,6 +19,9 @@ public class AnuncioCaducidadScheduler {
         this.anuncioCaducidadService = anuncioCaducidadService;
     }
 
+    // cron expression: seg min hora dia mes dia-semana
+    // "0 0 8 * * *" = cada dia a las 8:00 AM (hora del servidor)
+    // si el servidor estuviera en UTC y los usuarios en UTC+2, las 8:00 serian las 10:00 local
     @Scheduled(cron = "0 0 8 * * *")
     public void diario() {
         try {

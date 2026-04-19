@@ -12,6 +12,8 @@ import com.nexus.entity.*;
 import com.nexus.repository.*;
 import com.nexus.controller.ChatWebSocketController;
 
+// servicio que gestiona todo el ciclo de vida de una compra:
+// creacion -> pago -> envio -> notificaciones -> mensajes automaticos en chat
 @Service
 public class CompraService {
 
@@ -22,12 +24,15 @@ public class CompraService {
     @Autowired
     private EnvioService envioService;
     @Autowired
+    // el servicio de notificaciones para avisar a comprador y vendedor
     private NotificacionService notificacionService;
     @Autowired
     private EmailService emailService;
     @Autowired
+    // usamos el websocket para mandar mensajes automaticos al chat de la compra
     private ChatWebSocketController chatWebSocketController;
 
+    // metodos basicos de consulta
     public List<Compra> findAll() {
         return compraRepository.findAll();
     }
@@ -45,19 +50,12 @@ public class CompraService {
     }
 
     /**
-     * Confirma el pago (llamado desde CompraController tras éxito de Stripe).
-     * Reserva el producto y crea el envío con los datos de entrega.
+     * Confirma el pago tras el exito de Stripe.
+     * Este es el metodo principal del servicio: reserva el producto, crea el envio,
+     * manda notificaciones y emails, y publica mensajes automaticos en el chat.
      *
-     * @param compraId        ID de la compra creada en /compra/intent
-     * @param paymentIntentId ID de Stripe para futuras operaciones (reembolso)
-     * @param metodoEntrega   ENVIO_PAQUETERIA o ENTREGA_EN_PERSONA
-     * @param nombreDest      Nombre del destinatario (solo para paquetería)
-     * @param direccion       Dirección de entrega
-     * @param ciudad          Ciudad
-     * @param cp              Código postal
-     * @param pais            País
-     * @param telefonoDest    Teléfono del destinatario
-     * @param precioEnvio     Coste del envío
+     * OJO: este metodo NUNCA se llama desde el webhook de Stripe, solo desde el frontend
+     * despues de que el usuario termina el checkout. Ver CompraController para mas detalles.
      */
     @Transactional
     public Compra confirmarPago(Integer compraId, String paymentIntentId,
@@ -70,38 +68,43 @@ public class CompraService {
         Compra compra = compraRepository.findById(compraId)
                 .orElseThrow(() -> new IllegalArgumentException("Compra no encontrada: " + compraId));
 
+        // verificamos que la compra sigue en estado PENDIENTE para evitar confirmar dos veces
         if (compra.getEstado() != EstadoCompra.PENDIENTE) {
             throw new IllegalStateException("La compra ya fue procesada (estado: " + compra.getEstado() + ")");
         }
 
         Producto producto = compra.getProducto();
+        // comprobamos que el producto sigue disponible en el momento de confirmar el pago
+        // puede que alguien mas lo haya comprado mientras el primer usuario pagaba
         if (producto.getEstadoProducto() != EstadoProducto.DISPONIBLE) {
             throw new IllegalStateException("El producto ya no está disponible");
         }
 
-        // Actualizar compra
+        // actualizamos el estado de la compra con los datos del pago
         compra.setEstado(EstadoCompra.PAGADO);
         compra.setStripePaymentIntentId(paymentIntentId);
         compra.setMetodoEntrega(metodoEntrega);
         compra.setFechaPago(LocalDateTime.now());
 
-        // Reservar el producto para que nadie más lo compre
+        // reservamos el producto para que nadie más lo compre mientras se gestiona el envío
         producto.setEstadoProducto(EstadoProducto.RESERVADO);
         productoRepository.save(producto);
 
         Compra guardada = compraRepository.save(compra);
 
-        // Crear el envío con código y QR
+        // creamos el envio con todos los datos necesarios para el transportista
         envioService.crearEnvio(guardada, metodoEntrega,
                 nombreDest, direccion, ciudad, cp, pais, telefonoDest, precioEnvio,
                 pesoKg, transportista);
 
+        // notificamos tanto al comprador como al vendedor
         Producto p = guardada.getProducto();
         String titulo = p.getTitulo();
         Actor vendedor = p.getPublicador();
         Actor comprador = guardada.getComprador();
         notificacionService.notificarNuevaCompraVendedor(vendedor.getId(), titulo, guardada.getId(), true);
         notificacionService.notificarCompraConfirmadaComprador(comprador.getId(), titulo, guardada.getId());
+        // mandamos email al comprador y al vendedor si tienen email configurado
         if (comprador.getEmail() != null) {
             emailService.enviarConfirmacionCompra(comprador.getEmail(), titulo, guardada.getPrecioFinal());
             emailService.enviarResumenPagoComprador(
@@ -114,10 +117,13 @@ public class CompraService {
                     guardada.getComisionNexus());
         }
         if (vendedor.getEmail() != null) {
+            // usamos el nombre si lo tiene, si no el username
             String nombreC = comprador.getNombre() != null && !comprador.getNombre().isBlank()
                     ? comprador.getNombre() : comprador.getUser();
             emailService.enviarNuevaVentaVendedor(vendedor.getEmail(), titulo, guardada.getId(), nombreC);
         }
+        // enviamos mensajes automaticos al chat de la transaccion
+        // si falla (ej: no hay chat abierto) no rompemos la compra, lo ignoramos
         try {
             chatWebSocketController.publicarMensajeSistema(
                     guardada.getProducto().getId(),
@@ -137,7 +143,9 @@ public class CompraService {
         return guardada;
     }
 
-    // --- NUEVO MÉTODO ---
+    // calcula la comision que cobra Nexus por cada transaccion
+    // hay tres tramos segun el precio: menos de 20€, entre 20 y 100€, y mas de 100€
+    // el maximo precio permitido es 1000 EUR (limite de la plataforma)
     public Double calcularComisionNexus(Double precio) {
         if (precio == null || precio <= 0)
             return 0.0;
@@ -145,10 +153,10 @@ public class CompraService {
             throw new IllegalArgumentException("El precio máximo permitido para compras en Nexus es de 1000 EUR");
 
         if (precio < 20.0)
-            return 1.60;
+            return 1.60; // comision minima para compras baratas
         if (precio < 100.0)
             return 3.60;
-        return 5.60; // maximo 1000 EUR de precio permitido
+        return 5.60; // comision maxima (para precios de 100 a 1000 EUR)
     }
 
     /**
