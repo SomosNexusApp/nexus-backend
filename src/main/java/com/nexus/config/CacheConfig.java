@@ -61,7 +61,7 @@ public class CacheConfig {
      * Es una implementación simple y sin dependencias externas.
      * Si en el futuro se agrega Caffeine al pom.xml se puede sustituir fácilmente.
      */
-    static class TtlConcurrentMapCache extends ConcurrentMapCache {
+    public static class TtlConcurrentMapCache extends ConcurrentMapCache {
 
         private final long ttlMs;
         private final int  maxSize;
