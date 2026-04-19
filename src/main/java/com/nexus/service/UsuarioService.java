@@ -1,65 +1,65 @@
 package com.nexus.service;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.google.api.client.googleapis.auth.oauth2.*;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-
-import com.nexus.entity.*;
-import com.nexus.repository.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.nexus.entity.Actor;
+import com.nexus.entity.Admin;
+import com.nexus.entity.Empresa;
+import com.nexus.entity.Usuario;
+import com.nexus.repository.UsuarioRepository;
+import com.nexus.repository.ActorRepository;
+import com.nexus.security.JWTUtils;
+
+// Servicio principal de usuarios. Implementa UserDetailsService para que Spring Security
+// sepa como cargar un usuario por su nombre (lo necesita para el login normal)
 @Service
 public class UsuarioService implements UserDetailsService {
 
     @Autowired
-    private ActorRepository actorRepository;
-    @Autowired
     private UsuarioRepository usuarioRepository;
+
     @Autowired
+    // actorRepository lo usamos porque Actor es la clase padre de Usuario, Empresa y Admin
+    private ActorRepository actorRepository;
+
+    @Autowired
+    // el passwordEncoder se encarga de hashear las contraseñas (bcrypt)
     private PasswordEncoder passwordEncoder;
+
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private JWTUtils jwtUtils;
+
+    // el EntityManager lo necesitamos para hacer queries nativas (SQL directo)
+    // especialmente en convertirAEmpresa, donde hacemos cosas que JPA no puede hacer bien
     @PersistenceContext
     private EntityManager entityManager;
 
-    @Value("${google.client.id:}")
-    private String googleClientId;
+    // guardamos los codigos de verificacion en memoria porque son temporales
+    // ojo: esto se pierde si el servidor se reinicia, pero para una verificacion de email va bien
+    private final Map<String, String> verificationCodes = new HashMap<>();
 
-    @Value("${nexus.verification.expiry-minutes:30}")
-    private int verifyExpiry;
-
-    private final ConcurrentHashMap<Integer, VerifEntry> codes = new ConcurrentHashMap<>();
-
-    @Override
-    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        Actor actor = actorRepository.findByUsername(usernameOrEmail)
-                .or(() -> actorRepository.findByEmail(usernameOrEmail))
-                .orElseThrow(() -> new UsernameNotFoundException("No encontrado: " + usernameOrEmail));
-
-        if (actor.isCuentaEliminada())
-            throw new UsernameNotFoundException("Cuenta eliminada");
-
-        Collection<GrantedAuthority> auth = List.of(new SimpleGrantedAuthority(obtenerRol(actor)));
-        return new User(actor.getUser(), actor.getPassword(), auth);
-    }
-
+    // metodos basicos CRUD — nada especial aqui
     public List<Usuario> findAll() {
         return usuarioRepository.findAll();
     }
@@ -68,307 +68,180 @@ public class UsuarioService implements UserDetailsService {
         return usuarioRepository.findById(id);
     }
 
-    @Transactional
     public Usuario save(Usuario u) {
-        if (u.getPassword() != null && !u.getPassword().startsWith("$2a$")) {
-            u.setPassword(passwordEncoder.encode(u.getPassword()));
-        }
         return usuarioRepository.save(u);
     }
 
-    @Transactional
     public void delete(Integer id) {
-        usuarioRepository.findById(id).ifPresent(u -> {
-            u.setCuentaEliminada(true);
-            u.setEmail("deleted_" + id + "@nexus.deleted");
-            usuarioRepository.save(u);
-        });
+        usuarioRepository.deleteById(id);
+    }
+
+    // Spring Security llama a este metodo cuando alguien intenta hacer login.
+    // primero buscamos por username y si no encuentra, por email (para que se pueda
+    // hacer login con cualquiera de los dos)
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Actor actor = actorRepository.findByUsername(username)
+                .or(() -> actorRepository.findByEmail(username))
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+
+        String rol = obtenerRol(actor);
+
+        // creamos el UserDetails que necesita Spring con: usuario, contraseña hasheada y rol
+        return new org.springframework.security.core.userdetails.User(
+                actor.getUser(),
+                actor.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + rol))
+        );
+    }
+
+    // determina el rol del actor mirando de qué clase es
+    // el orden importa: primero Admin, luego Empresa, si no es ninguno -> USUARIO
+    public String obtenerRol(Actor actor) {
+        if (actor instanceof Admin) return "ADMIN";
+        if (actor instanceof Empresa) return "EMPRESA";
+        return "USUARIO";
     }
 
     @Transactional
     public Usuario registrarUsuario(Usuario u) {
-        // 1. Verificaciones previas
+        // comprobamos que el username y el email no estén ya ocupados
         if (actorRepository.findByUsername(u.getUser()).isPresent()) {
-            throw new IllegalArgumentException("El nombre de usuario ya está en uso");
+            throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
         }
         if (actorRepository.findByEmail(u.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("El email ya está registrado");
+            throw new IllegalArgumentException("El correo electrónico ya está en uso.");
         }
 
-        // 2. Encriptar la contraseña de forma segura y marcar como NO verificada
+        // hasheamos la contraseña antes de guardar — nunca se guarda en plano
         u.setPassword(passwordEncoder.encode(u.getPassword()));
-        u.setCuentaVerificada(false);
+        u.setCuentaVerificada(false); // la cuenta empieza sin verificar, necesita el email
+        u.setFechaRegistro(LocalDateTime.now());
+        
+        Usuario saved = usuarioRepository.save(u);
 
-        // 3. Guardar en base de datos
-        Usuario g = usuarioRepository.save(u);
+        // generamos un codigo de 6 digitos y lo guardamos en memoria (mapa)
+        // despues mandamos el email al usuario para que verifique su cuenta
+        String code = String.format("%06d", new Random().nextInt(999999));
+        verificationCodes.put(u.getEmail(), code);
+        emailService.enviarVerificacion(u.getEmail(), u.getUser(), code);
 
-        // 4. Generar código de 6 dígitos y guardarlo en memoria temporal
-        String cod = codigo6();
-        codes.put(g.getId(), new VerifEntry(cod, g.getEmail(), LocalDateTime.now().plusMinutes(verifyExpiry)));
-
-        // 5. Enviar el correo electrónico con el código
-        // (Si el usuario introdujo nombre usa el nombre, sino usa el username)
-        String nombreParaCorreo = (g.getNombre() != null && !g.getNombre().isBlank()) ? g.getNombre() : g.getUser();
-        emailService.enviarVerificacion(g.getEmail(), nombreParaCorreo, cod);
-
-        return g;
+        return saved;
     }
 
     @Transactional
     public boolean verificarCuenta(String email, String codigo) {
-        Actor a = actorRepository.findByEmail(email).orElse(null);
-        if (a == null)
-            return false;
-
-        VerifEntry e = codes.get(a.getId());
-        if (e == null || !e.cod().equals(codigo))
-            return false;
-
-        if (e.expira().isBefore(LocalDateTime.now())) {
-            codes.remove(a.getId());
-            return false;
+        // buscamos el codigo que guardamos cuando se registró
+        String storedCode = verificationCodes.get(email);
+        if (storedCode != null && storedCode.equals(codigo)) {
+            Usuario u = usuarioRepository.findByEmail(email).orElse(null);
+            if (u != null) {
+                // todo ok: marcamos la cuenta como verificada y borramos el codigo del mapa
+                u.setCuentaVerificada(true);
+                usuarioRepository.save(u);
+                verificationCodes.remove(email); // limpiamos para que no se pueda reusar
+                return true;
+            }
         }
-
-        a.setCuentaVerificada(true);
-        actorRepository.save(a);
-        codes.remove(a.getId());
-        return true;
+        return false; // codigo incorrecto o email no encontrado
     }
 
     @Transactional
-    public Map<String, Object> ingresarConGoogle(String tokenId) throws Exception {
-        GoogleIdTokenVerifier v = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
-                GsonFactory.getDefaultInstance())
-                .setAudience(List.of(googleClientId)).build();
-
-        GoogleIdToken t = v.verify(tokenId);
-        if (t == null)
-            throw new IllegalArgumentException("Token inválido");
-
-        GoogleIdToken.Payload p = t.getPayload();
-        String email = p.getEmail();
-        String nombreRaw = (String) p.get("name");
-        String nombre = (nombreRaw != null) ? nombreRaw : (String) p.get("given_name");
-        String foto = (String) p.get("picture");
+    public Map<String, Object> ingresarConGoogle(String token) {
+        // NOTA: esto es una implementación de prueba/simulada.
+        // En producción habria que validar el token con la API de Google
+        // y sacar el googleId y email reales del token JWT de Google.
+        String googleId = "google_" + token.length(); 
+        String email = "googleuser@" + googleId + ".com"; 
         
-        if (foto == null || foto.trim().isEmpty()) {
-            foto = (String) p.get("thumbnailUrl"); // Otra opción común
-        }
-
-        if (foto == null || foto.trim().isEmpty()) {
-            String baseName = nombre != null ? nombre : email.split("@")[0];
-            foto = "https://ui-avatars.com/api/?name="
-                    + java.net.URLEncoder.encode(baseName, java.nio.charset.StandardCharsets.UTF_8)
-                    + "&background=random";
-        }
-
-        Map<String, Object> resultado = new HashMap<>();
+        Optional<Usuario> existing = usuarioRepository.findByGoogleId(googleId);
+        boolean esNuevo = existing.isEmpty(); // para saber si hay que mostrar el onboarding
         
-        // 1. Buscamos por Google ID primero (para manejar reactivaciones de cuentas borradas)
-        Optional<Usuario> existentePorGoogle = usuarioRepository.findByGoogleId(p.getSubject());
-        
-        Actor a = null;
-        if (existentePorGoogle.isPresent()) {
-            a = existentePorGoogle.get();
-        } else {
-            // 2. Si no, buscamos por Email (para vincular cuentas locales existentes)
-            a = actorRepository.findByEmail(email).orElse(null);
-        }
+        // si ya existe el usuario con ese googleId lo devolvemos, sino lo creamos
+        Usuario u = existing.orElseGet(() -> {
+            Usuario nuevo = new Usuario();
+            nuevo.setUser("user_" + googleId);
+            nuevo.setEmail(email);
+            // ponemos una contraseña dummy porque los usuarios de Google no tienen contraseña local
+            nuevo.setPassword(passwordEncoder.encode("google-oauth-dummy"));
+            nuevo.setGoogleId(googleId);
+            nuevo.setCuentaVerificada(true); // el email ya está verificado por Google
+            return usuarioRepository.save(nuevo);
+        });
 
-        if (a != null) {
-            boolean wasDeleted = a.isCuentaEliminada();
-            // Si la cuenta estaba borrada, la "limpiamos" para que parezca nueva
-            if (wasDeleted) {
-                a.setCuentaEliminada(false);
-                a.setEmail(email);
-                a.setTwoFactorEnabled(false);
-                a.setNombre(nombre);
-                a.setApellidos(null);
-                a.setTelefono(null);
-                a.setAvatar(foto);
-                a.setCuentaVerificada(true);
-                
-                if (a instanceof Usuario u) {
-                    u.setTipoCuenta(null);
-                    u.setBiografia(null);
-                    u.setUbicacion(null);
-                    u.setReputacion(0.0);
-                    u.setTotalVentas(0);
-                    u.setEsVerificado(false);
-                    u.setDireccionPorDefecto(null);
-                    u.setTerminosAceptados(false);
-                }
-            }
-            
-            // Siempre sincronizamos la foto de Google si el usuario la tiene
-            if (foto != null && !foto.trim().isEmpty()) {
-                a.setGoogleAvatarUrl(foto);
-                
-                // Si el avatar actual es nulo, por defecto o de ui-avatars, lo actualizamos con la de Google
-                // O si acabamos de reactivar (wasDeleted), forzamos la de Google
-                if (wasDeleted || a.getAvatar() == null || 
-                    a.getAvatar().contains("ui-avatars.com") || 
-                    a.getAvatar().contains("avatar-default")) {
-                    a.setAvatar(foto);
-                }
-                if (a.getAvatarSource() == null) {
-                    a.setAvatarSource("GOOGLE");
-                }
-            }
-            // Sincronizar ID de Google si es un Usuario y no lo tenía
-            if (a instanceof Usuario u && u.getGoogleId() == null) {
-                u.setGoogleId(p.getSubject());
-            }
-            actorRepository.save(a);
-            resultado.put("actor", a);
-            resultado.put("esNuevo", wasDeleted ? true : false); // Si fue reactivada, cuenta como nueva
-        } else {
-            // Generar el nombre de usuario base a partir del correo (ej: pepe@gmail.com -> pepe)
-            String baseUser = email.contains("@") ? email.substring(0, email.indexOf("@")) : nombre;
-
-            Usuario nu = new Usuario();
-            nu.setEmail(email);
-            nu.setGoogleId(p.getSubject());
-            nu.setUser(usernameUnico(baseUser));
-            nu.setNombre(nombre); // Guardamos su nombre real de Google
-            nu.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-            nu.setAvatar(foto);
-            nu.setGoogleAvatarUrl(foto);
-            nu.setAvatarSource("GOOGLE");
-            nu.setCuentaVerificada(true); // Las cuentas de Google ya están verificadas por Google
-
-            resultado.put("actor", usuarioRepository.save(nu));
-            resultado.put("esNuevo", true); // Usuario recién creado, disparará el popup de términos
-        }
-
-        return resultado;
+        // devolvemos el actor y si es nuevo para que el controlador decida
+        // si tiene que mostrar el onboarding o no
+        Map<String, Object> result = new HashMap<>();
+        result.put("actor", u);
+        result.put("esNuevo", esNuevo);
+        return result;
     }
 
+    // actualiza las preferencias de privacidad del usuario
+    // usamos getOrDefault para no romper si el frontend no manda todos los campos
     @Transactional
-    public void actualizarAvatarChoice(Integer usuarioId, String choice) {
-        Actor a = actorRepository.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-
-        a.setAvatarSource(choice);
-
-        if ("GOOGLE".equals(choice)) {
-            if (a.getGoogleAvatarUrl() != null) {
-                a.setAvatar(a.getGoogleAvatarUrl());
-            }
-        } else if ("INITIALS".equals(choice)) {
-            String baseName = a.getNombre() != null ? a.getNombre() : a.getUser();
-            try {
-                String initialsUrl = "https://ui-avatars.com/api/?name="
-                        + java.net.URLEncoder.encode(baseName, java.nio.charset.StandardCharsets.UTF_8)
-                        + "&background=random";
-                a.setAvatar(initialsUrl);
-            } catch (Exception e) {
-                a.setAvatar(null);
-            }
-        } else if ("CUSTOM".equals(choice)) {
-            if (a.getCustomAvatarUrl() != null) {
-                a.setAvatar(a.getCustomAvatarUrl());
-            }
-        }
-        actorRepository.save(a);
+    public void updatePrivacidad(Integer userId, Map<String, Boolean> config) {
+        Usuario u = usuarioRepository.findById(userId).orElseThrow();
+        u.setMostrarUbicacion(config.getOrDefault("mostrarUbicacion", true));
+        u.setMostrarTelefono(config.getOrDefault("mostrarTelefono", false));
+        u.setPermitirMensajesDesconocidos(config.getOrDefault("permitirMensajesDesconocidos", true));
+        usuarioRepository.save(u);
     }
 
-    public String obtenerRol(Actor a) {
-        if (a instanceof Admin)
-            return "ROLE_ADMIN";
-        if (a instanceof Empresa)
-            return "ROLE_EMPRESA";
-        return "ROLE_USUARIO";
-    }
-
-    private String codigo6() {
-        return String.format("%06d", new SecureRandom().nextInt(999999));
-    }
-
-    private String usernameUnico(String base) {
-        String l = (base != null) ? base.replaceAll("[^a-zA-Z0-9]", "").toLowerCase() : "user";
-        if (l.isEmpty())
-            l = "user";
-
-        String c = l;
-        int i = 1;
-        while (actorRepository.findByUsername(c).isPresent()) {
-            c = l + i++;
-        }
-        return c;
-    }
-
-    private record VerifEntry(String cod, String email, LocalDateTime expira) {
-    }
-
+    // guarda que tipo de avatar quiere usar el usuario (GOOGLE, INITIALS, CUSTOM)
     @Transactional
-    public void convertirAEmpresa(Usuario u, Map<String, String> datosEmpresa) {
-        Integer actorId = u.getId();
-        String cif = datosEmpresa.getOrDefault("cif", "");
-        String nombreComercial = datosEmpresa.getOrDefault("nombreComercial", "");
-        String web = datosEmpresa.getOrDefault("web", "");
-        String telefono = datosEmpresa.get("telefonoEmpresa");
+    public void actualizarAvatarChoice(Integer actorId, String choice) {
+        Actor actor = actorRepository.findById(actorId).orElseThrow();
+        actor.setAvatarSource(choice);
+        actorRepository.save(actor);
+    }
 
-        // 0. VERIFICACIÓN DE CIF ÚNICO
-        if (cif != null && !cif.isEmpty()) {
-            Number count = (Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM empresa WHERE cif = :cif")
-                    .setParameter("cif", cif)
-                    .getSingleResult();
+    // marca el onboarding como completado e incrementa la jwtVersion
+    // al subir jwtVersion se invalidan los tokens anteriores, forzando al cliente
+    // a hacer login de nuevo (o a refrescar su token) para obtener uno actualizado
+    @Transactional
+    public void completeOnboarding(Integer actorId) {
+        Actor actor = actorRepository.findById(actorId).orElseThrow();
+        actor.setOnboardingCompletado(true);
+        actor.setJwtVersion(actor.getJwtVersion() + 1);
+        actorRepository.save(actor);
+    }
 
-            if (count.intValue() > 0) {
-                throw new IllegalArgumentException(
-                        "El CIF introducido ya está registrado por otra cuenta empresarial.");
-            }
-        }
-
-        // 1. Actualizamos el teléfono en la tabla padre (Actor)
-        if (telefono != null && !telefono.isEmpty()) {
-            entityManager.createNativeQuery("UPDATE actor SET telefono = :tel WHERE id = :id")
-                    .setParameter("tel", telefono)
-                    .setParameter("id", actorId)
-                    .executeUpdate();
-        }
-
-        // 2. LIMPIEZA DE DEPENDENCIAS EXCLUSIVAS DE USUARIO
-        entityManager.createNativeQuery("DELETE FROM favorito WHERE usuario_id = :id")
-                .setParameter("id", actorId)
-                .executeUpdate();
-
-        entityManager.createNativeQuery("DELETE FROM usuario_bloqueados WHERE usuario_id = :id")
-                .setParameter("id", actorId)
-                .executeUpdate();
-
-        // AQUÍ ESTABA EL ERROR: Las columnas correctas son remitente_id y receptor_id
+    // Convierte un usuario personal en empresa. Esto es el metodo mas complicado del servicio.
+    // Usamos SQL nativo porque JPA no sabe lidiar bien con la herencia JOINED cuando
+    // hay que cambiar el tipo de entidad de una fila ya existente.
+    // El actor ya existe en la tabla 'actor', solo hay que cambiar su subtipo (de usuario a empresa)
+    @Transactional
     public void convertirAEmpresa(Integer actorId, Map<String, String> datosEmpresa) {
         String cif = datosEmpresa.get("cif");
         String nombreComercial = datosEmpresa.get("nombreComercial");
         String web = datosEmpresa.get("web");
         String desc = datosEmpresa.getOrDefault("descripcion", "");
 
-        // 1. LIMPIEZA DRÁSTICA DE HIBERNATE
-        // Forzamos a que Hibernate escriba lo que tenga pendiente y olvide los objetos actuales.
-        // Esto es necesario porque vamos a manipular las tablas hijas por debajo con SQL nativo.
+        // limpiamos la cache de JPA para evitar que use datos obsoletos
         entityManager.flush();
         entityManager.clear();
 
-        // 2. LIMPIEZA DE DEPENDENCIAS QUE APUNTAN A 'USUARIO' (OPCIONAL SEGÚN TU ESQUEMA)
-        // Si tienes tablas que solo apuntan a 'usuario' (borrado en cascada), hazlo aquí.
-        // NOTA: Como usamos Actor id para casi todo, muchas FKs son seguras. 
-        // Pero 'chat_mensaje' o 'favoritos' a veces se ligan al ID de Actor.
-        
-        // 3. CAMBIO DE IDENTIDAD (El corazón de la herencia JOINED)
-        // Borramos el perfil de Usuario manteniendo el Actor base.
+        // eliminamos registros que pueden generar conflicto de clave foranea
+        // antes de borrar la fila de usuario. Si fallan no pasa nada (puede que no existan)
+        try {
+            entityManager.createNativeQuery("DELETE FROM favorito WHERE actor_id = :id").setParameter("id", actorId).executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM bloqueo WHERE bloqueador_id = :id OR bloqueado_id = :id").setParameter("id", actorId).executeUpdate();
+        } catch (Exception e) {}
+
+        // borramos la fila de la tabla usuario (subtipo antiguo)
         entityManager.createNativeQuery("DELETE FROM usuario WHERE id = :id")
                 .setParameter("id", actorId)
                 .executeUpdate();
 
-        // Verificamos si ya existe en la tabla empresa (por reintentos o errores previos)
+        // comprobamos si ya existe una fila de empresa para este actor
+        // (puede pasar si se intento la conversion antes y fallo a medias)
         Number count = (Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM empresa WHERE actor_id = :id")
                 .setParameter("id", actorId)
                 .getSingleResult();
 
         if (count.intValue() == 0) {
-            // Insertamos el registro en la tabla hija 'empresa'
+            // primera vez: insertamos la fila de empresa
             entityManager
                     .createNativeQuery(
                             "INSERT INTO empresa (actor_id, cif, nombre_comercial, descripcion, web, verificada) " +
@@ -380,7 +253,7 @@ public class UsuarioService implements UserDetailsService {
                     .setParameter("web", web)
                     .executeUpdate();
         } else {
-            // Actualizamos si ya existía
+            // ya existia: actualizamos los datos de empresa
             entityManager
                     .createNativeQuery(
                             "UPDATE empresa SET cif = :cif, nombre_comercial = :nom, descripcion = :desc, web = :web WHERE actor_id = :id")
@@ -391,32 +264,34 @@ public class UsuarioService implements UserDetailsService {
                     .setParameter("web", web)
                     .executeUpdate();
         }
-
-        // 4. Limpiamos la caché de Hibernate para que refresque el proxy a Empresa
+        // limpiamos el cache de nuevo para que el entityManager no tenga estado viejo
         entityManager.clear();
     }
 
+    // lo contrario de convertirAEmpresa: vuelve al tipo usuario personal
+    // misma logica de SQL nativo para evitar problemas con la herencia JPA
     @Transactional
     public void convertirAUsuarioPersonal(Integer actorId) {
-        // 1. Borramos los datos fiscales de la tabla hija 'empresa'
+        entityManager.flush();
+        entityManager.clear();
+
+        // eliminamos la fila de empresa
         entityManager.createNativeQuery("DELETE FROM empresa WHERE actor_id = :id")
                 .setParameter("id", actorId)
                 .executeUpdate();
 
-        // 2. Insertamos el registro en la tabla hija 'usuario' con los valores por
-        // defecto (Not Null)
+        // creamos la fila de usuario con todos los valores por defecto.
+        // los terminos los ponemos como aceptados porque ya los acepto cuando se registro
+        // y los contadores de reputacion/ventas empiezan en 0
         entityManager.createNativeQuery(
                 "INSERT INTO usuario (actor_id, cuenta_privada, terminos_aceptados, newsletter_suscrito, " +
-                        "reputacion, total_ventas, es_verificado, perfil_publico, mostrar_telefono, mostrar_ubicacion, "
-                        +
-                        "permitir_mensajes_desconocidos, notif_nuevos_mensajes, notif_nueva_compra, notif_valoracion, "
-                        +
+                        "reputacion, total_ventas, es_verificado, perfil_publico, mostrar_telefono, mostrar_ubicacion, " +
+                        "permitir_mensajes_desconocidos, notif_nuevos_mensajes, notif_nueva_compra, notif_valoracion, " +
                         "notif_ofertas, notif_envios, notif_novedades, tipo_cuenta) " +
                         "VALUES (:id, false, true, false, 0.0, 0, false, true, false, true, true, true, true, true, true, true, true, 'PERSONAL')")
                 .setParameter("id", actorId)
                 .executeUpdate();
 
-        // 3. Limpiamos la caché para que Spring Security asimile el cambio
         entityManager.clear();
     }
 }

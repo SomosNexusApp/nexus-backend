@@ -17,18 +17,19 @@ import com.nexus.entity.Actor;
 import com.nexus.entity.Admin;
 import com.nexus.entity.SesionDispositivo;
 import com.nexus.entity.Usuario;
+import com.nexus.entity.Empresa;
 import com.nexus.repository.ActorRepository;
 import com.nexus.repository.SesionDispositivoRepository;
 import com.nexus.security.JWTUtils;
 import com.nexus.service.CaptchaService;
 import com.nexus.service.UsuarioService;
 
-import com.nexus.service.TwoFactorAuthService;
+import com.nexus.service.TwoFactorService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
 
     @Autowired
@@ -46,7 +47,7 @@ public class AuthController {
     @Autowired
     private SesionDispositivoRepository sesionDispositivoRepository;
     @Autowired
-    private TwoFactorAuthService twoFactorAuthService;
+    private TwoFactorService twoFactorService;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -150,7 +151,7 @@ public class AuthController {
                 .or(() -> actorRepository.findByEmail(username))
                 .orElseThrow();
 
-        if (twoFactorAuthService.isCodeValid(actor.getTwoFactorSecret(), code)) {
+        if (twoFactorService.verificarCodigoTotp(actor.getTwoFactorSecret(), code)) {
             // Generar autenticación para el sistema
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             // Si el contexto está vacío (ej: stateless), podríamos recrearla si fuera necesario
@@ -158,6 +159,50 @@ public class AuthController {
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Código inválido"));
+    }
+
+    // --- NUEVOS ENDPOINTS PARA ONBOARDING/SETUP ---
+
+    @GetMapping("/2fa/totp-setup")
+    public ResponseEntity<?> setupTotp() {
+        Actor actor = jwtUtils.userLogin();
+        if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(twoFactorService.configurarTotp(actor.getId()));
+    }
+
+    @PostMapping("/2fa/activar")
+    public ResponseEntity<?> activar2FA(@RequestParam String metodo) {
+        Actor actor = jwtUtils.userLogin();
+        if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        if ("EMAIL".equals(metodo)) {
+            twoFactorService.enviarOtpEmail(actor.getEmail(), actor.getId(), "activar la seguridad 2FA");
+            return ResponseEntity.ok(Map.of("mensaje", "Código enviado al correo"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Método no soportado"));
+    }
+
+    @PostMapping("/2fa/confirmar")
+    public ResponseEntity<?> confirmar2FA(@RequestParam String metodo, @RequestBody Map<String, String> body) {
+        Actor actor = jwtUtils.userLogin();
+        if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        String code = body.get("codigo");
+        boolean ok = false;
+
+        if ("TOTP".equals(metodo)) {
+            ok = twoFactorService.confirmarActivacionTotp(actor.getId(), code);
+        } else if ("EMAIL".equals(metodo)) {
+            ok = twoFactorService.verificarOtpEmail(actor.getId(), code);
+            if (ok) {
+                actor.setTwoFactorEnabled(true);
+                actor.setTwoFactorMethod("EMAIL");
+                actorRepository.save(actor);
+            }
+        }
+
+        if (ok) return ResponseEntity.ok(Map.of("mensaje", "2FA activado correctamente"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código inválido o expirado"));
     }
 
     @GetMapping("/me")
@@ -177,11 +222,34 @@ public class AuthController {
         perfil.put("avatarSource", actor.getAvatarSource());
         perfil.put("googleAvatarUrl", actor.getGoogleAvatarUrl());
         perfil.put("customAvatarUrl", actor.getCustomAvatarUrl());
-        perfil.put("rol", (actor instanceof Admin) ? "ROLE_ADMIN" : "ROLE_USER");
         perfil.put("twoFactorActivo", actor.isTwoFactorEnabled());
-        
-        if (actor instanceof Admin a) {
+        perfil.put("metodo2FA", actor.getTwoFactorMethod());
+        perfil.put("fechaRegistro", actor.getFechaRegistro());
+        perfil.put("cuentaVerificada", actor.isCuentaVerificada());
+        perfil.put("onboardingCompletado", actor.isOnboardingCompletado());
+
+        if (actor instanceof Usuario u) {
+            perfil.put("rol", "ROLE_USER");
+            perfil.put("telefono", u.getTelefono());
+            perfil.put("biografia", u.getBiografia());
+            perfil.put("ubicacion", u.getUbicacion());
+            perfil.put("mostrarUbicacion", u.isMostrarUbicacion());
+            perfil.put("mostrarTelefono", u.isMostrarTelefono());
+            perfil.put("googleId", u.getGoogleId());
+            perfil.put("facebookId", u.getFacebookId());
+            perfil.put("reputacion", u.getReputacion());
+            perfil.put("esVerificado", u.isEsVerificado());
+            perfil.put("isSocial", u.getGoogleId() != null || u.getFacebookId() != null);
+        } else if (actor instanceof Empresa e) {
+            perfil.put("rol", "ROLE_EMPRESA");
+            perfil.put("cif", e.getCif());
+            perfil.put("descripcion", e.getDescripcion());
+            perfil.put("web", e.getWeb());
+            perfil.put("isSocial", false);
+        } else if (actor instanceof Admin a) {
+            perfil.put("rol", "ROLE_ADMIN");
             perfil.put("nivelAcceso", a.getNivelAcceso());
+            perfil.put("isSocial", false);
         }
 
         return ResponseEntity.ok(perfil);

@@ -27,7 +27,7 @@ import com.nexus.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
-@RequestMapping("/usuario")
+@RequestMapping({"/api/usuario", "/usuario"})
 public class UsuarioController {
 
     @Autowired
@@ -476,7 +476,7 @@ public class UsuarioController {
 
         try {
             if ("EMPRESA".equals(tipo) && actor instanceof Usuario) {
-                usuarioService.convertirAEmpresa((Usuario) actor, body);
+                usuarioService.convertirAEmpresa(actor.getId(), body);
                 return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa"));
             } else if ("PERSONAL".equals(tipo)) {
                 if (actor instanceof Empresa) {
@@ -496,8 +496,16 @@ public class UsuarioController {
         }
     }
 
+    @PostMapping("/me/complete-onboarding")
+    @Operation(summary = "Marcar onboarding como completado")
+    public ResponseEntity<?> completarOnboarding(Principal principal) {
+        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
+        usuarioService.completeOnboarding(actor.getId());
+        return ResponseEntity.ok(Map.of("mensaje", "Onboarding completado"));
+    }
+
     @PatchMapping("/me/avatar-choice")
-    @Operation(summary = "Elegir entre foto de Google o iniciales")
+    @Operation(summary = "Elegir entre foto de Google, iniciales o personalizada")
     public ResponseEntity<?> actualizarAvatarChoice(@RequestBody Map<String, String> body, Principal principal) {
         Actor actor = actorRepository.findByUsername(principal.getName())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
