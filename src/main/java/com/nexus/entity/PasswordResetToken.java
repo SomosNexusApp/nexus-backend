@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * pero PasswordResetService ya no la utiliza.
  * Para el UML, esta tabla puede omitirse — la logica vive en Actor.
  */
+@Deprecated
 @Entity
 @Table(name = "password_reset_token")
 public class PasswordResetToken {

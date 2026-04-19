@@ -26,7 +26,6 @@ import com.nexus.entity.Empresa;
 import com.nexus.entity.Usuario;
 import com.nexus.repository.UsuarioRepository;
 import com.nexus.repository.ActorRepository;
-import com.nexus.security.JWTUtils;
 
 // Servicio principal de usuarios. Implementa UserDetailsService para que Spring Security
 // sepa como cargar un usuario por su nombre (lo necesita para el login normal)
@@ -46,9 +45,6 @@ public class UsuarioService implements UserDetailsService {
 
     @Autowired
     private EmailService emailService;
-
-    @Autowired
-    private JWTUtils jwtUtils;
 
     // el EntityManager lo necesitamos para hacer queries nativas (SQL directo)
     // especialmente en convertirAEmpresa, donde hacemos cosas que JPA no puede hacer bien

@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
  * de una sesion, esta todo en la misma fila de soporte_chat_session.
  * Para el UML, esta tabla puede omitirse.
  */
+@Deprecated
 @Entity
 @Table(name = "soporte_encuesta")
 public class SoporteEncuesta extends DomainEntity {
