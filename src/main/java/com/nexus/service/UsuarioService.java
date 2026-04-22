@@ -226,7 +226,7 @@ public class UsuarioService implements UserDetailsService {
         } catch (Exception e) {}
 
         // borramos la fila de la tabla usuario (subtipo antiguo)
-        entityManager.createNativeQuery("DELETE FROM usuario WHERE id = :id")
+        entityManager.createNativeQuery("DELETE FROM usuario WHERE actor_id = :id")
                 .setParameter("id", actorId)
                 .executeUpdate();
 

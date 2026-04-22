@@ -272,13 +272,20 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Código inválido"));
     }
 
-    // --- NUEVOS ENDPOINTS PARA ONBOARDING/SETUP ---
+    // --- NUEVOS ENDPOINTS PARA ONBOARDING/SETUP (COMPATIBILIDAD CON FRONTEND) ---
 
-    @GetMapping("/2fa/totp-setup")
+    @RequestMapping(value = {"/2fa/totp-setup", "/2fa/generar-secreto"}, method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<?> setupTotp() {
         Actor actor = jwtUtils.userLogin();
         if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        return ResponseEntity.ok(twoFactorService.configurarTotp(actor.getId()));
+        
+        Map<String, String> data = twoFactorService.configurarTotp(actor.getId());
+        
+        // Mapeamos para que el frontend encuentre tanto 'qr' como 'qrCode'
+        Map<String, String> response = new java.util.HashMap<>(data);
+        response.put("qrCode", data.get("qr"));
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/2fa/activar")
@@ -288,22 +295,35 @@ public class AuthController {
         
         if ("EMAIL".equals(metodo)) {
             twoFactorService.enviarOtpEmail(actor.getEmail(), actor.getId(), "activar la seguridad 2FA");
-            return ResponseEntity.ok(Map.of("mensaje", "Código enviado al correo"));
+            
+            // Activamos el método de email directamente (como en AjustesController)
+            actor.setTwoFactorEnabled(true);
+            actor.setTwoFactorMethod("EMAIL");
+            actorRepository.save(actor);
+            
+            return ResponseEntity.ok(Map.of("mensaje", "2FA por email activado. Código enviado al correo."));
         }
         return ResponseEntity.badRequest().body(Map.of("error", "Método no soportado"));
     }
 
-    @PostMapping("/2fa/confirmar")
-    public ResponseEntity<?> confirmar2FA(@RequestParam String metodo, @RequestBody Map<String, String> body) {
+    @PostMapping({"/2fa/confirmar", "/2fa/verificar"}) // Soportamos ambos nombres
+    public ResponseEntity<?> confirmar2FA(@RequestParam(required = false) String metodo, @RequestBody Map<String, String> body) {
         Actor actor = jwtUtils.userLogin();
         if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         
+        // Soportamos tanto 'codigo' como 'token' o 'code' (flexibilidad total)
         String code = body.get("codigo");
+        if (code == null) code = body.get("token");
+        if (code == null) code = body.get("code");
+
+        // Si no viene método por parámetro, intentamos deducirlo o asumimos TOTP (que es lo que pide el QR)
+        String targetMetodo = (metodo != null) ? metodo : "TOTP";
+        
         boolean ok = false;
 
-        if ("TOTP".equals(metodo)) {
+        if ("TOTP".equals(targetMetodo)) {
             ok = twoFactorService.confirmarActivacionTotp(actor.getId(), code);
-        } else if ("EMAIL".equals(metodo)) {
+        } else if ("EMAIL".equals(targetMetodo)) {
             ok = twoFactorService.verificarOtpEmail(actor.getId(), code);
             if (ok) {
                 actor.setTwoFactorEnabled(true);
@@ -312,8 +332,13 @@ public class AuthController {
             }
         }
 
-        if (ok) return ResponseEntity.ok(Map.of("mensaje", "2FA activado correctamente"));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código inválido o expirado"));
+        if (ok) {
+            return ResponseEntity.ok(Map.of(
+                "mensaje", "2FA activado correctamente",
+                "verified", true // Para que el frontend lo lea fácil
+            ));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código inválido o expirado", "verified", false));
     }
 
     @GetMapping("/me")
