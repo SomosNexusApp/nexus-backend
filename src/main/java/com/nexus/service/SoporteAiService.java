@@ -1,4 +1,6 @@
 package com.nexus.service;
+ 
+import jakarta.annotation.PostConstruct;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,11 +29,21 @@ public class SoporteAiService {
     private static final Logger log = LoggerFactory.getLogger(SoporteAiService.class);
 
     private static final String SYSTEM = """
-            Eres el asistente virtual de Nexus, marketplace de compra-venta entre particulares en España.
-            Responde SIEMPRE en español, con tono cercano y profesional. Sé breve (máximo 6 frases).
-            Ayuda con: envíos, pagos seguros, devoluciones, cómo publicar, seguridad.
-            No inventes políticas legales concretas; remite a la ayuda de la app.
-            No uses emojis ni símbolos decorativos.
+            Eres el asistente virtual de Nexus, el marketplace líder de compra-venta en España.
+            Tu objetivo es ayudar a los usuarios con dudas sobre la plataforma.
+            
+            CONOCIMIENTO BASE (Centro de Ayuda):
+            1. PAGOS: Usamos Stripe. El dinero se retiene de forma segura y se libera al vendedor solo cuando el comprador confirma que el producto está OK.
+            2. ENVÍOS: Trabajamos con Correos, SEUR y MRW. Al vender, recibes un código de envío en la sección 'Mis Ventas'. El vendedor tiene 5 días para depositar el paquete.
+            3. COMISIONES: Publicar es gratis. Nexus cobra una pequeña comisión de gestión al comprador por el servicio de Protección al Comprador.
+            4. DEVOLUCIONES: Si el producto no coincide con la descripción, el comprador tiene 48h tras la recepción para abrir una disputa.
+            5. SEGURIDAD: Nunca des tu teléfono o email. Todas las transacciones deben hacerse dentro de Nexus para estar protegidas.
+            
+            REGLAS DE RESPUESTA:
+            - Responde SIEMPRE en español, con tono profesional pero cercano.
+            - Sé breve (máximo 4-5 frases).
+            - No uses emojis ni símbolos.
+            - Si no sabes algo, remite a soporte humano (escalación por email).
             """;
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
@@ -39,6 +51,37 @@ public class SoporteAiService {
 
     @Value("${nexus.soporte.gemini-api-key:}")
     private String geminiApiKey;
+ 
+    @Value("${nexus.soporte.gemini-api-version:v1}")
+    private String apiVersion;
+ 
+    @Value("${nexus.soporte.gemini-model:gemini-1.5-flash}")
+    private String modelName;
+ 
+    @Value("${nexus.soporte.groq-api-key:}")
+    private String groqApiKey;
+ 
+    @Value("${nexus.soporte.groq-model:llama3-8b-8192}")
+    private String groqModel;
+ 
+    @PostConstruct
+    public void init() {
+        if (geminiApiKey != null && !geminiApiKey.isBlank()) {
+            log.info("Iniciando depuración de modelos Gemini...");
+            new Thread(this::debugModelos).start();
+        }
+    }
+ 
+    private void debugModelos() {
+        try {
+            String url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + geminiApiKey.trim();
+            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
+            log.info("Lista de modelos Gemini disponibles: {}", res.body());
+        } catch (Exception e) {
+            log.warn("No se pudo listar los modelos: {}", e.getMessage());
+        }
+    }
 
     public static class SoporteAiResponse {
         private String contenido;
@@ -55,11 +98,17 @@ public class SoporteAiService {
     }
 
     public SoporteAiResponse responder(String ultimoUsuario, List<String> historialUltimos) {
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            return new SoporteAiResponse(respuestaSinApi(ultimoUsuario));
-        }
         try {
-            String responseText = callGemini(ultimoUsuario, historialUltimos);
+            String responseText;
+            if (groqApiKey != null && !groqApiKey.isBlank()) {
+                responseText = callGroq(ultimoUsuario, historialUltimos);
+            } else if (geminiApiKey != null && !geminiApiKey.isBlank()) {
+                responseText = callGemini(ultimoUsuario, historialUltimos);
+            } else {
+                log.warn("No hay API Key de IA configurada (Gemini/Groq).");
+                return new SoporteAiResponse(respuestaSinApi(ultimoUsuario));
+            }
+
             SoporteAiResponse resObj = new SoporteAiResponse(responseText);
 
             // Simple heuristic to attach a card if the AI mentions a specific product/offer ID
@@ -91,9 +140,10 @@ public class SoporteAiService {
     }
 
     private String callGemini(String ultimoUsuario, List<String> historialUltimos) throws Exception {
-        // Usamos gemini-2.0-flash-lite por ser el modelo más económico y rápido disponible actualmente
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key="
-                + geminiApiKey;
+        String cleanKey = geminiApiKey.trim();
+        // Usamos configuración externalizada
+        String url = String.format("https://generativelanguage.googleapis.com/%s/models/%s:generateContent?key=%s",
+                apiVersion, modelName, cleanKey);
 
         StringBuilder ctx = new StringBuilder();
         int n = historialUltimos.size();
@@ -104,15 +154,28 @@ public class SoporteAiService {
         String userBlock = "Contexto reciente:\n" + ctx + "\nÚltimo mensaje del usuario:\n" + ultimoUsuario;
 
         ObjectNode root = mapper.createObjectNode();
-        ObjectNode sysInst = mapper.createObjectNode();
-        ArrayNode sysParts = sysInst.putArray("parts");
-        sysParts.addObject().put("text", SYSTEM.trim());
-        root.set("system_instruction", sysInst);
+        
+        // El campo system_instruction puede fallar en v1 dependiendo del modelo/región
+        // Para máxima compatibilidad, si usamos v1, inyectamos las instrucciones en el bloque del usuario
+        boolean useNativeSystem = apiVersion.equalsIgnoreCase("v1beta");
+
+        if (useNativeSystem) {
+            ObjectNode sysInst = mapper.createObjectNode();
+            ArrayNode sysParts = sysInst.putArray("parts");
+            sysParts.addObject().put("text", SYSTEM.trim());
+            root.set("system_instruction", sysInst);
+        }
 
         ArrayNode contents = root.putArray("contents");
         ObjectNode turn = contents.addObject();
         turn.put("role", "user");
-        turn.putArray("parts").addObject().put("text", userBlock);
+        
+        String finalPrompt = userBlock;
+        if (!useNativeSystem) {
+            finalPrompt = "INSTRUCCIONES DE SISTEMA:\n" + SYSTEM.trim() + "\n\n---\n\n" + userBlock;
+        }
+        
+        turn.putArray("parts").addObject().put("text", finalPrompt);
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -127,8 +190,56 @@ public class SoporteAiService {
             throw new RuntimeException("Gemini HTTP " + res.statusCode() + ": " + res.body());
         }
         JsonNode tree = mapper.readTree(res.body());
-        JsonNode text = tree.path("candidates").path(0).path("content").path("parts").path(0).path("text");
-        return text.asText().trim();
+        JsonNode candidates = tree.path("candidates");
+        if (candidates.isMissingNode() || !candidates.isArray() || candidates.isEmpty()) {
+            log.error("Gemini Error: No hay candidatos en la respuesta. Body: {}", res.body());
+            throw new RuntimeException("Gemini no devolvió respuesta (posible bloqueo por seguridad)");
+        }
+        
+        JsonNode text = candidates.path(0).path("content").path("parts").path(0).path("text");
+        if (text.isMissingNode()) {
+            log.error("Gemini Error: Nodo 'text' no encontrado. Body: {}", res.body());
+            throw new RuntimeException("Gemini no devolvió texto en el primer candidato");
+        }
+        
+        String cleanedText = text.asText().trim();
+        log.info("Gemini respondió correctamente: {}...", (cleanedText.length() > 50 ? cleanedText.substring(0, 50) : cleanedText));
+        return cleanedText;
+    }
+
+    private String callGroq(String ultimoUsuario, List<String> historialUltimos) throws Exception {
+        String url = "https://api.groq.com/openai/v1/chat/completions";
+        
+        StringBuilder ctx = new StringBuilder();
+        int from = Math.max(0, historialUltimos.size() - 10);
+        for (int i = from; i < historialUltimos.size(); i++) {
+            ctx.append(historialUltimos.get(i)).append("\n");
+        }
+
+        ObjectNode root = mapper.createObjectNode();
+        root.put("model", groqModel);
+        ArrayNode messages = root.putArray("messages");
+        
+        messages.addObject().put("role", "system").put("content", SYSTEM.trim());
+        messages.addObject().put("role", "user").put("content", "Contexto:\n" + ctx + "\nMensaje: " + ultimoUsuario);
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + groqApiKey.trim())
+                .POST(HttpRequest.BodyPublishers.ofString(root.toString(), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (res.statusCode() >= 400) {
+            log.error("Groq Error Detallado - Status: {}, Body: {}", res.statusCode(), res.body());
+            throw new RuntimeException("Groq HTTP " + res.statusCode() + " - " + res.body());
+        }
+
+        JsonNode tree = mapper.readTree(res.body());
+        String text = tree.path("choices").path(0).path("message").path("content").asText().trim();
+        log.info("Groq respondió correctamente.");
+        return text;
     }
 
     private String respuestaSinApi(String msg) {

@@ -113,6 +113,15 @@ public class ChatService {
     @Transactional
     public ChatMensaje guardarPropuestaPrecio(Integer productoId, Integer remitenteId,
             Integer receptorId, Double precio) {
+        Producto producto = productoService.findById(productoId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        
+        Double precioOriginal = producto.getPrecio();
+        double minPrecio = Math.round(precioOriginal * 0.8 * 100.0) / 100.0;
+        if (precio < minPrecio) {
+            throw new IllegalArgumentException("La propuesta de precio no puede ser inferior al 20% del precio original (" + minPrecio + "€)");
+        }
+
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setTexto("Propuesta de precio: " + precio + "€");
         msg.setTipo(TipoMensaje.OFERTA_PRECIO);
