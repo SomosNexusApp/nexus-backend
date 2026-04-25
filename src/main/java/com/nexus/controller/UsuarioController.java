@@ -289,26 +289,37 @@ public class UsuarioController {
     @PatchMapping("/{id}")
     @Operation(summary = "Actualizar un usuario existente")
     public ResponseEntity<?> updateUsuario(@PathVariable Integer id, @RequestBody Map<String, Object> payload) {
-        Optional<Actor> actorActual = actorRepository.findById(id);
-        if (actorActual.isPresent()) {
-            Actor actor = actorActual.get();
-            if (payload.containsKey("nombre")) actor.setNombre((String) payload.get("nombre"));
-            if (payload.containsKey("apellidos")) actor.setApellidos((String) payload.get("apellidos"));
-            if (payload.containsKey("telefono")) actor.setTelefono((String) payload.get("telefono"));
+        try {
+            Optional<Actor> actorActual = actorRepository.findById(id);
+            if (actorActual.isPresent()) {
+                Actor actor = actorActual.get();
+                if (payload.containsKey("nombre")) actor.setNombre((String) payload.get("nombre"));
+                if (payload.containsKey("apellidos")) actor.setApellidos((String) payload.get("apellidos"));
+                if (payload.containsKey("telefono")) {
+                    String tel = (String) payload.get("telefono");
+                    actor.setTelefono(tel != null && tel.trim().isEmpty() ? null : tel);
+                }
 
-            if (actor instanceof Usuario u) {
-                if (payload.containsKey("biografia")) u.setBiografia((String) payload.get("biografia"));
-                if (payload.containsKey("ubicacion")) u.setUbicacion((String) payload.get("ubicacion"));
-                usuarioService.save(u);
-            } else if (actor instanceof Empresa e) {
-                if (payload.containsKey("biografia")) e.setDescripcion((String) payload.get("biografia"));
-                empresaService.save(e);
+                if (actor instanceof Usuario) {
+                    Usuario u = (Usuario) actor;
+                    if (payload.containsKey("biografia")) u.setBiografia((String) payload.get("biografia"));
+                    if (payload.containsKey("ubicacion")) u.setUbicacion((String) payload.get("ubicacion"));
+                    usuarioService.save(u);
+                } else if (actor instanceof Empresa) {
+                    Empresa e = (Empresa) actor;
+                    if (payload.containsKey("biografia")) e.setDescripcion((String) payload.get("biografia"));
+                    empresaService.save(e);
+                }
+
+                return ResponseEntity.ok(actor);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Usuario no encontrado con ID: " + id));
             }
-
-            return ResponseEntity.ok(actor);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Usuario no encontrado con ID: " + id));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", ex.getMessage() != null ? ex.getMessage() : ex.toString()));
         }
     }
 
