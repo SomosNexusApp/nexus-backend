@@ -241,7 +241,7 @@ public class UsuarioController {
             if ("EMPRESA".equals(tipoCuenta)) {
                 // Lógica de migración de Usuario a Empresa
                 Empresa nuevaEmpresa = new Empresa();
-                
+
                 // Copiar campos de Actor
                 nuevaEmpresa.setUser(usuario.getUser());
                 nuevaEmpresa.setEmail(usuario.getEmail());
@@ -276,7 +276,7 @@ public class UsuarioController {
             if ("PERSONAL".equals(tipoCuenta)) {
                 usuario.setTipoCuenta(TipoCuenta.PERSONAL);
             }
-            
+
             usuarioService.save(usuario);
             return ResponseEntity.ok(Map.of("mensaje", "Preferencias actualizadas con éxito"));
 
@@ -401,7 +401,7 @@ public class UsuarioController {
 
             u.setDireccionPorDefecto(direccion);
             usuarioService.save(u);
-            
+
             return ResponseEntity.ok(Map.of("mensaje", "Dirección actualizada correctamente"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -437,9 +437,9 @@ public class UsuarioController {
             Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
             String pwd = (String) payload.get("password");
 
-            // Si el usuario es social (Google/Facebook), no tiene contraseña local.
+            // Si el usuario es social (Google), no tiene contraseña local.
             // Permitimos el borrado si están logueados (ya verificado por Spring Security).
-            boolean isSocial = u.getGoogleId() != null || u.getFacebookId() != null;
+            boolean isSocial = u.getGoogleId() != null;
 
             if (!isSocial) {
                 if (pwd == null || !passwordEncoder.matches(pwd, u.getPassword())) {
@@ -520,7 +520,7 @@ public class UsuarioController {
     public ResponseEntity<?> actualizarAvatarChoice(@RequestBody Map<String, String> body, Principal principal) {
         Actor actor = actorRepository.findByUsername(principal.getName())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
+
         String choice = body.get("choice"); // "GOOGLE", "INITIALS" o "CUSTOM"
         if (choice == null || (!choice.equals("GOOGLE") && !choice.equals("INITIALS") && !choice.equals("CUSTOM"))) {
             return ResponseEntity.badRequest().body(Map.of("error", "Opción no válida. Debe ser GOOGLE, INITIALS o CUSTOM."));
@@ -540,10 +540,10 @@ public class UsuarioController {
         Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
         Usuario u = usuarioService.findById(actor.getId()).orElseThrow();
 
-        // 1. Verificar si es un usuario social (Google/Facebook)
-        if (u.getGoogleId() != null || u.getFacebookId() != null) {
+        // 1. Verificar si es un usuario social (Google)
+        if (u.getGoogleId() != null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Las cuentas vinculadas a Google o Facebook gestionan su contraseña en el proveedor externo."));
+                    .body(Map.of("error", "Las cuentas vinculadas a Google gestionan su contraseña en el proveedor externo."));
         }
 
         String pwdActual = payload.get("passwordActual");
@@ -684,13 +684,13 @@ public class UsuarioController {
 
             Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", s.getId());
-            
+
             String disp = s.getDispositivo() != null ? s.getDispositivo() : "Desconocido";
             if (disp.contains("(")) {
                 disp = disp.substring(0, disp.indexOf("(")).trim();
             }
             map.put("dispositivo", disp);
-            
+
             map.put("ip", s.getIp());
             map.put("fechaLogin", s.getFechaLogin());
             map.put("actual", esActual);

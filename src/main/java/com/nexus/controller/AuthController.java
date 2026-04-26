@@ -186,7 +186,7 @@ public class AuthController {
         String rawPassword = req.password != null ? req.password.trim() : "";
 
         System.out.println("[AUTH] Intento de login para usuario: '" + rawUsername + "'");
-        
+
         try {
             // 1. delegamos la autenticacion a Spring Security (verifica usuario y contraseña)
             Authentication authentication = authenticationManager.authenticate(
@@ -213,15 +213,15 @@ public class AuthController {
 
             // si no tiene 2FA, registramos la sesion y damos el token directamente
             return registrarSesionYResponder(actor, authentication, request);
-            
+
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             System.out.println("[AUTH] Credenciales incorrectas para: " + req.username + ". Reintentando con reset de emergencia...");
-            
+
             // MECANISMO DE EMERGENCIA: si el usuario parece admin, sincronizamos la contraseña
             // esto es para cuando la bbdd se repopula y los hashes no coinciden
             if (rawUsername.toLowerCase().contains("admin")) {
                 System.out.println("[AUTH] !!! Detectado fallo en admin. Forzando sincronización de 'Admin1234!' para los perfiles administrativos...");
-                
+
                 String pass = passwordEncoder.encode("Admin1234!");
 
                 // actualizamos todos los posibles usuarios admin conocidos
@@ -230,20 +230,20 @@ public class AuthController {
                     actorRepository.save(a);
                     System.out.println("[AUTH] Sincronizado user 'nexusadmin'");
                 });
-                
+
                 actorRepository.findByUsername("admin").ifPresent(a -> {
                     a.setPassword(pass);
                     actorRepository.save(a);
                     System.out.println("[AUTH] Sincronizado user 'admin'");
                 });
-                
+
                 actorRepository.findByEmail("admin@nexus.app").ifPresent(a -> {
                     a.setPassword(pass);
                     actorRepository.save(a);
                     System.out.println("[AUTH] Sincronizado email 'admin@nexus.app'");
                 });
             }
-            
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Usuario o contraseña incorrectos. Se ha intentado sincronizar las credenciales, prueba de nuevo."));
         } catch (Exception e) {
             System.out.println("[AUTH] Error inesperado: " + e.getMessage());
@@ -278,13 +278,13 @@ public class AuthController {
     public ResponseEntity<?> setupTotp() {
         Actor actor = jwtUtils.userLogin();
         if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        
+
         Map<String, String> data = twoFactorService.configurarTotp(actor.getId());
-        
+
         // Mapeamos para que el frontend encuentre tanto 'qr' como 'qrCode'
         Map<String, String> response = new java.util.HashMap<>(data);
         response.put("qrCode", data.get("qr"));
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -292,15 +292,15 @@ public class AuthController {
     public ResponseEntity<?> activar2FA(@RequestParam String metodo) {
         Actor actor = jwtUtils.userLogin();
         if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        
+
         if ("EMAIL".equals(metodo)) {
             twoFactorService.enviarOtpEmail(actor.getEmail(), actor.getId(), "activar la seguridad 2FA");
-            
+
             // Activamos el método de email directamente (como en AjustesController)
             actor.setTwoFactorEnabled(true);
             actor.setTwoFactorMethod("EMAIL");
             actorRepository.save(actor);
-            
+
             return ResponseEntity.ok(Map.of("mensaje", "2FA por email activado. Código enviado al correo."));
         }
         return ResponseEntity.badRequest().body(Map.of("error", "Método no soportado"));
@@ -310,7 +310,7 @@ public class AuthController {
     public ResponseEntity<?> confirmar2FA(@RequestParam(required = false) String metodo, @RequestBody Map<String, String> body) {
         Actor actor = jwtUtils.userLogin();
         if (actor == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        
+
         // Soportamos tanto 'codigo' como 'token' o 'code' (flexibilidad total)
         String code = body.get("codigo");
         if (code == null) code = body.get("token");
@@ -318,7 +318,7 @@ public class AuthController {
 
         // Si no viene método por parámetro, intentamos deducirlo o asumimos TOTP (que es lo que pide el QR)
         String targetMetodo = (metodo != null) ? metodo : "TOTP";
-        
+
         boolean ok = false;
 
         if ("TOTP".equals(targetMetodo)) {
@@ -372,10 +372,9 @@ public class AuthController {
             perfil.put("mostrarUbicacion", u.isMostrarUbicacion());
             perfil.put("mostrarTelefono", u.isMostrarTelefono());
             perfil.put("googleId", u.getGoogleId());
-            perfil.put("facebookId", u.getFacebookId());
             perfil.put("reputacion", u.getReputacion());
             perfil.put("esVerificado", u.isEsVerificado());
-            perfil.put("isSocial", u.getGoogleId() != null || u.getFacebookId() != null);
+            perfil.put("isSocial", u.getGoogleId() != null);
         } else if (actor instanceof Empresa e) {
             perfil.put("rol", "ROLE_EMPRESA");
             perfil.put("cif", e.getCif());

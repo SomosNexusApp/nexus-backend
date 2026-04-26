@@ -65,11 +65,8 @@ public abstract class Actor extends DomainEntity {
     private String googleId; // identificador unico de Google, para vincular cuentas OAuth
 
     @Column
-    private String facebookId; // igual que googleId pero para Facebook
-
-    @Column
     private String avatarSource; // de donde viene el avatar: "GOOGLE", "INITIALS" (iniciales) o "CUSTOM"
-    
+
     @Column(columnDefinition = "TEXT")
     private String customAvatarUrl; // url del avatar subido por el usuario
 
@@ -258,14 +255,6 @@ public abstract class Actor extends DomainEntity {
 
     public void setGoogleId(String g) {
         this.googleId = g;
-    }
-
-    public String getFacebookId() {
-        return facebookId;
-    }
-
-    public void setFacebookId(String f) {
-        this.facebookId = f;
     }
 
     public String getAvatarSource() {
