@@ -163,8 +163,12 @@ public class NewsletterService {
 
     @Async
     public void enviarNewsletterPrueba(String targetEmail, String asunto, String htmlContent) {
-        String testTag = "<div style='background:#fff3cd; color:#856404; padding:10px; text-align:center; font-size:12px; margin-bottom:20px;'>MODO PRUEBA: Este es un correo de test</div>";
-        emailService.enviarEmailHtml(targetEmail, "[PRUEBA] " + asunto, testTag + htmlContent);
+        String testTag = "<div style='background:#fff3cd; color:#856404; padding:12px 20px; border-radius:8px; text-align:center; font-size:13px; font-weight:600; margin-bottom:20px;'>" +
+            "⚠️ MODO PRUEBA — Este es un correo de test, no se ha enviado a usuarios reales" +
+            "</div>";
+        // Para test sin token de baja real usamos un token fijo
+        String htmlFinal = emailService.buildHtmlEmailConBaja(testTag + htmlContent, "TOKEN-PRUEBA");
+        emailService.enviarEmailHtml(targetEmail, "[PRUEBA] " + asunto, htmlFinal);
     }
 
     @Async
@@ -172,8 +176,8 @@ public class NewsletterService {
     public void enviarAActivos(String asunto, String htmlContent) {
         List<NewsletterSuscripcion> activos = newsletterRepository.findByEstado(EstadoSuscripcion.ACTIVO);
         for (NewsletterSuscripcion s : activos) {
-            String htmlConFooter = agregarFooterBaja(htmlContent, s.getTokenBaja(), s.getNombre());
-            emailService.enviarEmailHtml(s.getEmail(), asunto, htmlConFooter);
+            String htmlFinal = emailService.buildHtmlEmailConBaja(htmlContent, s.getTokenBaja());
+            emailService.enviarEmailHtml(s.getEmail(), asunto, htmlFinal);
         }
     }
 
@@ -298,8 +302,8 @@ public class NewsletterService {
         for (String email : emailsDestino) {
             newsletterRepository.findByEmail(email).ifPresent(s -> {
                 if (s.getEstado() == EstadoSuscripcion.ACTIVO && s.isRecibirOfertas()) {
-                    String htmlConFooter = agregarFooterBaja(html, s.getTokenBaja(), s.getNombre());
-                    emailService.enviarEmailHtml(email, asunto, htmlConFooter);
+                    String htmlFinal = emailService.buildHtmlEmailConBaja(html, s.getTokenBaja());
+                    emailService.enviarEmailHtml(email, asunto, htmlFinal);
                 }
             });
         }
@@ -324,65 +328,97 @@ public class NewsletterService {
 
     @Async
     private void enviarEmailConfirmacion(NewsletterSuscripcion s) {
-        String link = frontendUrl + "/newsletter/confirmar?t=" + s.getTokenConfirmacion();
-        String html = "<html><body style='font-family:sans-serif;max-width:600px;margin:auto'>"
-            + "<h2>Confirma tu suscripcion a Nexus Newsletter</h2>"
-            + "<p>Hola " + (s.getNombre() != null ? s.getNombre() : "") + ",</p>"
-            + "<p>Haz clic en el siguiente boton para confirmar que quieres suscribirte:</p>"
-            + "<a href='" + link + "' style='background:#FF5722;color:#fff;padding:12px 24px;"
-            + "border-radius:6px;text-decoration:none;display:inline-block;margin:16px 0'>"
-            + "Confirmar suscripcion</a>"
-            + "<p style='color:#666;font-size:12px'>Si no solicitaste esta suscripcion, "
-            + "ignora este email. El enlace expira en 48 horas.</p>"
-            + "<p style='color:#666;font-size:12px'>Nexus - Plataforma de compraventa. "
-            + "Tu IP de registro: " + s.getIpConsentimiento() + "</p>"
-            + "</body></html>";
-        emailService.enviarEmailHtml(s.getEmail(), "Confirma tu suscripcion al Newsletter de Nexus", html);
+        String link = apiUrl + "/newsletter/confirmar?t=" + s.getTokenConfirmacion();
+        String nombre = s.getNombre() != null ? s.getNombre() : "";
+        String html =
+            "<h2>Confirma tu suscripción al Newsletter 📬</h2>" +
+            "<p class=\"lead\">Hola <strong>" + (nombre.isEmpty() ? "" : nombre) + "</strong>, "
+            + "gracias por suscribirte al newsletter de Nexus.</p>" +
+            "<p>Haz clic en el botón de abajo para confirmar tu suscripción y empezar a recibir "
+            + "las mejores ofertas y novedades del marketplace.</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"" + link + "\" class=\"btn\">Confirmar mi suscripción</a>" +
+            "</div>" +
+            "<div class=\"alert-box alert-info\">" +
+            "  <div>" +
+            "    <strong>¿ El botón no funciona?</strong><br>" +
+            "    Copia y pega el siguiente enlace en tu navegador:<br>" +
+            "    <span style=\"word-break: break-all; font-size: 13px; color: #3b82f6;\">" + link + "</span>" +
+            "  </div>" +
+            "</div>" +
+            "<p class=\"text-muted\">Este enlace caduca en <strong>48 horas</strong>. "
+            + "Si no solicitaste esta suscripción, puedes ignorar este mensaje con total seguridad. "
+            + "Nadie recibirá tus datos sin tu confirmación.</p>" +
+            "<p class=\"text-muted\">IP de registro: " + s.getIpConsentimiento() + "</p>";
+        String finalHtml = emailService.buildHtmlEmailConBaja(html, s.getTokenBaja());
+        emailService.enviarEmailHtml(s.getEmail(), "✅ Confirma tu suscripción al Newsletter de Nexus", finalHtml);
     }
 
     @Async
     private void enviarEmailBienvenida(NewsletterSuscripcion s) {
-        String html = "<html><body style='font-family:sans-serif;max-width:600px;margin:auto'>"
-            + "<h2>Bienvenido/a al Newsletter de Nexus</h2>"
-            + "<p>Hola " + (s.getNombre() != null ? s.getNombre() : "") + ",</p>"
-            + "<p>Ya estas suscrito/a. Recibiras las mejores ofertas y novedades segun "
-            + "tus preferencias.</p>"
-            + "<p><b>Tu frecuencia:</b> " + s.getFrecuencia() + "<br>"
-            + "<b>Recibiras:</b>"
-            + (s.isRecibirOfertas()   ? " Ofertas" : "") + " "
-            + (s.isRecibirNoticias()  ? " Noticias" : "") + " "
-            + (s.isRecibirTrending()  ? " Trending" : "") + "</p>"
-            + "<p>Puedes cambiar tus preferencias en cualquier momento desde "
-            + "<a href='" + frontendUrl + "/ajustes/notificaciones'>Ajustes</a>.</p>"
-            + agregarFooterBaja("", s.getTokenBaja(), s.getNombre())
-            + "</body></html>";
-        emailService.enviarEmailHtml(s.getEmail(), "Bienvenido/a al Newsletter de Nexus", html);
+        String nombre = s.getNombre() != null ? s.getNombre() : "";
+        String preferencias = "";
+        if (s.isRecibirOfertas()) preferencias += " Ofertas";
+        if (s.isRecibirNoticias()) preferencias += " Noticias";
+        if (s.isRecibirTrending()) preferencias += " Trending";
+        if (preferencias.isBlank()) preferencias = " Todas las categorías";
+
+        String html =
+            "<h2>¡Ya eres parte del Newsletter de Nexus! 🎉</h2>" +
+            "<p class=\"lead\">Hola <strong>" + (nombre.isEmpty() ? "" : nombre) + "</strong>, "
+            + "¡bienvenido/a! Tu suscripción ha sido confirmada correctamente.</p>" +
+            "<div class=\"data-card\">" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Frecuencia</span>" +
+            "    <span class=\"data-value\">" + s.getFrecuencia() + "</span>" +
+            "  </div>" +
+            "  <div class=\"data-row\">" +
+            "    <span class=\"data-label\">Recibirás</span>" +
+            "    <span class=\"data-value\">" + preferencias.trim() + "</span>" +
+            "  </div>" +
+            "</div>" +
+            "<div class=\"alert-box alert-success\">" +
+            "  <div><strong>✅ Suscripción activa</strong><br>" +
+            "  A partir de ahora recibirás las mejores ofertas y novedades de Nexus según tus preferencias.</div>" +
+            "</div>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"https://nexus-app.es\" class=\"btn\">Explorar Nexus</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Puedes cambiar tus preferencias o darte de baja en cualquier momento "
+            + "desde el enlace del pie de este mensaje.</p>";
+        String finalHtml = emailService.buildHtmlEmailConBaja(html, s.getTokenBaja());
+        emailService.enviarEmailHtml(s.getEmail(), "🎉 Bienvenido/a al Newsletter de Nexus", finalHtml);
     }
 
     @Async
     private void enviarEmailConfirmacionBaja(NewsletterSuscripcion s) {
-        String html = "<html><body style='font-family:sans-serif;max-width:600px;margin:auto'>"
-            + "<h2>Has sido dado/a de baja del Newsletter de Nexus</h2>"
-            + "<p>Hola " + (s.getNombre() != null ? s.getNombre() : "") + ",</p>"
-            + "<p>Hemos procesado tu solicitud de baja correctamente. "
-            + "No volveremos a enviarte emails de marketing.</p>"
-            + "<p>Si esto fue un error, puedes volver a suscribirte en: "
-            + "<a href='" + frontendUrl + "/newsletter'>Suscribirte de nuevo</a></p>"
-            + "<p style='color:#666;font-size:12px'>Nexus cumple con el RGPD (UE 2016/679) "
-            + "y la LSSI. Tus datos se conservan de forma anonimizada segun lo requerido "
-            + "por la normativa de auditoria.</p>"
-            + "</body></html>";
-        emailService.enviarEmailHtml(s.getEmail(), "Baja del Newsletter de Nexus confirmada", html);
+        String nombre = s.getNombre() != null ? s.getNombre() : "";
+        String html =
+            "<h2>Baja del newsletter confirmada 👋</h2>" +
+            "<p class=\"lead\">Hola <strong>" + (nombre.isEmpty() ? "" : nombre) + "</strong>, "
+            + "hemos procesado tu solicitud de baja correctamente.</p>" +
+            "<div class=\"alert-box alert-success\">" +
+            "  <div><strong>✅ Ya estás dado/a de baja</strong><br>" +
+            "  No volverás a recibir emails de marketing de Nexus. "
+            + "Tus datos se conservan de forma seudonímizada según el RGPD (UE 2016/679) "
+            + "para cumplir con los requisitos de auditoría.</div>" +
+            "</div>" +
+            "<p>Si esto fue un error o cambias de opinión, puedes volver a suscribirte cuando quieras:</p>" +
+            "<div class=\"text-center\">" +
+            "  <a href=\"https://nexus-app.es/newsletter\" class=\"btn btn-success\">Volver a suscribirme</a>" +
+            "</div>" +
+            "<p class=\"text-muted\">Nexus cumple con el RGPD (UE 2016/679), la LSSI y la Ley Orgánica "
+            + "3/2018 de Protección de Datos Personales (LOPDGDD). "
+            + "Tu baja ha quedado registrada con fecha y hora a efectos de auditoría.</p>";
+        String finalHtml = emailService.buildHtmlEmail(html);
+        emailService.enviarEmailHtml(s.getEmail(), "Baja del Newsletter de Nexus confirmada", finalHtml);
     }
 
+    // agregarFooterBaja ha sido reemplazado por emailService.buildHtmlEmailConBaja()
+    // Se mantiene por compatibilidad con código legado que pueda existir
+    @Deprecated
     private String agregarFooterBaja(String html, String tokenBaja, String nombre) {
-        String bajaLink = frontendUrl + "/newsletter/baja?t=" + tokenBaja;
-        return html + "<hr style='margin-top:40px'>"
-            + "<p style='color:#999;font-size:11px;text-align:center'>"
-            + "Has recibido este email porque estas suscrito/a al newsletter de Nexus. "
-            + "<a href='" + bajaLink + "'>Darse de baja</a> | "
-            + "<a href='" + frontendUrl + "/ajustes/notificaciones'>Gestionar preferencias</a>"
-            + "<br>Nexus S.L. · Calle Ejemplo 1, 28001 Madrid · Spain</p>";
+        return emailService.buildHtmlEmailConBaja(html, tokenBaja);
     }
 
     private String obtenerIp(HttpServletRequest request, String fallback) {

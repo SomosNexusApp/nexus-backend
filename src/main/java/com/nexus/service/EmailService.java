@@ -15,29 +15,34 @@ public class EmailService {
     @Autowired private JavaMailSender mailSender;
     @Value("${nexus.mail.from:somosnexusapp@gmail.com}") private String fromEmail;
     @Value("${nexus.frontend.url:http://localhost:4200}") private String frontendUrl;
+    @Value("${nexus.api.url:http://localhost:8080}") private String apiUrl;
 
     // ─── PLANTILLA MAESTRA ─────────────────────────────────────────────────────
     // IMPORTANTE: NO usar String.format() con esta plantilla porque cualquier
     // carácter '%' en el htmlContent causaría MissingFormatArgumentException.
     // En su lugar se usa concatenación directa entre HTML_HEADER y HTML_FOOTER.
+    //
+    // Usar buildHtmlEmail(content)            → email transaccional estándar
+    // Usar buildHtmlEmail(content, tokenBaja) → email de newsletter con link de baja
 
-    private String buildHtmlEmail(String htmlContent) {
+    private String buildBaseHtml(String htmlContent, String footerExtra) {
         return "<!DOCTYPE html>" +
             "<html lang=\"es\">" +
             "<head>" +
             "  <meta charset=\"UTF-8\">" +
             "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-            "  <title>Nexus Elite</title>" +
+            "  <title>Nexus</title>" +
             "  <style>" +
             "    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" +
             "           background-color: #0f172a; margin: 0; padding: 40px 20px; -webkit-font-smoothing: antialiased; }" +
             "    .wrapper { max-width: 620px; margin: 0 auto; background-color: #ffffff;" +
             "               border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }" +
             "    .header { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);" +
-            "              padding: 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
-            "    .header h1 { margin: 8px 0 0; color: #ffffff; font-size: 28px; letter-spacing: 6px;" +
+            "              padding: 36px 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
+            "    .logo-img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }" +
+            "    .header h1 { margin: 4px 0 0; color: #ffffff; font-size: 26px; letter-spacing: 6px;" +
             "                 font-weight: 900; text-transform: uppercase; }" +
-            "    .header p { margin: 8px 0 0; color: #a5b4fc; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }" +
+            "    .header p { margin: 6px 0 0; color: #a5b4fc; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }" +
             "    .content { padding: 48px 40px; color: #1e293b; line-height: 1.8; font-size: 16px; }" +
             "    .content h2 { color: #0f172a; font-size: 26px; margin-top: 0; margin-bottom: 8px; font-weight: 800; }" +
             "    .content h3 { color: #1e293b; font-size: 19px; margin-top: 28px; margin-bottom: 12px; font-weight: 700; }" +
@@ -86,20 +91,27 @@ public class EmailService {
             "    .badge-purple { background: #f5f3ff; color: #7c3aed; }" +
             "    .badge-green { background: #f0fdf4; color: #15803d; }" +
             "    .badge-orange { background: #fff7ed; color: #c2410c; }" +
-            "    .footer { background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 40px;" +
+            "    .footer { background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 36px 40px;" +
             "              text-align: center; font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0; }" +
             "    .footer-brand { font-size: 15px; font-weight: 800; color: #0f172a; letter-spacing: 2px;" +
             "                    text-transform: uppercase; margin-bottom: 8px; }" +
             "    .footer p { margin: 6px 0; }" +
             "    .footer a { color: #7c3aed; text-decoration: none; }" +
+            "    .footer .unsub { font-size: 12px; color: #94a3b8; margin-top: 16px; }" +
+            "    .footer .unsub a { color: #94a3b8; text-decoration: underline; }" +
+            "    @media only screen and (max-width: 640px) {" +
+            "      .wrapper { border-radius: 0; }" +
+            "      .content { padding: 32px 24px; }" +
+            "      .header { padding: 28px 24px; }" +
+            "      .footer { padding: 28px 24px; }" +
+            "      .code-box { font-size: 32px; letter-spacing: 8px; }" +
+            "    }" +
             "  </style>" +
             "</head>" +
             "<body>" +
             "  <div class=\"wrapper\">" +
             "    <div class=\"header\">" +
-            "      <div style=\"display:inline-block; background:linear-gradient(135deg,#7c3aed,#4f46e5); border-radius:14px; padding:12px 18px; margin-bottom:16px;\">" +
-            "        <span style=\"font-size:22px; font-weight:900; color:white; letter-spacing:3px;\">N</span>" +
-            "      </div>" +
+            "      <img src=\"https://nexus-app.es/logo.webp\" alt=\"Nexus\" class=\"logo-img\" />" +
             "      <h1>NEXUS</h1>" +
             "      <p>Marketplace de confianza</p>" +
             "    </div>" +
@@ -107,21 +119,47 @@ public class EmailService {
             htmlContent +
             "    </div>" +
             "    <div class=\"footer\">" +
-            "      <p class=\"footer-brand\">Nexus &nbsp;·&nbsp; Elite Marketplace</p>" +
-            "      <p>Has recibido este email porque tienes una cuenta en <strong>Nexus</strong>.</p>" +
-            "      <p>Por favor, no respondas a este mensaje. Es un envío automático de nuestro sistema.</p>" +
-            "      <p style=\"margin-top: 16px;\">" +
-            "        <a href=\"" + frontendUrl + "/legal/privacidad\">Privacidad</a> &nbsp;·&nbsp; " +
-            "        <a href=\"" + frontendUrl + "/legal/terminos\">Condiciones</a> &nbsp;·&nbsp; " +
-            "        <a href=\"" + frontendUrl + "/ayuda\">Soporte</a>" +
+            "      <p class=\"footer-brand\">Nexus &nbsp;&middot;&nbsp; Elite Marketplace</p>" +
+            "      <p>Has recibido este mensaje porque tienes una cuenta en <strong>Nexus</strong>.</p>" +
+            "      <p>Por favor, no respondas a este mensaje. Es un envío automático.</p>" +
+            "      <p style=\"margin-top: 12px;\">" +
+            "        <a href=\"https://nexus-app.es/legal/privacidad\">Privacidad</a>" +
+            "        &nbsp;&middot;&nbsp;" +
+            "        <a href=\"https://nexus-app.es/legal/terminos\">Condiciones</a>" +
+            "        &nbsp;&middot;&nbsp;" +
+            "        <a href=\"https://nexus-app.es/ayuda\">Soporte</a>" +
             "      </p>" +
-            "      <p style=\"margin-top: 16px; font-weight: 600; color: #94a3b8;\">" +
-            "        &copy; 2026 Nexus App S.L. &nbsp;·&nbsp; Todos los derechos reservados." +
+            footerExtra +
+            "      <p style=\"margin-top: 14px; font-size: 12px; color: #94a3b8;\">" +
+            "        &copy; 2026 Nexus App S.L. &nbsp;&middot;&nbsp; Todos los derechos reservados.<br>" +
+            "        Nexus App S.L. &middot; España &middot; nexus-app.es" +
             "      </p>" +
             "    </div>" +
             "  </div>" +
             "</body>" +
             "</html>";
+    }
+
+    /** Email transaccional estándar (cuenta, compras, envíos...) */
+    String buildHtmlEmail(String htmlContent) {
+        return buildBaseHtml(htmlContent, "");
+    }
+
+    /**
+     * Email de newsletter: incluye link de darse de baja en el footer.
+     * El token se genera una sola vez por suscripción y es permanente.
+     * Usa apiUrl para el endpoint de baja (backend) y frontendUrl para gestionar preferencias.
+     */
+    String buildHtmlEmailConBaja(String htmlContent, String tokenBaja) {
+        String bajaUrl = apiUrl + "/newsletter/baja?t=" + tokenBaja;
+        String footerBaja =
+            "      <p class=\"unsub\" style=\"border-top: 1px solid #e2e8f0; margin-top: 20px; padding-top: 16px;\">" +
+            "        Has recibido este email porque estás suscrito/a al newsletter de Nexus.&nbsp;" +
+            "        <a href=\"" + bajaUrl + "\">Darme de baja</a>" +
+            "        &nbsp;&middot;&nbsp;" +
+            "        <a href=\"" + frontendUrl + "/configuracion\">Gestionar preferencias</a>" +
+            "      </p>";
+        return buildBaseHtml(htmlContent, footerBaja);
     }
 
     @Async
@@ -147,9 +185,12 @@ public class EmailService {
             h.setFrom(fromEmail);
             h.setTo(to);
             h.setSubject(subject);
-            // IMPORTANTE: usar buildHtmlEmail() en vez de String.format para evitar
-            // MissingFormatArgumentException cuando htmlContent tiene caracteres '%'
-            String finalHtml = buildHtmlEmail(htmlContent);
+            // Si el HTML ya viene completo (p.ej. pre-construido con buildHtmlEmailConBaja),
+            // lo enviamos tal cual. Si no, lo envolvemos con la plantilla maestra.
+            // IMPORTANTE: no usar String.format() para evitar MissingFormatArgumentException.
+            String finalHtml = (htmlContent != null && htmlContent.trim().startsWith("<!DOCTYPE"))
+                ? htmlContent
+                : buildHtmlEmail(htmlContent);
             h.setText(finalHtml, true);
             mailSender.send(m);
             System.out.println("✅ [NEXUS EMAIL] HTML enviado a: " + to + " | Asunto: " + subject);
