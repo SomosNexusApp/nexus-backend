@@ -22,11 +22,9 @@ import com.google.api.client.json.gson.GsonFactory;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Admin;
-import com.nexus.soporte.SesionDispositivo;
 import com.nexus.entity.Usuario;
 import com.nexus.entity.Empresa;
 import com.nexus.repository.ActorRepository;
-import com.nexus.repository.SesionDispositivoRepository;
 import com.nexus.repository.UsuarioRepository;
 import com.nexus.security.JWTUtils;
 import com.nexus.service.CaptchaService;
@@ -59,8 +57,6 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
     @Autowired
     private JWTUtils jwtUtils;
-    @Autowired
-    private SesionDispositivoRepository sesionDispositivoRepository;
     @Autowired
     private TwoFactorService twoFactorService;
     @Autowired
@@ -159,16 +155,6 @@ public class AuthController {
             // 4. Generar JWT de Nexus para el usuario
             String jwt = jwtUtils.generateTokenForUser(actor);
 
-            // 5. Registrar la sesión del dispositivo
-            SesionDispositivo sesion = new SesionDispositivo();
-            sesion.setActorId(actor.getId());
-            String ip = request.getHeader("X-Forwarded-For");
-            if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
-            sesion.setIp(ip);
-            sesion.setDispositivo("Google OAuth");
-            sesion.setFechaLogin(LocalDateTime.now());
-            sesionDispositivoRepository.save(sesion);
-
             return ResponseEntity.ok(Map.of("token", jwt));
 
         } catch (Exception e) {
@@ -212,7 +198,7 @@ public class AuthController {
             }
 
             // si no tiene 2FA, registramos la sesion y damos el token directamente
-            return registrarSesionYResponder(actor, authentication, request);
+            return responderConToken(actor, authentication);
 
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             System.out.println("[AUTH] Credenciales incorrectas para: " + req.username + ". Reintentando con reset de emergencia...");
@@ -263,10 +249,8 @@ public class AuthController {
                 .orElseThrow();
 
         if (twoFactorService.verificarCodigoTotp(actor.getTwoFactorSecret(), code)) {
-            // Generar autenticación para el sistema
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             // Si el contexto está vacío (ej: stateless), podríamos recrearla si fuera necesario
-            return registrarSesionYResponder(actor, authentication, request);
+            return responderConToken(actor, null);
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Código inválido"));
@@ -391,44 +375,10 @@ public class AuthController {
     }
 
     // metodo privado que comparte logica entre login normal, 2FA y OAuth
-    // registra la sesion del dispositivo y devuelve el JWT
-    private ResponseEntity<?> registrarSesionYResponder(Actor actor, Authentication auth, HttpServletRequest request) {
+    // devuelve el JWT
+    private ResponseEntity<?> responderConToken(Actor actor, Authentication auth) {
         // 1. generamos el token (si tenemos Authentication usamos ese, sino generamos uno desde el actor)
         String jwt = (auth != null) ? jwtUtils.generateToken(auth) : jwtUtils.generateTokenForUser(actor);
-
-        // 2. intentamos averiguar desde que dispositivo se conecta el usuario
-        // miramos el User-Agent y los Client Hints del navegador
-        String userAgent = request.getHeader("User-Agent");
-        String clientHints = request.getHeader("Sec-CH-UA");
-
-        String dispositivo = "Desconocido";
-        if (userAgent != null) {
-            if (userAgent.contains("Windows")) dispositivo = "Windows PC";
-            else if (userAgent.contains("Mac OS X")) dispositivo = "Mac / OS X";
-            else if (userAgent.contains("iPhone")) dispositivo = "Apple iPhone";
-            else if (userAgent.contains("Android")) dispositivo = "Móvil Android";
-            else if (userAgent.contains("Linux")) dispositivo = "PC Linux";
-
-            // luego añadimos el navegador entre parentesis
-            if (clientHints != null && clientHints.contains("Brave")) dispositivo += " (Brave)";
-            else if (userAgent.contains("Edg/")) dispositivo += " (Edge)";
-            else if (userAgent.contains("Firefox")) dispositivo += " (Firefox)";
-            else if (userAgent.contains("Chrome")) dispositivo += " (Chrome)";
-        }
-
-        // X-Forwarded-For viene cuando hay proxies o balanceadores de carga delante
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr(); // ip directa si no hay proxy
-        }
-
-        // 3. guardamos el registro de sesion en la bbdd
-        SesionDispositivo sesion = new SesionDispositivo();
-        sesion.setActorId(actor.getId());
-        sesion.setIp(ip);
-        sesion.setDispositivo(dispositivo);
-        sesion.setFechaLogin(LocalDateTime.now());
-        sesionDispositivoRepository.save(sesion);
 
         return ResponseEntity.ok(Map.of("token", jwt));
     }

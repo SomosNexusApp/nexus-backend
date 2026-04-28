@@ -109,20 +109,7 @@ public abstract class Actor extends DomainEntity {
     @Column(name = "reset_token_expira")
     private LocalDateTime resetTokenExpira; // cuando caduca el enlace de reset (15 min por defecto)
 
-    // ---- ultima sesion de dispositivo (antes era SesionDispositivo) ----
-    // guardar solo la ultima sesion evita tener una tabla de historial grande
-    // si se necesita historial completo se puede ver en los logs del servidor
-    @Column(name = "ultimo_ip")
-    private String ultimoIp;
 
-    @Column(name = "ultimo_dispositivo")
-    private String ultimoDispositivo; // user-agent o descripcion del dispositivo
-
-    @Column(name = "ultima_ubicacion")
-    private String ultimaUbicacion; // ciudad/pais aproximado (de la IP)
-
-    @Column(name = "ultimo_login")
-    private LocalDateTime ultimoLogin;
 
     // se ejecuta antes de insertar en la bbdd por primera vez
     // nos aseguramos de que ciertos campos tengan valor por defecto
@@ -322,17 +309,10 @@ public abstract class Actor extends DomainEntity {
     public String  getMotivoFlag()                       { return motivoFlag; }
     public void    setMotivoFlag(String m)               { this.motivoFlag = m; }
 
-    // getters/setters del resetToken y sesion de dispositivo fusionados
+    // getters/setters del resetToken
     public String              getResetToken()              { return resetToken; }
     public void                setResetToken(String t)      { this.resetToken = t; }
     public LocalDateTime       getResetTokenExpira()        { return resetTokenExpira; }
     public void                setResetTokenExpira(LocalDateTime e) { this.resetTokenExpira = e; }
-    public String              getUltimoIp()                { return ultimoIp; }
-    public void                setUltimoIp(String ip)       { this.ultimoIp = ip; }
-    public String              getUltimoDispositivo()       { return ultimoDispositivo; }
-    public void                setUltimoDispositivo(String d) { this.ultimoDispositivo = d; }
-    public String              getUltimaUbicacion()         { return ultimaUbicacion; }
-    public void                setUltimaUbicacion(String u) { this.ultimaUbicacion = u; }
-    public LocalDateTime       getUltimoLogin()             { return ultimoLogin; }
-    public void                setUltimoLogin(LocalDateTime l) { this.ultimoLogin = l; }
+
 }

@@ -16,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Empresa;
-import com.nexus.soporte.SesionDispositivo;
 import com.nexus.entity.Usuario;
 import com.nexus.entity.TipoCuenta;
 import com.nexus.security.JWTUtils;
@@ -44,9 +43,6 @@ public class UsuarioController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private com.nexus.repository.SesionDispositivoRepository sesionDispositivoRepository;
 
     @Autowired
     private com.nexus.repository.ActorRepository actorRepository;
@@ -629,85 +625,4 @@ public class UsuarioController {
     }
 
     // ── SEGURIDAD: HISTORIAL DE SESIONES ──
-    @GetMapping("/me/sesiones")
-    public ResponseEntity<?> getSesionesReales(Principal principal, jakarta.servlet.http.HttpServletRequest request) {
-        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
-
-        // 1. Extraemos la IP de forma segura
-        String ipTemp = request.getHeader("X-Forwarded-For");
-        if (ipTemp == null || ipTemp.isEmpty()) {
-            ipTemp = request.getRemoteAddr();
-        }
-        if ("0:0:0:0:0:0:0:1".equals(ipTemp))
-            ipTemp = "127.0.0.1";
-        final String ipActual = ipTemp;
-
-        // 2. Analizamos el dispositivo actual
-        String userAgent = request.getHeader("User-Agent");
-        String dispTemp = "Desconocido";
-        if (userAgent != null) {
-            if (userAgent.contains("Windows"))
-                dispTemp = "Windows PC";
-            else if (userAgent.contains("Mac OS X"))
-                dispTemp = "Mac / OS X";
-            else if (userAgent.contains("iPhone"))
-                dispTemp = "Apple iPhone";
-            else if (userAgent.contains("iPad"))
-                dispTemp = "Apple iPad";
-            else if (userAgent.contains("Android"))
-                dispTemp = "Móvil Android";
-        }
-        final String dispositivoActual = dispTemp;
-
-        // 3. Buscamos el historial
-        List<SesionDispositivo> historial = sesionDispositivoRepository
-                .findByActorIdOrderByFechaLoginDesc(actor.getId());
-
-        // 🔥 EL SALVAVIDAS: Si el filtro de login falló al guardar esta sesión, la
-        // guardamos "al vuelo"
-        boolean existeActual = historial.stream().anyMatch(s -> s.getIp() != null && s.getIp().equals(ipActual));
-        if (!existeActual) {
-            SesionDispositivo nuevaSesion = new SesionDispositivo();
-            nuevaSesion.setActorId(actor.getId());
-            nuevaSesion.setIp(ipActual);
-            nuevaSesion.setDispositivo(dispositivoActual);
-            nuevaSesion.setFechaLogin(LocalDateTime.now());
-            sesionDispositivoRepository.save(nuevaSesion);
-
-            // Recargamos el historial con la nueva sesión incluida
-            historial = sesionDispositivoRepository.findByActorIdOrderByFechaLoginDesc(actor.getId());
-        }
-
-        // 4. Mapeamos a JSON
-        List<Map<String, Object>> response = historial.stream().map(s -> {
-            boolean esActual = s.getIp() != null && s.getIp().equals(ipActual);
-
-            Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", s.getId());
-
-            String disp = s.getDispositivo() != null ? s.getDispositivo() : "Desconocido";
-            if (disp.contains("(")) {
-                disp = disp.substring(0, disp.indexOf("(")).trim();
-            }
-            map.put("dispositivo", disp);
-
-            map.put("ip", s.getIp());
-            map.put("fechaLogin", s.getFechaLogin());
-            map.put("actual", esActual);
-
-            return map;
-        }).toList();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/me/sesiones/otras")
-    public ResponseEntity<?> cerrarOtrasSesiones(Principal principal) {
-        Actor actor = actorRepository.findByUsername(principal.getName()).orElseThrow();
-        // En una app real, revocarías los JWTs. Aquí borramos el historial para limpiar
-        // la tabla.
-        sesionDispositivoRepository.deleteByActorId(actor.getId());
-        return ResponseEntity.ok(Map.of("mensaje", "Sesiones cerradas"));
-    }
-
 }
