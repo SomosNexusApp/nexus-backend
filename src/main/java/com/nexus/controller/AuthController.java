@@ -421,9 +421,12 @@ public class AuthController {
     public ResponseEntity<?> verificar(@RequestBody Map<String, String> req) {
         String email = req.get("email");
         String codigo = req.get("codigo");
+        
+        System.out.println("[AUTH] Intentando verificar email: " + email + " con código: " + codigo);
 
         Usuario usuario = usuarioService.verificarCuentaCompleto(email, codigo);
         if (usuario != null) {
+            System.out.println("[AUTH] Verificación exitosa para: " + email);
             // Si la verificación es correcta, el usuario ya ha sido guardado en la base de datos
             String token = jwtUtils.generateTokenForUser(usuario);
             return ResponseEntity.ok(Map.of(
@@ -434,6 +437,8 @@ public class AuthController {
                     "rol", "ROLE_USER"
             ));
         }
+        
+        System.err.println("[AUTH] Fallo en verificación para: " + email + ". Código incorrecto o registro no encontrado en memoria.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código inválido o registro expirado."));
     }
 

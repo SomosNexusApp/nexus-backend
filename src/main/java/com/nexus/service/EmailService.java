@@ -39,7 +39,8 @@ public class EmailService {
             "               border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }" +
             "    .header { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);" +
             "              padding: 36px 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
-            "    .logo-img { width: 80px; height: 80px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }" +
+                    "    .header h1 { margin: 0; color: #ffffff; font-size: 36px; letter-spacing: 12px;" +
+            "                 font-weight: 900; text-transform: uppercase; text-shadow: 0 0 20px rgba(124,58,237,0.5); }" +
             "    .header p { margin: 12px 0 0; color: #a5b4fc; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; opacity: 0.9; }" +
             "    .content { padding: 48px 40px; color: #1e293b; line-height: 1.8; font-size: 16px; }" +
             "    .content h2 { color: #0f172a; font-size: 26px; margin-top: 0; margin-bottom: 8px; font-weight: 800; }" +
@@ -109,7 +110,7 @@ public class EmailService {
             "<body>" +
             "  <div class=\"wrapper\">" +
             "    <div class=\"header\">" +
-            "      <img src=\"https://nexus-app.es/logo.webp\" alt=\"Nexus\" class=\"logo-img\" />" +
+            "      <h1>NEXUS</h1>" +
             "      <p>Elite Marketplace</p>" +
             "    </div>" +
             "    <div class=\"content\">" +

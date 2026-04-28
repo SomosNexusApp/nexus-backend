@@ -113,13 +113,15 @@ public class UsuarioService implements UserDetailsService {
         u.setPassword(passwordEncoder.encode(u.getPassword()));
         u.setCuentaVerificada(false);
         u.setFechaRegistro(LocalDateTime.now());
+        String normalizedEmail = u.getEmail().toLowerCase().trim();
+        u.setEmail(normalizedEmail);
         
         // guardamos los datos del usuario en el mapa temporal (no en la base de datos)
-        pendingRegistrations.put(u.getEmail(), u);
+        pendingRegistrations.put(normalizedEmail, u);
 
         // generamos un codigo de 6 digitos y lo guardamos en memoria (mapa)
         String code = String.format("%06d", new Random().nextInt(999999));
-        verificationCodes.put(u.getEmail(), code);
+        verificationCodes.put(normalizedEmail, code);
         emailService.enviarVerificacion(u.getEmail(), u.getUser(), code);
 
         // devolvemos el objeto usuario (aun no tiene ID de base de datos)
@@ -128,10 +130,11 @@ public class UsuarioService implements UserDetailsService {
 
     @Transactional
     public Usuario verificarCuentaCompleto(String email, String codigo) {
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : "";
         // buscamos el codigo que guardamos cuando se registró
-        String storedCode = verificationCodes.get(email);
+        String storedCode = verificationCodes.get(normalizedEmail);
         if (storedCode != null && storedCode.equals(codigo)) {
-            Usuario u = pendingRegistrations.get(email);
+            Usuario u = pendingRegistrations.get(normalizedEmail);
             if (u != null) {
                 // todo ok: marcamos la cuenta como verificada, la guardamos en la base de datos
                 u.setCuentaVerificada(true);
