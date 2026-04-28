@@ -39,10 +39,8 @@ public class EmailService {
             "               border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }" +
             "    .header { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);" +
             "              padding: 36px 40px; text-align: center; border-bottom: 3px solid #7c3aed; }" +
-            "    .logo-img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }" +
-            "    .header h1 { margin: 4px 0 0; color: #ffffff; font-size: 26px; letter-spacing: 6px;" +
-            "                 font-weight: 900; text-transform: uppercase; }" +
-            "    .header p { margin: 6px 0 0; color: #a5b4fc; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }" +
+            "    .logo-img { width: 80px; height: 80px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }" +
+            "    .header p { margin: 12px 0 0; color: #a5b4fc; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; opacity: 0.9; }" +
             "    .content { padding: 48px 40px; color: #1e293b; line-height: 1.8; font-size: 16px; }" +
             "    .content h2 { color: #0f172a; font-size: 26px; margin-top: 0; margin-bottom: 8px; font-weight: 800; }" +
             "    .content h3 { color: #1e293b; font-size: 19px; margin-top: 28px; margin-bottom: 12px; font-weight: 700; }" +
@@ -76,13 +74,13 @@ public class EmailService {
             "    .alert-info { background: #eff6ff; border-left: 4px solid #3b82f6; }" +
             "    .alert-success { background: #f0fdf4; border-left: 4px solid #22c55e; }" +
             "    .alert-warning { background: #fffbeb; border-left: 4px solid #f59e0b; }" +
-            "    .steps-list { padding: 0; list-style: none; margin: 20px 0; }" +
-            "    .steps-list li { display: flex; gap: 14px; align-items: flex-start;" +
-            "                     padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #334155; }" +
-            "    .steps-list li:last-child { border-bottom: none; }" +
-            "    .step-num { background: #7c3aed; color: white; border-radius: 50%; width: 26px; height: 26px;" +
-            "                display: inline-flex; align-items: center; justify-content: center;" +
-            "                font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }" +
+            "    .steps-list li { margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; color: #334155; list-style: none; } " +
+            "    .step-content-row { display: table; width: 100%; } " +
+            "    .step-cell-num { display: table-cell; width: 34px; vertical-align: top; } " +
+            "    .step-cell-text { display: table-cell; vertical-align: top; padding-left: 10px; } " +
+            "    .step-num { background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: white; border-radius: 50%; width: 28px; height: 28px;" +
+            "                display: block; line-height: 28px; text-align: center;" +
+            "                font-size: 13px; font-weight: 800; flex-shrink: 0; margin-top: 0; box-shadow: 0 4px 10px rgba(124,58,237,0.2); }" +
             "    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }" +
             "    .text-muted { color: #64748b; font-size: 14px; line-height: 1.7; }" +
             "    .text-center { text-align: center; }" +
@@ -112,8 +110,7 @@ public class EmailService {
             "  <div class=\"wrapper\">" +
             "    <div class=\"header\">" +
             "      <img src=\"https://nexus-app.es/logo.webp\" alt=\"Nexus\" class=\"logo-img\" />" +
-            "      <h1>NEXUS</h1>" +
-            "      <p>Marketplace de confianza</p>" +
+            "      <p>Elite Marketplace</p>" +
             "    </div>" +
             "    <div class=\"content\">" +
             htmlContent +
@@ -230,9 +227,9 @@ public class EmailService {
             "<hr class=\"divider\">" +
             "<h3>¿Qué puedes hacer en Nexus?</h3>" +
             "<ul class=\"steps-list\">" +
-            "  <li><span class=\"step-num\">1</span> <span>Compra y vende artículos de segunda mano de forma segura con pagos escrow.</span></li>" +
-            "  <li><span class=\"step-num\">2</span> <span>Descubre las mejores chollos y ofertas de la comunidad Nexus.</span></li>" +
-            "  <li><span class=\"step-num\">3</span> <span>Chatea con vendedores, negocia precios y sigue el estado de tus envíos en tiempo real.</span></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">1</span></div><div class=\"step-cell-text\">Compra y vende artículos de segunda mano de forma segura con pagos escrow.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">2</span></div><div class=\"step-cell-text\">Descubre las mejores chollos y ofertas de la comunidad Nexus.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">3</span></div><div class=\"step-cell-text\">Chatea con vendedores, negocia precios y sigue el estado de tus envíos en tiempo real.</div></div></li>" +
             "</ul>";
         enviarEmailHtml(to, "✅ Verifica tu cuenta en Nexus — " + username, contenido);
     }
@@ -321,10 +318,10 @@ public class EmailService {
             "</div>" +
             "<h3>¿Qué ocurre ahora?</h3>" +
             "<ul class=\"steps-list\">" +
-            "  <li><span class=\"step-num\">1</span><span>El vendedor preparará el paquete y lo enviará al transportista.</span></li>" +
-            "  <li><span class=\"step-num\">2</span><span>Recibirás un email con el número de seguimiento cuando el envío esté registrado.</span></li>" +
-            "  <li><span class=\"step-num\">3</span><span>Nexus actualizará el estado del envío automáticamente y te avisará en cada hito.</span></li>" +
-            "  <li><span class=\"step-num\">4</span><span>Una vez recibido, podrás dejar tu valoración al vendedor.</span></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">1</span></div><div class=\"step-cell-text\">El vendedor preparará el paquete y lo enviará al transportista.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">2</span></div><div class=\"step-cell-text\">Recibirás un email con el número de seguimiento cuando el envío esté registrado.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">3</span></div><div class=\"step-cell-text\">Nexus actualizará el estado del envío automáticamente y te avisará en cada hito.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">4</span></div><div class=\"step-cell-text\">Una vez recibido, podrás dejar tu valoración al vendedor.</div></div></li>" +
             "</ul>" +
             "<div class=\"text-center\">" +
             "  <a href=\"" + frontendUrl + "/perfil?tab=compras\" class=\"btn\">Ver mis compras</a>" +
@@ -415,11 +412,11 @@ public class EmailService {
             "</div>" +
             "<h3>Pasos a seguir ahora</h3>" +
             "<ul class=\"steps-list\">" +
-            "  <li><span class=\"step-num\">1</span><span>Entra en <strong>Mis Ventas</strong> y abre el pedido #" + compraId + ".</span></li>" +
-            "  <li><span class=\"step-num\">2</span><span>Empaqueta el artículo con cuidado para evitar daños durante el transporte.</span></li>" +
-            "  <li><span class=\"step-num\">3</span><span>Genera o registra el envío en Nexus para activar el seguimiento automático.</span></li>" +
-            "  <li><span class=\"step-num\">4</span><span>El comprador recibirá una notificación y podrá seguir el estado en tiempo real.</span></li>" +
-            "  <li><span class=\"step-num\">5</span><span>Una vez entregado, recibirás tu dinero descontando la comisión de Nexus.</span></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">1</span></div><div class=\"step-cell-text\">Entra en <strong>Mis Ventas</strong> y abre el pedido #" + compraId + ".</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">2</span></div><div class=\"step-cell-text\">Empaqueta el artículo con cuidado para evitar daños durante el transporte.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">3</span></div><div class=\"step-cell-text\">Genera o registra el envío en Nexus para activar el seguimiento automático.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">4</span></div><div class=\"step-cell-text\">El comprador recibirá una notificación y podrá seguir el estado en tiempo real.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">5</span></div><div class=\"step-cell-text\">Una vez entregado, recibirás tu dinero descontando la comisión de Nexus.</div></div></li>" +
             "</ul>" +
             "<div class=\"text-center\">" +
             "  <a href=\"" + linkVentas + "\" class=\"btn\">Ir a Mis Ventas</a>" +
@@ -509,10 +506,10 @@ public class EmailService {
             "</div>" +
             qrHtml +
             "<ul class=\"steps-list\">" +
-            "  <li><span class=\"step-num\">1</span><span>Empaqueta el artículo de forma segura. Usa material de relleno si es frágil.</span></li>" +
-            "  <li><span class=\"step-num\">2</span><span>Acude a la oficina del transportista <strong>" + escapeHtml(transportista != null ? transportista : "Correos") + "</strong> más cercana.</span></li>" +
-            "  <li><span class=\"step-num\">3</span><span>Muestra el QR/código al empleado. Guarda el resguardo del envío.</span></li>" +
-            "  <li><span class=\"step-num\">4</span><span>Introduce el número de seguimiento real en Nexus para activar el tracking automático.</span></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">1</span></div><div class=\"step-cell-text\">Empaqueta el artículo de forma segura. Usa material de relleno si es frágil.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">2</span></div><div class=\"step-cell-text\">Acude a la oficina del transportista <strong>" + escapeHtml(transportista != null ? transportista : "Correos") + "</strong> más cercana.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">3</span></div><div class=\"step-cell-text\">Muestra el QR/código al empleado. Guarda el resguardo del envío.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">4</span></div><div class=\"step-cell-text\">Introduce el número de seguimiento real en Nexus para activar el tracking automático.</div></div></li>" +
             "</ul>" +
             "<div class=\"text-center\">" +
             "  <a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ir a la pantalla de envío</a>" +
@@ -761,14 +758,10 @@ public class EmailService {
 
             "<h3>¿Cómo funciona la publicidad en Nexus?</h3>" +
             "<ul class=\"steps-list\">" +
-            "  <li><span class=\"step-num\">1</span><span><strong>Revisa la propuesta</strong><br>" +
-            "  Accede a la sección de Publicidad en tu panel de empresa y consulta todos los detalles del contrato.</span></li>" +
-            "  <li><span class=\"step-num\">2</span><span><strong>Acepta y paga con Stripe</strong><br>" +
-            "  El pago es 100% seguro a través de Stripe, la plataforma de pagos de confianza utilizada por millones de empresas en Europa.</span></li>" +
-            "  <li><span class=\"step-num\">3</span><span><strong>Tu campaña se activa automáticamente</strong><br>" +
-            "  En segundos tras la confirmación del pago, tu banner o producto patrocinado empezará a mostrarse a los usuarios de Nexus.</span></li>" +
-            "  <li><span class=\"step-num\">4</span><span><strong>Seguimiento en tiempo real</strong><br>" +
-            "  Desde tu panel de empresa podrás consultar el estado de tu contrato durante toda la vigencia de la campaña.</span></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">1</span></div><div class=\"step-cell-text\"><strong>Revisa la propuesta</strong><br>Accede a la sección de Publicidad en tu panel de empresa y consulta todos los detalles del contrato.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">2</span></div><div class=\"step-cell-text\"><strong>Acepta y paga con Stripe</strong><br>El pago es 100% seguro a través de Stripe, la plataforma de pagos de confianza utilizada por millones de empresas en Europa.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">3</span></div><div class=\"step-cell-text\"><strong>Tu campaña se activa automáticamente</strong><br>En segundos tras la confirmación del pago, tu banner o producto patrocinado empezará a mostrarse a los usuarios de Nexus.</div></div></li>" +
+            "  <li><div class=\"step-content-row\"><div class=\"step-cell-num\"><span class=\"step-num\">4</span></div><div class=\"step-cell-text\"><strong>Seguimiento en tiempo real</strong><br>Desde tu panel de empresa podrás consultar el estado de tu contrato durante toda la vigencia de la campaña.</div></div></li>" +
             "</ul>" +
 
             "<div class=\"alert-box alert-info\">" +
