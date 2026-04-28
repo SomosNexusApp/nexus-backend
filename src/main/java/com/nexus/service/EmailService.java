@@ -163,11 +163,12 @@ public class EmailService {
     @Async
     public void enviarEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage m = new SimpleMailMessage();
-            m.setFrom(fromEmail);
-            m.setTo(to);
-            m.setSubject(subject);
-            m.setText(body);
+            MimeMessage m = mailSender.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(m, "UTF-8");
+            h.setFrom(fromEmail);
+            h.setTo(to);
+            h.setSubject(subject);
+            h.setText(body, false); // false = texto plano
             mailSender.send(m);
             System.out.println("✅ [NEXUS EMAIL] Texto plano enviado a: " + to);
         } catch (Exception e) {

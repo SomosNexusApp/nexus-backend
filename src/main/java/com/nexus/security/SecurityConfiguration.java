@@ -19,6 +19,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.nexus.service.UsuarioService;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
+
+import org.springframework.web.filter.CharacterEncodingFilter;
 
 // configuracion principal de seguridad de la aplicacion
 // aqui definimos: CORS, CSRF, sesiones, y que rutas necesitan autenticacion
@@ -26,6 +29,7 @@ import com.nexus.service.UsuarioService;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true) // permite usar @PreAuthorize en los controladores
 public class SecurityConfiguration {
+
 
         @Autowired
         private JWTAuthenticationFilter jwtAuthenticationFilter;
