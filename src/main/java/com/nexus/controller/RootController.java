@@ -307,7 +307,7 @@ public class RootController {
                 "                <a href='/swagger-ui.html' class='dev-btn'>" +
                 "                    <img src='/swagger-logo.webp' alt='Swagger'> Documentación Swagger UI" +
                 "                </a>" +
-                "                <a href=\"https://somosnexusapp-1419993.postman.co/workspace/Nexus's-Workspace~fed8b792-0672-4ba9-8e45-743c50854ad4/collection/52000346-10c36880-a26e-4bbb-bda3-bda71061387f?action=share&source=copy-link&creator=52000346\" target='_blank' class='dev-btn'>"
+                "                <a href=\"https://somosnexusapp-1419993.postman.co/workspace/Nexus's-Workspace~fed8b792-0672-4ba9-8e45-743c50854ad4/collection/52000346-eca9db42-5aa3-4a0b-b38e-75bc595b57b8?action=share&source=copy-link&creator=52000346\" target='_blank' class='dev-btn'>"
                 +
                 "                    <img src='/postman-icon.webp' alt='Postman'> Workspace de Postman" +
                 "                </a>" +
