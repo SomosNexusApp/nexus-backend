@@ -51,9 +51,10 @@ public class UsuarioService implements UserDetailsService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    // guardamos los codigos de verificacion en memoria porque son temporales
+    // guardamos los codigos de verificacion y los datos de registro en memoria porque son temporales
     // ojo: esto se pierde si el servidor se reinicia, pero para una verificacion de email va bien
     private final Map<String, String> verificationCodes = new HashMap<>();
+    private final Map<String, Usuario> pendingRegistrations = new HashMap<>();
 
     // metodos basicos CRUD — nada especial aqui
     public List<Usuario> findAll() {
@@ -99,9 +100,8 @@ public class UsuarioService implements UserDetailsService {
         return "USUARIO";
     }
 
-    @Transactional
     public Usuario registrarUsuario(Usuario u) {
-        // comprobamos que el username y el email no estén ya ocupados
+        // comprobamos que el username y el email no estén ya ocupados en la base de datos (usuarios reales)
         if (actorRepository.findByUsername(u.getUser()).isPresent()) {
             throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
         }
@@ -109,37 +109,64 @@ public class UsuarioService implements UserDetailsService {
             throw new IllegalArgumentException("El correo electrónico ya está en uso.");
         }
 
-        // hasheamos la contraseña antes de guardar — nunca se guarda en plano
+        // hasheamos la contraseña antes de guardarla temporalmente
         u.setPassword(passwordEncoder.encode(u.getPassword()));
-        u.setCuentaVerificada(false); // la cuenta empieza sin verificar, necesita el email
+        u.setCuentaVerificada(false);
         u.setFechaRegistro(LocalDateTime.now());
         
-        Usuario saved = usuarioRepository.save(u);
+        // guardamos los datos del usuario en el mapa temporal (no en la base de datos)
+        pendingRegistrations.put(u.getEmail(), u);
 
         // generamos un codigo de 6 digitos y lo guardamos en memoria (mapa)
-        // despues mandamos el email al usuario para que verifique su cuenta
         String code = String.format("%06d", new Random().nextInt(999999));
         verificationCodes.put(u.getEmail(), code);
         emailService.enviarVerificacion(u.getEmail(), u.getUser(), code);
 
-        return saved;
+        // devolvemos el objeto usuario (aun no tiene ID de base de datos)
+        return u;
+    }
+
+    @Transactional
+    public Usuario verificarCuentaCompleto(String email, String codigo) {
+        // buscamos el codigo que guardamos cuando se registró
+        String storedCode = verificationCodes.get(email);
+        if (storedCode != null && storedCode.equals(codigo)) {
+            Usuario u = pendingRegistrations.get(email);
+            if (u != null) {
+                // todo ok: marcamos la cuenta como verificada, la guardamos en la base de datos
+                u.setCuentaVerificada(true);
+                Usuario saved = usuarioRepository.save(u);
+                
+                // borramos los datos temporales
+                verificationCodes.remove(email);
+                pendingRegistrations.remove(email);
+                
+                return saved;
+            }
+        }
+        return null; // codigo incorrecto o registro expirado/no encontrado
     }
 
     @Transactional
     public boolean verificarCuenta(String email, String codigo) {
-        // buscamos el codigo que guardamos cuando se registró
+        // Este metodo se mantiene por compatibilidad si se usa en otros sitios, 
+        // pero redirigimos a la nueva lógica si hay un registro pendiente.
+        if (pendingRegistrations.containsKey(email)) {
+            return verificarCuentaCompleto(email, codigo) != null;
+        }
+        
+        // Lógica antigua para usuarios que ya existen (ej: cambios de email o 2FA)
         String storedCode = verificationCodes.get(email);
         if (storedCode != null && storedCode.equals(codigo)) {
             Usuario u = usuarioRepository.findByEmail(email).orElse(null);
             if (u != null) {
-                // todo ok: marcamos la cuenta como verificada y borramos el codigo del mapa
                 u.setCuentaVerificada(true);
                 usuarioRepository.save(u);
-                verificationCodes.remove(email); // limpiamos para que no se pueda reusar
+                verificationCodes.remove(email);
                 return true;
             }
         }
-        return false; // codigo incorrecto o email no encontrado
+        return false;
     }
 
     @Transactional

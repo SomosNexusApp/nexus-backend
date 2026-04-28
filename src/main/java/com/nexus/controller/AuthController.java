@@ -408,13 +408,33 @@ public class AuthController {
         nuevoUsuario.setNewsletterSuscrito(req.newsletterSuscrito);
 
         try {
-            Usuario usuarioGuardado = usuarioService.registrarUsuario(nuevoUsuario);
+            usuarioService.registrarUsuario(nuevoUsuario);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "mensaje", "Usuario registrado exitosamente. Revisa tu correo para verificar la cuenta.",
-                    "id", usuarioGuardado.getId()));
+                    "mensaje", "Usuario registrado exitosamente. Revisa tu correo para verificar la cuenta."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/verificar")
+    @Operation(summary = "Verificar código de registro y activar cuenta")
+    public ResponseEntity<?> verificar(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        String codigo = req.get("codigo");
+
+        Usuario usuario = usuarioService.verificarCuentaCompleto(email, codigo);
+        if (usuario != null) {
+            // Si la verificación es correcta, el usuario ya ha sido guardado en la base de datos
+            String token = jwtUtils.generateTokenForUser(usuario);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Cuenta verificada correctamente.",
+                    "token", token,
+                    "userId", usuario.getId(),
+                    "username", usuario.getUser(),
+                    "rol", "ROLE_USER"
+            ));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Código inválido o registro expirado."));
     }
 
     @GetMapping("/check-email")
