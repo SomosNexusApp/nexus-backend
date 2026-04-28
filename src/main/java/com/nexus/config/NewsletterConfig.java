@@ -1,5 +1,6 @@
-package com.nexus.entity;
+package com.nexus.config;
 
+import com.nexus.entity.DomainEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

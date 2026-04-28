@@ -557,7 +557,7 @@ public class ModerationService {
 
 	public String getAllWordsAsString() {
 		String customWords = configRepository.findById("sensitiveKeywords")
-				.map(com.nexus.entity.AdminConfig::getValue)
+				.map(com.nexus.config.AdminConfig::getValue)
 				.orElse("");
 		
 		java.util.List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));
@@ -665,7 +665,7 @@ public class ModerationService {
 
 	public void recompilarPatron() {
 		String customWords = configRepository.findById("sensitiveKeywords")
-				.map(com.nexus.entity.AdminConfig::getValue)
+				.map(com.nexus.config.AdminConfig::getValue)
 				.orElse("");
 		
 		List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));

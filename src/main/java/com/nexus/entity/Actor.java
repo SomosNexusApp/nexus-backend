@@ -1,5 +1,6 @@
 package com.nexus.entity;
 
+import com.nexus.config.ActorNotificacionConfig;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 

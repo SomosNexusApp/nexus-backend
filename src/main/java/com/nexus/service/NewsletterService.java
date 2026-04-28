@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.nexus.config.NewsletterConfig;
 import com.nexus.entity.*;
 import com.nexus.repository.*;
 import org.springframework.data.domain.PageRequest;

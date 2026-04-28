@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.nexus.entity.AdminConfig;
+import com.nexus.config.AdminConfig;
 import com.nexus.repository.AdminConfigRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
