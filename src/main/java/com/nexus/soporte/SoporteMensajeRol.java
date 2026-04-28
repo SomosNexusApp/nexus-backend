@@ -1,4 +1,4 @@
-package com.nexus.entity;
+package com.nexus.soporte;
 
 public enum SoporteMensajeRol {
     USER,

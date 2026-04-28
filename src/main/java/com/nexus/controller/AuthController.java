@@ -22,7 +22,7 @@ import com.google.api.client.json.gson.GsonFactory;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Admin;
-import com.nexus.entity.SesionDispositivo;
+import com.nexus.soporte.SesionDispositivo;
 import com.nexus.entity.Usuario;
 import com.nexus.entity.Empresa;
 import com.nexus.repository.ActorRepository;

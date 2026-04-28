@@ -13,10 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexus.entity.SoporteChatMessage;
-import com.nexus.entity.SoporteChatSession;
-import com.nexus.entity.SoporteMensajeRol;
-import com.nexus.entity.SoporteSessionStatus;
+import com.nexus.soporte.SoporteChatMessage;
+import com.nexus.soporte.SoporteChatSession;
+import com.nexus.soporte.SoporteMensajeRol;
+import com.nexus.soporte.SoporteSessionStatus;
 import com.nexus.entity.TipoNotificacion;
 import com.nexus.entity.Compra;
 import com.nexus.entity.Oferta;
@@ -261,7 +261,7 @@ public class SoporteChatService {
     public void guardarEncuesta(String sessionToken, int valoracion, String comentario) {
         SoporteChatSession s = sessionRepository.findBySessionToken(sessionToken)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no válida"));
-        com.nexus.entity.SoporteEncuesta e = new com.nexus.entity.SoporteEncuesta();
+        com.nexus.soporte.SoporteEncuesta e = new com.nexus.soporte.SoporteEncuesta();
         e.setSessionId(s.getId());
         e.setValoracion(valoracion);
         e.setComentario(comentario);

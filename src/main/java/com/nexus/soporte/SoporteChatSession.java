@@ -1,4 +1,6 @@
-package com.nexus.entity;
+package com.nexus.soporte;
+import com.nexus.entity.DomainEntity;
+import com.nexus.soporte.SoporteSessionStatus;
 
 import java.time.LocalDateTime;
 

@@ -1,4 +1,7 @@
-package com.nexus.entity;
+package com.nexus.soporte;
+import com.nexus.entity.DomainEntity;
+import com.nexus.soporte.SoporteChatSession;
+import com.nexus.soporte.SoporteMensajeRol;
 
 import java.time.LocalDateTime;
 

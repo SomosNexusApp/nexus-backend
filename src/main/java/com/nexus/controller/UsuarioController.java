@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.nexus.entity.Actor;
 import com.nexus.entity.Empresa;
-import com.nexus.entity.SesionDispositivo;
+import com.nexus.soporte.SesionDispositivo;
 import com.nexus.entity.Usuario;
 import com.nexus.entity.TipoCuenta;
 import com.nexus.security.JWTUtils;

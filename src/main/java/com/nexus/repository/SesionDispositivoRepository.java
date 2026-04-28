@@ -1,6 +1,6 @@
 package com.nexus.repository;
 
-import com.nexus.entity.SesionDispositivo;
+import com.nexus.soporte.SesionDispositivo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
