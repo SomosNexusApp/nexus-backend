@@ -19,9 +19,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.nexus.service.UsuarioService;
-import org.springframework.security.web.authentication.logout.LogoutFilter;
-
-import org.springframework.web.filter.CharacterEncodingFilter;
 
 // configuracion principal de seguridad de la aplicacion
 // aqui definimos: CORS, CSRF, sesiones, y que rutas necesitan autenticacion

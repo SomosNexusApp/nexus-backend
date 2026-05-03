@@ -66,6 +66,7 @@ public class VehiculoController {
             @RequestParam(required = false) Integer plazas,
             @RequestParam(required = false) Boolean garantia,
             @RequestParam(required = false) Boolean itv,
+            @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false) String orden,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -74,7 +75,7 @@ public class VehiculoController {
 
         Page<Vehiculo> r = vehiculoService.buscarPaginado(tipo, marca, modelo,
                 precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
-                cambio, busqueda, condicion, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
+                cambio, busqueda, condicion, ubicacion, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
                 garantia, itv, PageRequest.of(page, size, sort));
                 
         return ResponseEntity.ok(Map.of(

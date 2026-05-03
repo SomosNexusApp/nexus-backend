@@ -77,6 +77,9 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
+        (CAST(:ubicacion AS TEXT) IS NULL
+          OR LOWER(o.ciudad_oferta) LIKE LOWER('%' || CAST(:ubicacion AS TEXT) || '%'))
+        AND
         (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
           OR o.actor_id = CAST(CAST(:actorId AS TEXT) AS NUMERIC))
         AND
@@ -111,6 +114,9 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         AND
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
+        (CAST(:ubicacion AS TEXT) IS NULL
+          OR LOWER(o.ciudad_oferta) LIKE LOWER('%' || CAST(:ubicacion AS TEXT) || '%'))
+        AND
         (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
           OR o.actor_id = CAST(CAST(:actorId AS TEXT) AS NUMERIC))
         AND
@@ -131,6 +137,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       @Param("precioMax") Double precioMax,
       @Param("busqueda") String busqueda,
       @Param("soloActivas") boolean soloActivas,
+      @Param("ubicacion") String ubicacion,
       @Param("actorId") Integer actorId,
       @Param("excludedActorIds") List<Integer> excludedActorIds,
       @Param("hasExcluded") boolean hasExcluded,

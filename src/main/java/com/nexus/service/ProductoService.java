@@ -87,6 +87,7 @@ public class ProductoService {
                 precioMin,
                 precioMax,
                 condicion,
+                ubicacion,
                 vendedorId,
                 // excluimos productos de usuarios que se han bloqueado mutuamente con el comprador
                 bloqueoService.getRelacionesBloqueo(currentUserId),

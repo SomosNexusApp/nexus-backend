@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.nexus.config.ActorNotificacionConfig;
-import com.nexus.config.NewsletterConfig;
 import com.nexus.entity.*;
 import com.nexus.repository.*;
 import com.nexus.service.*;

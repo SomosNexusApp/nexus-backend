@@ -140,7 +140,7 @@ public class MarketplaceSearchService {
                 || "OFERTA".equalsIgnoreCase(tipo);
         if (buscarOfertas && (condicion == null || condicion.isBlank())) {
             paginaOfertas = ofertaService.buscarConFiltrosGeograficos(
-                    catForSpec, null, precioMin, precioMax, q, true,
+                    catForSpec, null, precioMin, precioMax, q, true, ubicacion,
                     sortOferta, dirOferta, null, usuarioId,
                     minLat, maxLat, minLng, maxLng, subPage);
         }
@@ -169,7 +169,7 @@ public class MarketplaceSearchService {
                 paginaVehiculos = vehiculoService.buscarPaginadoGeografico(
                         null, null, null, precioMin, precioMax,
                         null, null, null, null, null,
-                        q, condicion, null, null, null, null, null, null, null,
+                        q, condicion, ubicacion, null, null, null, null, null, null, null,
                         minLat, maxLat, minLng, maxLng, subPage);
             }
         }

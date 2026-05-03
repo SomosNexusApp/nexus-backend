@@ -74,6 +74,7 @@ public class OfertaController {
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radius,
+            @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer size,
             @RequestParam(required = false) Integer usuarioId,
@@ -84,7 +85,7 @@ public class OfertaController {
 
             Page<Oferta> paginaOfertas = ofertaService.buscarConFiltros(
                     categoria, tienda, precioMin, precioMax, busqueda,
-                    soloActivas, ordenarPor, direccion, vendedorId, usuarioId,
+                    soloActivas, ubicacion, ordenarPor, direccion, vendedorId, usuarioId,
                     lat, lng, radius, pageable);
 
             ofertaService.poblarVotos(paginaOfertas.getContent(), usuarioId);

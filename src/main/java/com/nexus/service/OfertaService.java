@@ -235,7 +235,7 @@ public class OfertaService {
 
     public Page<Oferta> buscarConFiltros(String categoria, String tienda,
             Double precioMin, Double precioMax,
-            String busqueda, Boolean soloActivas,
+            String busqueda, Boolean soloActivas, String ubicacion,
             String sortField, String sortDir,
             Integer actorId, Integer currentUserId,
             Double lat, Double lng, Double radius,
@@ -263,14 +263,15 @@ public class OfertaService {
         if (excluded != null && excluded.isEmpty()) excluded = null;
 
         return ofertaRepository.buscarConFiltrosGeograficos(
-                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
+                categoria, tienda, precioMin, precioMax, busqueda, solo, ubicacion, actorId, 
+ 
                 excluded, hasExcluded,
                 minLat, maxLat, minLng, maxLng, pageable);
     }
 
     public Page<Oferta> buscarConFiltrosGeograficos(String categoria, String tienda,
             Double precioMin, Double precioMax,
-            String busqueda, Boolean soloActivas,
+            String busqueda, Boolean soloActivas, String ubicacion,
             String sortField, String sortDir,
             Integer actorId, Integer currentUserId,
             Double minLat, Double maxLat, Double minLng, Double maxLng,
@@ -287,7 +288,8 @@ public class OfertaService {
         if (excluded != null && excluded.isEmpty()) excluded = null;
 
         return ofertaRepository.buscarConFiltrosGeograficos(
-                categoria, tienda, precioMin, precioMax, busqueda, solo, actorId, 
+                categoria, tienda, precioMin, precioMax, busqueda, solo, ubicacion, actorId, 
+ 
                 excluded, hasExcluded,
                 minLat, maxLat, minLng, maxLng, pageable);
     }
@@ -304,7 +306,7 @@ public class OfertaService {
         if (excluded != null && excluded.isEmpty()) excluded = null;
 
         return ofertaRepository.buscarConFiltrosGeograficos(
-                categoria, tienda, precioMin, precioMax, busqueda, soloActivas, actorId, 
+                categoria, tienda, precioMin, precioMax, busqueda, soloActivas, null, actorId, 
                 excluded, hasExcluded,
                 null, null, null, null, pageable);
     }
