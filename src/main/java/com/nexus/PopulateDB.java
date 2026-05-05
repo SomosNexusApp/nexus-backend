@@ -613,9 +613,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado, cremalleras metálicas pesadas. Un clásico atemporal que solo mejora con el tiempo.",
                                 290.0, TipoOferta.VENTA, lucia, catRopaHombre, "AllSaints", "Milo Biker",
                                 CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
-                                "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
-                chaquetaCuero.addImagenGaleria("https://images.unsplash.com/photo-1521223890158-f9f7c3d5d54d?w=800");
-                chaquetaCuero.addImagenGaleria("https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800");
+                                "https://i.imgur.com/XlnOpIk.jpeg");
+                chaquetaCuero.addImagenGaleria("https://i.imgur.com/h7ASEO0.jpeg");
+                chaquetaCuero.addImagenGaleria("https://i.imgur.com/0z2ihmt.jpeg");
                 productoRepository.save(chaquetaCuero);
 
                 Producto vaquerosLevis = producto(
@@ -706,7 +706,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Roomba j7+ con base de vaciado automático. Mapeo por IA, esquiva obstáculos. 18 meses de uso. Incluye cargador y bolsas.",
                                 320.0, TipoOferta.VENTA, sofia, catElectrodomest, "iRobot", "Roomba j7+",
                                 CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
-                                "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800");
+                                "https://i.imgur.com/yK64agC.jpeg");
 
                 Producto ikeaEscritorio = producto(
                                 "Escritorio IKEA Bekant 160x80 blanco",
