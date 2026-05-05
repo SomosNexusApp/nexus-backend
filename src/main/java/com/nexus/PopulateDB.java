@@ -186,10 +186,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                         TipoOferta.VENTA, lucia_fashion, catRopaHombre, "AllSaints",
                                                         "Milo Biker",
                                                         CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
-                                                        "https://images.unsplash.com/photo-1551028719-001074a35567?w=800");
+                                                        "https://i.imgur.com/G7LGs5O.jpeg");
                                         chaquetaCuero
                                                         .addImagenGaleria(
-                                                                        "https://images.unsplash.com/photo-1521223890158-f9f7c3d5d54d?w=800");
+                                                                        "https://i.imgur.com/WwUyvSl.jpeg");
                                         productoRepository.save(chaquetaCuero);
                                 }
                                 if (catRopaMujer != null) {
@@ -470,7 +470,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Samsung S23 Ultra con S Pen. Color Phantom Black. 12GB RAM. Batería 89%. Siempre con funda. Sin golpes ni arañazos.",
                                 680.0, TipoOferta.VENTA, pedro, catMoviles, "Samsung", "Galaxy S23 Ultra",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Valencia",
-                                "https://images.unsplash.com/photo-1675272979687-aad85d4be5c7?w=800");
+                                "https://i.imgur.com/1YmMukl.jpeg");
                 samsungS23.setPatrocinado(true);
                 productoRepository.save(samsungS23);
 
@@ -554,7 +554,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Juego físico para Nintendo Switch. Completo con caja y manual. Solo terminado una vez. Perfecto estado.",
                                 45.0, TipoOferta.VENTA, andres, catVideojuegos, "Nintendo", "Zelda TotK",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 3.99, true, "Granada",
-                                "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
+                                "https://i.imgur.com/Y71os7x.jpeg");
 
                 // Ropa
                 Producto nikeSneakers = producto(
@@ -604,7 +604,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Zapatillas Air Jordan 4 Bred edición Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
                                 280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
                                 CondicionProducto.NUEVO, true, 8.0, true, "Madrid",
-                                "https://images.unsplash.com/photo-1574561135754-5264eee47a46?w=800");
+                                "https://i.imgur.com/hxllutI.jpeg");
 
                 // Hogar
                 // --- MÁXIMA MODA (HOMBRE) ---
@@ -632,8 +632,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Sudadera original Supreme Box Logo de la temporada FW23. Algodón de alto gramaje. Muy codiciada. Comprada en la tienda de Londres.",
                                 480.0, TipoOferta.VENTA, lucia, catRopaHombre, "Supreme", "Box Logo Hoodie",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Sevilla",
-                                "https://images.unsplash.com/photo-1534030347209-c77bd357b1cb?w=800");
-                sudaderaSupreme.addImagenGaleria("https://images.unsplash.com/photo-1578932750294-f5075e53944a?w=800");
+                                "https://i.imgur.com/j4vuOE1.jpeg");
+                sudaderaSupreme.addImagenGaleria("[https://i.imgur.com/iBtf4wZ.jpeg");
                 productoRepository.save(sudaderaSupreme);
 
                 Producto relojOmega = producto(
@@ -678,8 +678,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Gafas Prada auténticas. Montura de acetato color carey. Lentes degradadas marrones con 100% protección UV. Funda original incluida.",
                                 160.0, TipoOferta.VENTA, lucia, catRopaMujer, "Prada", "Heritage Square",
                                 CondicionProducto.COMO_NUEVO, true, 2.99, true, "Sevilla",
-                                "https://images.unsplash.com/photo-1511499767390-a73c23310fc1?w=800");
-                gafasPrada.addImagenGaleria("https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800");
+                                "https://i.imgur.com/RMjuDyW.jpeg");
+                gafasPrada.addImagenGaleria("https://i.imgur.com/WEJ3n8W.png");
                 productoRepository.save(gafasPrada);
 
                 Producto zapatosLouboutin = producto(
@@ -759,7 +759,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Set LEGO Technic Batman Batmóvil 42127. 422 piezas. Caja sellada sin abrir. Comprado como regalo pero tenemos uno igual.",
                                 55.0, TipoOferta.VENTA, lucia, catJuguetes, "LEGO", "Batmóvil Technic 42127",
                                 CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
-                                "https://images.unsplash.com/photo-1600456899121-68eda5705257?w=800");
+                                "https://i.imgur.com/zMDYi43.jpeg[/img]");
 
                 // --- CONTRATO PATROCINADO PARA TEST ---
                 Contrato conPatrocinio = new Contrato();
@@ -788,7 +788,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 7200.0, TipoVehiculo.MOTO, miguel, catVehiculos, "Honda", "CBR600RR",
                                 2019, 12000, "GASOLINA", "MANUAL", 120, 599, "Rojo/Negro",
                                 null, 2, "9482MNK", true, false, "Bilbao",
-                                "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800");
+                                "https://i.imgur.com/Y3WbLKk.jpeg");
 
                 Vehiculo teslaModel3 = vehiculo(
                                 "Tesla Model 3 Long Range AWD 2022",
@@ -845,7 +845,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Xiaomi Redmi Note 13 Pro+ con Dimensity 7200 Ultra, cámara de 200MP, pantalla AMOLED 120Hz y carga de 120W. Una barbaridad por este precio.",
                                 249.0, 399.0, "MediaMarkt", "https://mediamarkt.es/xiaomi",
                                 catMoviles, maria, BadgeOferta.NUEVA, -2,
-                                "https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=800",
+                                "https://i.imgur.com/2Es1sv8.jpeg",
                                 67, 4, 2100, 134);
 
                 Oferta ofertaPSPlus = oferta(
@@ -853,7 +853,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Suscripción PlayStation Plus Essential 12 meses. Acceso a juegos mensuales gratuitos y multijugador online. Precio mínimo del año.",
                                 39.99, 71.99, "PlayStation Store", "https://store.playstation.com",
                                 catConsolaJuego, pedro, BadgeOferta.DESTACADA, -24,
-                                "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=800",
+                                "https://i.imgur.com/mSkgnWE.png",
                                 78, 3, 3200, 189);
 
                 Oferta ofertaSamsungQLED = oferta(
@@ -861,7 +861,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Smart TV Samsung QLED 55 pulgadas Q80C. 120Hz, HDR10+, Quantum Processor. El mejor precio del mercado para este panel.",
                                 499.0, 799.0, "El Corte Inglés", "https://elcorteingles.es/samsung-q80c",
                                 catTV, sofia, BadgeOferta.PORCENTAJE, -18,
-                                "https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=800",
+                                "https://i.imgur.com/lqUGeAw.jpeg",
                                 43, 5, 1890, 97);
 
                 Oferta ofertaRoombaIRobot = oferta(
@@ -869,7 +869,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Roomba j9+ con base de vaciado automático Clean Base. Mapeo 3D, evita obstáculos por IA. Precio mínimo histórico con -46% de descuento.",
                                 299.0, 549.0, "Amazon", "https://amazon.es/roomba-j9",
                                 catElectrodomest, modaFashion, BadgeOferta.CHOLLAZO, -12,
-                                "https://images.unsplash.com/photo-1589782431773-c7b9ad4c37b2?w=800",
+                                "https://i.imgur.com/hiTLEFK.jpeg",
                                 112, 6, 3400, 201);
 
                 Oferta ofertaRTX4060 = oferta(
@@ -894,7 +894,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Set LEGO Icons Árbol Bonsái 878 piezas. Precio más bajo del año. Ideal para adultos. Envío gratis con Prime.",
                                 32.99, 54.99, "Amazon", "https://amazon.es/lego-bonsai",
                                 catJuguetes, maria, BadgeOferta.NUEVA, -1,
-                                "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800",
+                                "https://i.imgur.com/GHxtfNv.jpeg",
                                 23, 1, 890, 45);
 
                 // --- VIAJES ---
