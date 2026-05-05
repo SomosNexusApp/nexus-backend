@@ -86,8 +86,8 @@ public class CompraService {
         compra.setMetodoEntrega(metodoEntrega);
         compra.setFechaPago(LocalDateTime.now());
 
-        // reservamos el producto para que nadie más lo compre mientras se gestiona el envío
-        producto.setEstadoProducto(EstadoProducto.RESERVADO);
+        // Marcamos el producto como VENDIDO para que ya no aparezca disponible en la plataforma
+        producto.setEstadoProducto(EstadoProducto.VENDIDO);
         productoRepository.save(producto);
 
         Compra guardada = compraRepository.save(compra);
