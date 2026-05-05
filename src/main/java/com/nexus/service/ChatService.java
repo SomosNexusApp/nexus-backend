@@ -143,12 +143,20 @@ public class ChatService {
     @Transactional
     public ChatMensaje mensajeSistema(Integer productoId, Integer remitenteId,
             Integer receptorId, String texto) {
+        return mensajeSistema(productoId, remitenteId, receptorId, texto, true, true);
+    }
+
+    @Transactional
+    public ChatMensaje mensajeSistema(Integer productoId, Integer remitenteId,
+            Integer receptorId, String texto, boolean visibleParaRemitente, boolean visibleParaReceptor) {
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         String finalTexto = (texto == null || texto.isBlank())
                 ? "Actualización del pedido disponible en tu perfil."
                 : texto.trim();
         msg.setTexto(finalTexto);
         msg.setTipo(TipoMensaje.SISTEMA);
+        msg.setEliminadoParaRemitente(!visibleParaRemitente);
+        msg.setEliminadoParaReceptor(!visibleParaReceptor);
         return chatMensajeRepository.save(msg);
     }
 

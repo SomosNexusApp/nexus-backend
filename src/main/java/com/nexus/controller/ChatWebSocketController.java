@@ -201,7 +201,13 @@ public class ChatWebSocketController {
      */
     public void publicarMensajeSistema(Integer productoId, Integer remitenteId,
             Integer receptorId, String texto) {
-        ChatMensaje msg = chatService.mensajeSistema(productoId, remitenteId, receptorId, texto);
+        publicarMensajeSistema(productoId, remitenteId, receptorId, texto, true, true);
+    }
+
+    public void publicarMensajeSistema(Integer productoId, Integer remitenteId,
+            Integer receptorId, String texto, boolean visibleParaRemitente, boolean visibleParaReceptor) {
+        ChatMensaje msg = chatService.mensajeSistema(productoId, remitenteId, receptorId, texto, visibleParaRemitente,
+                visibleParaReceptor);
         messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
     }
 }

@@ -86,8 +86,8 @@ public class EnvioService {
         envio.setFechaLimiteEnvio(LocalDateTime.now().plusDays(plazoEnvioDias));
         Envio guardado = envioRepository.save(envio);
 
-        // Notificar en el chat automáticamente
-        notificarEnChat(compra, "📦 Pago confirmado. Esperando que el vendedor envíe el producto.");
+        // Notificar en el chat automáticamente (solo al comprador)
+        notificarEnChat(compra, "📦 Pago confirmado. Esperando que el vendedor envíe el producto.", false, true);
 
         Producto prod = compra.getProducto();
         Actor vendedor = prod.getPublicador();
@@ -466,11 +466,17 @@ public class EnvioService {
     }
 
     private void notificarEnChat(Compra compra, String texto) {
+        notificarEnChat(compra, texto, true, true);
+    }
+
+    private void notificarEnChat(Compra compra, String texto, boolean visibleParaVendedor, boolean visibleParaComprador) {
         try {
             Integer productoId = compra.getProducto().getId();
             Integer compradorId = compra.getComprador().getId();
             Integer vendedorId = compra.getProducto().getPublicador().getId();
-            chatWebSocketController.publicarMensajeSistema(productoId, vendedorId, compradorId, texto);
+            // remitente=vendedor, receptor=comprador
+            chatWebSocketController.publicarMensajeSistema(productoId, vendedorId, compradorId, texto, visibleParaVendedor,
+                    visibleParaComprador);
         } catch (Exception e) {
             // No interrumpir la operación principal si el chat falla
             System.err.println("⚠️ Error notificando en chat: " + e.getMessage());

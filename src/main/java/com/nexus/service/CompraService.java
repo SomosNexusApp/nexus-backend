@@ -130,13 +130,15 @@ public class CompraService {
                     vendedor.getId(),
                     comprador.getId(),
                     "✅ Han comprado tu producto. Pago confirmado de «" + titulo
-                            + "». Revisa la guía de envío para continuar.");
+                            + "». Revisa la guía de envío para continuar.",
+                    true, false);
             chatWebSocketController.publicarMensajeSistema(
                     guardada.getProducto().getId(),
                     comprador.getId(),
                     vendedor.getId(),
                     "✅ Compra confirmada de «" + titulo
-                            + "». Te iremos avisando en este chat con cada actualización del envío.");
+                            + "». Te iremos avisando en este chat con cada actualización del envío.",
+                    true, false);
         } catch (Exception ignored) {
         }
 
