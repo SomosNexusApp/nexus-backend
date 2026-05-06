@@ -68,7 +68,7 @@ public class ChatController {
 
             // Publicar en WebSocket para que el receptor lo reciba en tiempo real
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
-            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null, guardado.getRoomId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
@@ -159,7 +159,7 @@ public class ChatController {
 
             // Publicar en WebSocket
             messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
-            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null);
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, false, null, guardado.getRoomId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
@@ -180,7 +180,7 @@ public class ChatController {
             ChatMensaje msg = chatService.guardarPropuestaPrecio(
                     productoId, remitenteId, receptorId, precioPropuesto);
             messagingTemplate.convertAndSend("/topic/chat/" + msg.getRoomId(), msg);
-            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, true, precioPropuesto);
+            notificacionService.notificarMensajeChatRecibido(receptorId, remitenteId, productoId, true, precioPropuesto, msg.getRoomId());
             return ResponseEntity.status(HttpStatus.CREATED).body(msg);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

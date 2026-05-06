@@ -122,13 +122,18 @@ public class ChatWebSocketController {
                     productoId, remitenteId, receptorId, texto);
         }
 
+        // Si el frontend envía un roomId específico, lo respetamos para que la suscripción coincida
+        if (payload.get("roomId") != null) {
+            guardado.setRoomId((String) payload.get("roomId"));
+        }
+
         // Publicar al topic del producto → Angular recibe en tiempo real
         messagingTemplate.convertAndSend("/topic/chat/" + guardado.getRoomId(), guardado);
 
         if (receptorId != null && remitenteId != null) {
             boolean esOferta = "OFERTA_PRECIO".equals(tipoStr) && precioProp != null;
             notificacionService.notificarMensajeChatRecibido(
-                    receptorId, remitenteId, productoId, esOferta, precioProp);
+                    receptorId, remitenteId, productoId, esOferta, precioProp, guardado.getRoomId());
         }
     }
 
@@ -152,7 +157,7 @@ public class ChatWebSocketController {
         // Notificar al remitente que sus mensajes fueron leídos (checks azules)
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomId + "/leidos",
-                Map.of("usuarioId", usuarioId, "leido", true));
+                Map.of("usuarioId", usuarioId, "leido", true, "roomId", roomId));
     }
 
     /**
@@ -171,7 +176,7 @@ public class ChatWebSocketController {
         // Notificar al remitente que sus mensajes fueron recibidos (doble check gris)
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomId + "/recibidos",
-                Map.of("usuarioId", usuarioId, "recibido", true));
+                Map.of("usuarioId", usuarioId, "recibido", true, "roomId", roomId));
     }
 
     /**
@@ -189,7 +194,7 @@ public class ChatWebSocketController {
 
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomId + "/escribiendo",
-                Map.of("remitenteId", remitenteId, "escribiendo", escribiendo));
+                Map.of("remitenteId", remitenteId, "escribiendo", escribiendo, "roomId", roomId));
     }
 
     // ── Método público para que otros servicios publiquen mensajes de sistema ──

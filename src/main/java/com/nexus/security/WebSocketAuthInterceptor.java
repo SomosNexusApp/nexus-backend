@@ -49,8 +49,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                         
                         // Establecemos el usuario en la sesión del WebSocket
                         accessor.setUser(authentication);
+                        System.out.println("✅ WS Auth exitosa para: " + username);
                     }
+                } else {
+                    System.err.println("❌ WS Auth fallida: Token inválido o expirado");
                 }
+            } else {
+                System.err.println("⚠️ WS Auth: No se encontró header Authorization válido en CONNECT");
             }
         }
         return message;

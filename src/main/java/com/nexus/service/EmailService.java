@@ -67,7 +67,7 @@ public class EmailService {
             "    .data-row { display: flex; justify-content: space-between; align-items: center;" +
             "                margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; }" +
             "    .data-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }" +
-            "    .data-label { color: #64748b; font-size: 14px; }" +
+            "    .data-label { color: #64748b; font-size: 14px; padding-right: 20px; }" +
             "    .data-value { font-weight: 600; color: #1e293b; font-size: 15px; }" +
             "    .data-value.highlight { color: #7c3aed; font-size: 20px; font-weight: 800; }" +
             "    .data-value.green { color: #059669; }" +
@@ -121,16 +121,16 @@ public class EmailService {
             "      <p>Has recibido este mensaje porque tienes una cuenta en <strong>Nexus</strong>.</p>" +
             "      <p>Por favor, no respondas a este mensaje. Es un envío automático.</p>" +
             "      <p style=\"margin-top: 12px;\">" +
-            "        <a href=\"https://nexus-app.es/legal/privacidad\">Privacidad</a>" +
+            "        <a href=\"https://about.nexus-app.es/legal/privacidad\">Privacidad</a>" +
             "        &nbsp;&middot;&nbsp;" +
-            "        <a href=\"https://nexus-app.es/legal/terminos\">Condiciones</a>" +
+            "        <a href=\"https://about.nexus-app.es/legal/terminos\">Condiciones</a>" +
             "        &nbsp;&middot;&nbsp;" +
-            "        <a href=\"https://nexus-app.es/ayuda\">Soporte</a>" +
+            "        <a href=\"https://about.nexus-app.es/ayuda\">Soporte</a>" +
             "      </p>" +
             footerExtra +
             "      <p style=\"margin-top: 14px; font-size: 12px; color: #94a3b8;\">" +
             "        &copy; 2026 Nexus App S.L. &nbsp;&middot;&nbsp; Todos los derechos reservados.<br>" +
-            "        Nexus App S.L. &middot; España &middot; nexus-app.es" +
+            "        Nexus App S.L. &middot; España &middot; about.nexus-app.es" +
             "      </p>" +
             "    </div>" +
             "  </div>" +
@@ -261,7 +261,7 @@ public class EmailService {
             "    <strong>⚠️ No has solicitado este cambio?</strong><br>" +
             "    Si no has iniciado esta solicitud, tu cuenta sigue siendo segura. Puedes ignorar este mensaje. " +
             "    Si sospechas actividad no autorizada, contacta con nuestro soporte inmediatamente desde " +
-            "    <a href=\"" + frontendUrl + "/ayuda\" style=\"color: #d97706;\">nexus.app/ayuda</a>." +
+            "    <a href=\"https://about.nexus-app.es/ayuda\" style=\"color: #d97706;\">about.nexus-app.es/ayuda</a>." +
             "  </div>" +
             "</div>";
         enviarEmailHtml(to, "Restablece tu contraseña — Nexus", contenido);
@@ -424,7 +424,7 @@ public class EmailService {
             "  <a href=\"" + linkVentas + "\" class=\"btn\">Ir a Mis Ventas</a>" +
             "</div>" +
             "<p class=\"text-muted\">Ante cualquier problema con el envío o el comprador, nuestro equipo de soporte " +
-            "está disponible 24/7 desde <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>. " +
+            "está disponible 24/7 desde <a href=\"https://about.nexus-app.es/ayuda\">Nexus Ayuda</a>. " +
             "Recuerda que el pago está protegido por nuestro sistema de escrow hasta que el comprador confirme la recepción.</p>";
         enviarEmailHtml(to, "🛍️ Nueva venta: " + tituloProducto + " — Nexus", contenido);
     }
@@ -618,7 +618,7 @@ public class EmailService {
             "  </div>" +
             "</div>" +
             "<p class=\"text-muted\">Esta operación ya no requiere más acciones por tu parte. " +
-            "Si tienes alguna duda, contacta con nuestro soporte en <a href=\"" + frontendUrl + "/ayuda\">Nexus Ayuda</a>.</p>" +
+            "Si tienes alguna duda, contacta con nuestro soporte en <a href=\"https://about.nexus-app.es/ayuda\">Nexus Ayuda</a>.</p>" +
             "<div class=\"text-center\"><a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn\">Ver mis ventas</a></div>";
         enviarEmailHtml(to, "❌ Venta anulada — Pedido #" + compraId + " — Nexus", contenido);
     }
@@ -688,7 +688,7 @@ public class EmailService {
             "  <a href=\"" + frontendUrl + "/perfil?tab=ventas\" class=\"btn btn-warning\">Revisar solicitud de devolución</a>" +
             "</div>" +
             "<p class=\"text-muted\">Si tienes dudas sobre el proceso de devoluciones, consulta nuestra " +
-            "<a href=\"" + frontendUrl + "/ayuda\">guía de vendedores</a>.</p>";
+            "<a href=\"https://about.nexus-app.es/ayuda\">guía de vendedores</a>.</p>";
         enviarEmailHtml(to, "🔄 Solicitud de devolución — Nexus", contenido);
     }
 

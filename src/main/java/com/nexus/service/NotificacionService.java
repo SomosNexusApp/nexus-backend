@@ -112,13 +112,34 @@ public class NotificacionService {
         return g;
     }
 
+    /**
+     * Envía una notificación por WebSocket sin persistirla en la base de datos.
+     * Útil para mensajes de chat que ya tienen su propia persistencia y contador.
+     */
+    public void enviarSoloWS(Integer actorId, TipoNotificacion tipo, String titulo, String mensaje, String url, String metadata) {
+        Actor actor = actorRepository.findById(actorId).orElse(null);
+        if (actor == null) return;
+        
+        NotificacionInApp n = new NotificacionInApp();
+        n.setId(0); // ID temporal para que el frontend lo acepte
+        n.setActor(actor);
+        n.setTipo(tipo);
+        n.setTitulo(titulo);
+        n.setMensaje(mensaje);
+        n.setUrl(url);
+        n.setMetadata(metadata);
+        n.setFecha(LocalDateTime.now());
+        
+        enviarPorWebSocket(n);
+    }
+
     private void enviarPorWebSocket(NotificacionInApp g) {
-        if (g.getActor() == null) return;
-        Integer actorId = g.getActor().getId();
+        if (g.getActor() == null || g.getActor().getUser() == null) return;
+        String username = g.getActor().getUser();
         try {
-            messagingTemplate.convertAndSendToUser(actorId.toString(), "/queue/notificaciones", g);
+            messagingTemplate.convertAndSendToUser(username, "/queue/notificaciones", g);
         } catch (Exception e) {
-            System.err.println("WS notificacion: " + e.getMessage());
+            System.err.println("WS notificacion error para " + username + ": " + e.getMessage());
         }
     }
 
@@ -131,7 +152,7 @@ public class NotificacionService {
      * Chat (WS o REST): persiste notificación al receptor con texto coherente.
      */
     public void notificarMensajeChatRecibido(Integer receptorId, Integer remitenteId, Integer productoId,
-            boolean esOferta, Double precioOferta) {
+            boolean esOferta, Double precioOferta, String roomId) {
         if (receptorId == null || remitenteId == null) return;
         String nombre = actorRepository.findById(remitenteId)
                 .map(a -> (a.getNombre() != null && !a.getNombre().isBlank()) ? a.getNombre() : a.getUser())
@@ -139,10 +160,15 @@ public class NotificacionService {
         String tituloProducto = productoId != null
                 ? productoRepository.findById(productoId).map(Producto::getTitulo).orElse("tu producto")
                 : "tu producto";
+        
+        String metadata = roomId != null ? "{\"roomId\":\"" + roomId + "\"}" : null;
+
         if (Boolean.TRUE.equals(esOferta) && precioOferta != null) {
-            notificarNuevoMensajeOferta(receptorId, nombre, precioOferta, tituloProducto);
+            enviarSoloWS(receptorId, TipoNotificacion.OFERTA_CHAT, "Nueva oferta de precio",
+                nombre + " te ofrece " + String.format("%.2f €", precioOferta) + " por " + tituloProducto, "/mensajes", metadata);
         } else {
-            notificarNuevoMensaje(receptorId, nombre);
+            enviarSoloWS(receptorId, TipoNotificacion.NUEVO_MENSAJE, "Nuevo mensaje",
+                "Tienes un nuevo mensaje de " + nombre, "/mensajes", metadata);
         }
     }
 

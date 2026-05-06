@@ -121,6 +121,9 @@ public class ChatService {
         if (precio < minPrecio) {
             throw new IllegalArgumentException("La propuesta de precio no puede ser inferior al 20% del precio original (" + minPrecio + "€)");
         }
+        if (precio > precioOriginal) {
+            throw new IllegalArgumentException("La propuesta de precio no puede ser superior al precio original (" + precioOriginal + "€)");
+        }
 
         ChatMensaje msg = buildBase(productoId, remitenteId, receptorId);
         msg.setTexto("Propuesta de precio: " + precio + "€");
@@ -136,8 +139,11 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("Mensaje no encontrado"));
         if (msg.getTipo() != TipoMensaje.OFERTA_PRECIO)
             throw new IllegalArgumentException("Este mensaje no es una propuesta de precio");
+        
         msg.setEstadoPropuesta(aceptada ? "ACEPTADA" : "RECHAZADA");
-        return chatMensajeRepository.save(msg);
+        chatMensajeRepository.save(msg);
+        
+        return chatMensajeRepository.findWithDetailsById(mensajeId).orElse(msg);
     }
 
     @Transactional

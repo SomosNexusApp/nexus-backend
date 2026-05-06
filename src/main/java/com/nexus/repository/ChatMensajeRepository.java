@@ -85,4 +85,8 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Intege
                      "AND m.estadoPropuesta = 'ACEPTADA' " +
                      "ORDER BY m.fechaEnvio DESC")
        List<ChatMensaje> findAcceptedOffers(Integer productoId, Integer usuarioId);
+
+       @EntityGraph(attributePaths = { "remitente", "receptor", "producto" })
+       @Query("SELECT m FROM ChatMensaje m WHERE m.id = ?1")
+       java.util.Optional<ChatMensaje> findWithDetailsById(Integer id);
 }
