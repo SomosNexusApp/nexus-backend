@@ -386,6 +386,62 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 }
                         }
 
+                        // --- INYECCIÓN DE CHOLLOS GRATIS (Minipol) ---
+                        if (ofertaRepository.findByTitulo("Plugin Vst Minipol - Micro Sintetizador analógico")
+                                        .isEmpty()) {
+                                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
+                                Categoria catSoft = categoriaRepository.findBySlug("software").orElse(null);
+                                if (tech != null && catSoft != null) {
+                                        Oferta o = oferta(
+                                                        "Plugin Vst Minipol - Micro Sintetizador analógico",
+                                                        "Yo qué quereis que os diga... lo veo precioso y no vale mucho, unos 25€ pero lo he encontrado a 0€. Pues es un plugin vst que emula a un mini sintetizador analógico, con el que podrás crear tus propios sonidos y moldearlos a tu gusto. Para tenerlo solo tienes que entrar al chollo y dejar tu nombre y correo y te envían un email con todo.",
+                                                        0.0, 25.0, "Karanyi Sounds",
+                                                        "https://karanyisounds.com/product/minipol/",
+                                                        catSoft, tech, BadgeOferta.GRATUITA, -1,
+                                                        "https://i.postimg.cc/PJF3PWdC/1856573-1.jpg", 320, 15, 8500,
+                                                        430);
+                                        ofertaRepository.save(o);
+                                        System.out.println("=== PopulateDB: Chollo Gratis Minipol inyectado ===");
+                                }
+                        }
+
+                        // --- INYECCIÓN DE CHOLLOS GRATIS (Duolingo) ---
+                        if (ofertaRepository.findByTitulo("1-2 Meses GRATIS de Super Duolingo / 2 Meses desde la APP")
+                                        .isEmpty()) {
+                                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
+                                Categoria catVJ = categoriaRepository.findBySlug("videojuegos").orElse(null); // O 'otros' si fuera más apropiado, pero usaremos videojuegos/software
+                                if (tech != null && catVJ != null) {
+                                        Oferta o = oferta(
+                                                        "1-2 Meses GRATIS de Super Duolingo / 2 Meses desde la APP",
+                                                        "¡Aprende idiomas de manera gratuita con esta increíble promoción! Por tiempo limitado, obtén 1 Mes GRATIS de Duolingo Super y lleva tus habilidades lingüísticas al siguiente nivel. Descubre cómo aprovechar esta oferta y sumérgete en el mundo del aprendizaje de idiomas de forma divertida y efectiva.",
+                                                        0.0, 15.0, "Duolingo",
+                                                        "https://www.duolingo.com/redeem?code=DUOBNB2026",
+                                                        catVJ, tech, BadgeOferta.GRATUITA, -1,
+                                                        "https://i.postimg.cc/PxSKRWpD/1853840-1.jpg", 1200, 25, 18000,
+                                                        3500);
+                                        o.setCodigoDescuento("DUOBNB2026");
+                                        ofertaRepository.save(o);
+                                        System.out.println("=== PopulateDB: Chollo Gratis Duolingo inyectado ===");
+                                }
+                        }
+
+                        // --- INYECCIÓN DE CHOLLOS GRATIS (Xbox Game Pass) ---
+                        if (ofertaRepository.findByTitulo("Xbox Game Pass Ultimate - 1 Mes GRATIS").isEmpty()) {
+                                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
+                                Categoria catVJ = categoriaRepository.findBySlug("videojuegos").orElse(null);
+                                if (tech != null && catVJ != null) {
+                                        Oferta o = oferta(
+                                                        "Xbox Game Pass Ultimate - 1 Mes GRATIS",
+                                                        "Consigue un mes de Xbox Game Pass Ultimate gratis. Acceso a cientos de juegos de alta calidad en consola, PC y la nube. Incluye EA Play.",
+                                                        0.0, 14.99, "Microsoft Store", "https://xbox.com/gamepass",
+                                                        catVJ, tech, BadgeOferta.GRATUITA, -1,
+                                                        "https://images.unsplash.com/photo-1605901309584-818e25960a8f?w=800",
+                                                        890, 45, 15000, 2300);
+                                        ofertaRepository.save(o);
+                                        System.out.println("=== PopulateDB: Chollo Gratis Xbox Pass inyectado ===");
+                                }
+                        }
+
                         done = true;
                         return;
                 }
@@ -871,6 +927,34 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
                                 "https://i.postimg.cc/pyN8KWqX/z-MDYi43.jpg");
 
+                // Inmuebles
+                Producto pisoCentro = producto(
+                                "Piso luminoso en Centro Sevilla",
+                                "Espectacular piso de 3 habitaciones en el corazón de Sevilla. Reformado recientemente, aire acondicionado centralizado y cocina equipada. Ideal para familias o inversión.",
+                                245000.0, TipoOferta.VENTA, lucia, catInmuebles, null, null,
+                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Sevilla",
+                                "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800");
+                pisoCentro.setAdmiteEnvio(false);
+                productoRepository.save(pisoCentro);
+
+                Producto chaletLujo = producto(
+                                "Chalet Independiente con Piscina",
+                                "Chalet de lujo en urbanización privada. 450m2 construidos, 5 habitaciones, 4 baños, piscina privada y jardín de 1000m2. Garaje para 3 coches.",
+                                680000.0, TipoOferta.VENTA, carlos, catInmuebles, null, null,
+                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Madrid",
+                                "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800");
+                chaletLujo.setAdmiteEnvio(false);
+                productoRepository.save(chaletLujo);
+
+                Producto oficinaModerna = producto(
+                                "Oficina Moderna en Distrito Financiero",
+                                "Espacio de oficina diáfano de 120m2. Muy luminosa, excelentes vistas, incluye 2 plazas de garaje. Edificio con seguridad 24h.",
+                                320000.0, TipoOferta.VENTA, pedro, catInmuebles, null, null,
+                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Valencia",
+                                "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800");
+                oficinaModerna.setAdmiteEnvio(false);
+                productoRepository.save(oficinaModerna);
+
                 // Otros
                 Producto piano = producto(
                                 "Piano Vertical Yamaha U1 - Negro Pulido",
@@ -1163,6 +1247,31 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800",
                                 445, 15, 12000, 1890);
 
+                Oferta ofertaMinipol = oferta(
+                                "Plugin Vst Minipol - Micro Sintetizador analógico",
+                                "Yo qué quereis que os diga... lo veo precioso y no vale mucho, unos 25€ pero lo he encontrado a 0€. Pues es un plugin vst que emula a un mini sintetizador analógico, con el que podrás crear tus propios sonidos y moldearlos a tu gusto. Para tenerlo solo tienes que entrar al chollo y dejar tu nombre y correo y te envían un email con todo. Una vez también lo regalaron, ahora tienes una nueva oportunidad.",
+                                0.0, 25.0, "Karanyi Sounds", "https://karanyisounds.com/product/minipol/",
+                                catSoftware, techStore, BadgeOferta.GRATUITA, -1,
+                                "https://i.postimg.cc/PJF3PWdC/1856573-1.jpg",
+                                320, 15, 8500, 430);
+
+                Oferta ofertaXboxPass = oferta(
+                                "Xbox Game Pass Ultimate - 1 Mes GRATIS",
+                                "Consigue un mes de Xbox Game Pass Ultimate gratis. Acceso a cientos de juegos de alta calidad en consola, PC y la nube. Incluye EA Play.",
+                                0.0, 14.99, "Microsoft Store", "https://xbox.com/gamepass",
+                                catVideojuegos, techStore, BadgeOferta.GRATUITA, -1,
+                                "https://images.unsplash.com/photo-1605901309584-818e25960a8f?w=800",
+                                890, 45, 15000, 2300);
+
+                Oferta ofertaDuolingo = oferta(
+                                "1-2 Meses GRATIS de Super Duolingo / 2 Meses desde la APP",
+                                "¡Aprende idiomas de manera gratuita con esta increíble promoción! Por tiempo limitado, obtén 1 Mes GRATIS de Duolingo Super y lleva tus habilidades lingüísticas al siguiente nivel. Descubre cómo aprovechar esta oferta y sumérgete en el mundo del aprendizaje de idiomas de forma divertida y efectiva.",
+                                0.0, 15.0, "Duolingo", "https://www.duolingo.com/redeem?code=DUOBNB2026",
+                                catVideojuegos, techStore, BadgeOferta.GRATUITA, -1,
+                                "https://i.postimg.cc/PxSKRWpD/1853840-1.jpg",
+                                1200, 25, 18000, 3500);
+                ofertaDuolingo.setCodigoDescuento("DUOBNB2026");
+
                 // ── 9. SPARK VOTOS
                 // ────────────────────────────────────────────────────
                 sparkVotoRepository.save(new SparkVoto(maria, ofertaAirpods, true));
@@ -1196,6 +1305,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 sparkVotoRepository.save(new SparkVoto(miguel, ofertaNetflixTrial, true));
                 sparkVotoRepository.save(new SparkVoto(lucia, ofertaNetflixTrial, true));
                 sparkVotoRepository.save(new SparkVoto(andres, ofertaNetflixTrial, true));
+                sparkVotoRepository.save(new SparkVoto(maria, ofertaMinipol, true));
+                sparkVotoRepository.save(new SparkVoto(pedro, ofertaMinipol, true));
+                sparkVotoRepository.save(new SparkVoto(carlos, ofertaMinipol, true));
 
                 // ── 10. COMENTARIOS EN OFERTAS
                 // ────────────────────────────────────────
