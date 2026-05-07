@@ -316,7 +316,7 @@ public class MarketplaceSearchService {
     private boolean matchesGeo(Producto p, Double minLat, Double maxLat,
                                 Double minLng, Double maxLng) {
         if (minLat == null) return true;
-        if (p.getLatitude() == null || p.getLongitude() == null) return true;
+        if (p.getLatitude() == null || p.getLongitude() == null) return false;
         return p.getLatitude() >= minLat && p.getLatitude() <= maxLat
                 && p.getLongitude() >= minLng && p.getLongitude() <= maxLng;
     }
@@ -345,6 +345,10 @@ public class MarketplaceSearchService {
         m.put("urlExterna",          o.getUrlOferta());
         m.put("numeroComentarios",   o.getNumeroComentarios());
         m.put("sparkScore",          o.getSparkScore() != null ? o.getSparkScore() : 0);
+        m.put("codigoDescuento",     o.getCodigoDescuento());
+        m.put("badge",               o.getBadge() != null ? o.getBadge().name() : null);
+        m.put("destacada",           o.getDestacada());
+        m.put("esFlash",             o.getEsFlash());
         if (o.getMiVoto() != null)   m.put("miVoto", o.getMiVoto());
 
         if (o.getCategoria() != null) {

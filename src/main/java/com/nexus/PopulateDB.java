@@ -168,7 +168,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         System.err.println("=== PopulateDB: Error al corregir nombres: " + e.getMessage());
                 }
 
-                if (done || (actorRepository.count() > 0 && productoRepository.count() > 5
+                if (done || (actorRepository.count() > 0 && productoRepository.count() > 100
                                 && categoriaRepository.count() > 10)) {
                         // --- INYECCIÓN BAJO DEMANDA DE MODA FALTANTE ---
                         if (productoRepository.findByTitulo("Chaqueta de Cuero Biker Premium - AllSaints").isEmpty()) {
@@ -186,10 +186,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                         TipoOferta.VENTA, lucia_fashion, catRopaHombre, "AllSaints",
                                                         "Milo Biker",
                                                         CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
-                                                        "https://i.imgur.com/G7LGs5O.jpeg");
+                                                        "https://i.postimg.cc/j2PZJFt0/G7LGs5O.jpg");
                                         chaquetaCuero
                                                         .addImagenGaleria(
-                                                                        "https://i.imgur.com/WwUyvSl.jpeg");
+                                                                        "https://i.postimg.cc/L8HNnD7s/Ww-Uyv-Sl.jpg");
                                         productoRepository.save(chaquetaCuero);
                                 }
                                 if (catRopaMujer != null) {
@@ -203,6 +203,29 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                         productoRepository.save(bolsoChanel);
                                 }
                                 // ... (Añadiendo el resto simplificado para que sea rápido y funcione ya) ...
+                        }
+
+                        // --- INYECCIÓN BAJO DEMANDA DE JOSERRA ---
+                        if (usuarioRepository.findByUsername("joserra05").isEmpty()) {
+                                Usuario joserra = usuario("joserra05", "joserra05@nexus.test", "Marchena, España",
+                                                "Me gustan los coches.",
+                                                5.0, 2,
+                                                true);
+                                joserra.setNombre("José Ramón");
+                                joserra.setApellidos("López Guisado");
+                                joserra.setAvatar("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
+
+                                DireccionEnvio dirJoserra = new DireccionEnvio();
+                                dirJoserra.setNombre("José Ramón López Guisado");
+                                dirJoserra.setDireccion("Calle Maestra 12");
+                                dirJoserra.setCiudad("Marchena");
+                                dirJoserra.setCodigoPostal("23001");
+                                dirJoserra.setPais("España");
+                                dirJoserra.setTelefono("600000000");
+                                joserra.setDireccionPorDefecto(dirJoserra);
+
+                                usuarioRepository.save(joserra);
+                                System.out.println("=== PopulateDB: Usuario Joserra inyectado (Emergencia) ===");
                         }
 
                         System.out.println(
@@ -312,6 +335,57 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 }
                         }
 
+                        // --- INYECCIÓN DE MÁS OFERTAS FLASH (Garantizar variedad en Home) ---
+                        if (ofertaRepository.findByTitulo("Dyson V15 Detect - Aspiradora sin cable con láser por 499€")
+                                        .isEmpty()) {
+                                Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
+                                Categoria catElectro = categoriaRepository.findBySlug("electrodomesticos").orElse(null);
+                                Categoria catPCs = categoriaRepository.findBySlug("pcs").orElse(null);
+                                Categoria catConsolas = categoriaRepository.findBySlug("consolas").orElse(null);
+
+                                if (tech != null) {
+                                        if (catElectro != null) {
+                                                Oferta o = oferta(
+                                                                "Dyson V15 Detect - Aspiradora sin cable con láser por 499€",
+                                                                "La aspiradora más potente de Dyson con tecnología láser. Oferta Flash limitada.",
+                                                                499.0, 749.0, "Dyson.es", "https://dyson.es/v15",
+                                                                catElectro, tech, BadgeOferta.CHOLLAZO, -1,
+                                                                "https://i.postimg.cc/nhJc7jYV/Hairtool-Core.jpg", 320,
+                                                                12, 8500, 430);
+                                                o.setEsFlash(true);
+                                                o.setFlashFin(LocalDateTime.now().plusHours(4));
+                                                ofertaRepository.save(o);
+                                        }
+                                        if (catPCs != null) {
+                                                Oferta o = oferta("iPad Pro M4 11\" 256GB por solo 899€ - Oferta Flash",
+                                                                "Nuevo iPad Pro con chip M4 y pantalla OLED. El más potente ahora en oferta.",
+                                                                899.0, 1199.0, "Amazon",
+                                                                "https://amazon.es/ipad-pro-m4",
+                                                                catPCs, tech, BadgeOferta.DESTACADA, -1,
+                                                                "https://i.postimg.cc/h4ZSCZLw/1540-1.jpg", 450, 5,
+                                                                12000, 670);
+                                                o.setEsFlash(true);
+                                                o.setFlashFin(LocalDateTime.now().plusHours(8));
+                                                ofertaRepository.save(o);
+                                        }
+                                        if (catConsolas != null) {
+                                                Oferta o = oferta(
+                                                                "Steam Deck OLED 512GB por 399€ - Reacondicionado Certificado",
+                                                                "La consola de Valve con pantalla OLED. Versión reacondicionada certificada.",
+                                                                399.0, 569.0, "Steam Store",
+                                                                "https://steampowered.com/steamdeck",
+                                                                catConsolas, tech, BadgeOferta.CHOLLAZO, -1,
+                                                                "https://i.postimg.cc/fyNg5NH9/title-0000.jpg", 890, 15,
+                                                                15000,
+                                                                1200);
+                                                o.setEsFlash(true);
+                                                o.setFlashFin(LocalDateTime.now().plusHours(6));
+                                                ofertaRepository.save(o);
+                                        }
+                                        System.out.println("=== PopulateDB: Chollos Flash adicionales inyectados ===");
+                                }
+                        }
+
                         done = true;
                         return;
                 }
@@ -334,7 +408,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 Categoria catViajes = cat("Viajes", "viajes", "plane", "#F44336", null, 12);
                 cat("Vuelos", "vuelos", "plane-takeoff", "#F44336", catViajes, 1);
                 cat("Hoteles", "hoteles", "bed", "#F44336", catViajes, 2);
-                cat("Otros", "otros", "archive", "#78909C", null, 13);
+                Categoria catOtros = cat("Otros", "otros", "archive", "#78909C", null, 13);
 
                 // Sub-categorías
                 Categoria catMoviles = cat("Móviles", "moviles", "smartphone", "#1565C0", catElectronica, 1);
@@ -432,6 +506,22 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 Usuario elena = usuario("elena_deporte", "elena@nexus.test", "Zaragoza, Centro",
                                 "Deportista. Vendo material deportivo que ya no uso.", 4.4, 61, true);
 
+                Usuario joserra = usuario("joserra05", "joserra05@nexus.test", "Marchena, España",
+                                "CEO & Founder of Nexus. Apasionado de la tecnología y el emprendimiento.", 5.0, 500,
+                                true);
+                joserra.setNombre("José Ramón");
+                joserra.setApellidos("López Guisado");
+                joserra.setAvatar("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
+
+                usuarioRepository.save(joserra);
+
+                Usuario rafalillo = usuario("rafalillo", "rafa@nexus.test", "El Saucejo, España",
+                                "CEO of Nexus. Apasionado de los coches y la mecánica.", 4.8, 12, true);
+                rafalillo.setNombre("Rafa");
+                rafalillo.setApellidos("López");
+                rafalillo.setAvatar("https://i.postimg.cc/jq48KBgX/s-Hg5upk.jpg");
+                usuarioRepository.save(rafalillo);
+
                 // Direccion por defecto para Carlos
                 DireccionEnvio dirCarlos = new DireccionEnvio();
                 dirCarlos.setNombre("Carlos Garcia");
@@ -454,6 +544,17 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 maria.setDireccionPorDefecto(dirMaria);
                 usuarioRepository.save(maria);
 
+                // Direccion por defecto para Joserra
+                DireccionEnvio dirJoserra = new DireccionEnvio();
+                dirJoserra.setNombre("José Ramón López Guisado");
+                dirJoserra.setDireccion("Calle Maestra 12");
+                dirJoserra.setCiudad("Marchena");
+                dirJoserra.setCodigoPostal("23001");
+                dirJoserra.setPais("España");
+                dirJoserra.setTelefono("600000000");
+                joserra.setDireccionPorDefecto(dirJoserra);
+                usuarioRepository.save(joserra);
+
                 // ── 6. PRODUCTOS
                 // ──────────────────────────────────────────────────────
 
@@ -470,7 +571,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Samsung S23 Ultra con S Pen. Color Phantom Black. 12GB RAM. Batería 89%. Siempre con funda. Sin golpes ni arañazos.",
                                 680.0, TipoOferta.VENTA, pedro, catMoviles, "Samsung", "Galaxy S23 Ultra",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 6.0, true, "Valencia",
-                                "https://i.imgur.com/1YmMukl.jpeg");
+                                "https://i.postimg.cc/wTW0RLdL/1Ym-Mukl.jpg");
                 samsungS23.setPatrocinado(true);
                 productoRepository.save(samsungS23);
 
@@ -554,7 +655,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Juego físico para Nintendo Switch. Completo con caja y manual. Solo terminado una vez. Perfecto estado.",
                                 45.0, TipoOferta.VENTA, andres, catVideojuegos, "Nintendo", "Zelda TotK",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 3.99, true, "Granada",
-                                "https://i.imgur.com/Y71os7x.jpeg");
+                                "https://i.postimg.cc/pX1JLvDG/Y71os7x.jpg");
 
                 // Ropa
                 Producto nikeSneakers = producto(
@@ -562,14 +663,14 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Nike Air Max 90 talla 42. Usadas 3 veces para probarlas. Sin manchas ni deformaciones. Caja original incluida.",
                                 90.0, TipoOferta.VENTA, lucia, catZapatillas, "Nike", "Air Max 90",
                                 CondicionProducto.COMO_NUEVO, true, 4.99, false, "Sevilla",
-                                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800");
+                                "https://i.postimg.cc/Tw9rMvdD/oom-Iz7Y.jpg");
 
                 Producto converseClassic = producto(
                                 "Converse Chuck Taylor All Star 41 Negras",
                                 "Converse clásicas negras talla 41. Usadas con cuidado durante 6 meses. Sin roturas. Limpiadas y listas.",
                                 35.0, TipoOferta.VENTA, maria, catZapatillas, "Converse", "Chuck Taylor All Star",
                                 CondicionProducto.BUEN_ESTADO, true, 3.99, true, "Barcelona",
-                                "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800");
+                                "https://i.postimg.cc/yY50zPHQ/Sw89Gb-T.jpg");
 
                 Producto canadaGoose = producto(
                                 "Canada Goose Expedition Parka L - Negro",
@@ -604,7 +705,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Zapatillas Air Jordan 4 Bred edición Reimagined. Nuevas sin usar, en caja original (Deadstock). Compradas en SNKRS app.",
                                 280.0, TipoOferta.VENTA, carlos, catZapatillas, "Nike Air Jordan", "Jordan 4 Retro",
                                 CondicionProducto.NUEVO, true, 8.0, true, "Madrid",
-                                "https://i.imgur.com/hxllutI.jpeg");
+                                "https://i.postimg.cc/8ccf2Fnc/hxllut-I.jpg");
 
                 // Hogar
                 // --- MÁXIMA MODA (HOMBRE) ---
@@ -613,9 +714,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Chaqueta de cuero de oveja 100% AllSaints. Modelo Milo. Corte entallado, cremalleras metálicas pesadas. Un clásico atemporal que solo mejora con el tiempo.",
                                 290.0, TipoOferta.VENTA, lucia, catRopaHombre, "AllSaints", "Milo Biker",
                                 CondicionProducto.COMO_NUEVO, true, 6.5, true, "Sevilla",
-                                "https://i.imgur.com/XlnOpIk.jpeg");
-                chaquetaCuero.addImagenGaleria("https://i.imgur.com/h7ASEO0.jpeg");
-                chaquetaCuero.addImagenGaleria("https://i.imgur.com/0z2ihmt.jpeg");
+                                "https://i.postimg.cc/52LQWWpN/Xln-Op-Ik.jpg");
+                chaquetaCuero.addImagenGaleria("https://i.postimg.cc/tJs7rKYg/h7ASEO0.jpg");
+                chaquetaCuero.addImagenGaleria("https://i.postimg.cc/bvqrXDsH/0z2ihmt.jpg");
                 productoRepository.save(chaquetaCuero);
 
                 Producto vaquerosLevis = producto(
@@ -632,8 +733,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Sudadera original Supreme Box Logo de la temporada FW23. Algodón de alto gramaje. Muy codiciada. Comprada en la tienda de Londres.",
                                 480.0, TipoOferta.VENTA, lucia, catRopaHombre, "Supreme", "Box Logo Hoodie",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 8.0, false, "Sevilla",
-                                "https://i.imgur.com/j4vuOE1.jpeg");
-                sudaderaSupreme.addImagenGaleria("[https://i.imgur.com/iBtf4wZ.jpeg");
+                                "https://i.postimg.cc/RhJV1wD3/j4vu-OE1.jpg");
+                sudaderaSupreme.addImagenGaleria("[https://i.postimg.cc/z3mDx3sn/i-Btf4w-Z.jpg");
                 productoRepository.save(sudaderaSupreme);
 
                 Producto relojOmega = producto(
@@ -678,8 +779,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Gafas Prada auténticas. Montura de acetato color carey. Lentes degradadas marrones con 100% protección UV. Funda original incluida.",
                                 160.0, TipoOferta.VENTA, lucia, catRopaMujer, "Prada", "Heritage Square",
                                 CondicionProducto.COMO_NUEVO, true, 2.99, true, "Sevilla",
-                                "https://i.imgur.com/RMjuDyW.jpeg");
-                gafasPrada.addImagenGaleria("https://i.imgur.com/WEJ3n8W.png");
+                                "https://i.postimg.cc/9FTyC9QD/RMju-Dy-W.jpg");
+                gafasPrada.addImagenGaleria("https://i.postimg.cc/HLWMwP0R/WEJ3n8W.png");
                 productoRepository.save(gafasPrada);
 
                 Producto zapatosLouboutin = producto(
@@ -706,7 +807,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Roomba j7+ con base de vaciado automático. Mapeo por IA, esquiva obstáculos. 18 meses de uso. Incluye cargador y bolsas.",
                                 320.0, TipoOferta.VENTA, sofia, catElectrodomest, "iRobot", "Roomba j7+",
                                 CondicionProducto.BUEN_ESTADO, false, 0.0, true, "Madrid",
-                                "https://i.imgur.com/yK64agC.jpeg");
+                                "https://i.postimg.cc/QxLW4Mky/y-K64ag-C.jpg");
 
                 Producto ikeaEscritorio = producto(
                                 "Escritorio IKEA Bekant 160x80 blanco",
@@ -743,7 +844,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Dune edición especial con ilustraciones. Tapa dura. Como nueva. Solo leída una vez.",
                                 22.0, TipoOferta.INTERCAMBIO, andres, catLibros, null, null,
                                 CondicionProducto.COMO_NUEVO, true, 3.0, false, "Granada",
-                                "https://images.unsplash.com/photo-1513001900722-370f803f498d?w=800");
+                                "https://i.postimg.cc/5NM65Rf2/Lysb1mz.jpg");
+
+                libroDune.addImagenGaleria("https://i.postimg.cc/JzYrF6C4/Mn2to-A9.jpg");
+                productoRepository.save(libroDune);
 
                 // Cámara
                 Producto sonyA7IV = producto(
@@ -751,7 +855,13 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Cámara Sony A7 IV full-frame 33MP. 120fps en 4K. Solo 8.000 disparos. Incluye objetivo 28-70mm OSS y dos baterías.",
                                 2200.0, TipoOferta.VENTA, carlos, catCamaras, "Sony", "Alpha a7 IV",
                                 CondicionProducto.COMO_NUEVO, true, 20.0, false, "Madrid",
-                                "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800");
+                                "https://i.postimg.cc/rFY7XvsJ/y7KXs-NB.jpg");
+
+                sonyA7IV.addImagenGaleria("https://i.postimg.cc/RCgDKj7n/1tqm9jq.jpg.jpeg");
+                sonyA7IV.addImagenGaleria("https://i.postimg.cc/3xm1S6vN/KFS8PS8.jpg");
+                sonyA7IV.addImagenGaleria("https://i.postimg.cc/NfrkFVbz/0TFFFr5.jpg");
+                sonyA7IV.addImagenGaleria("https://i.postimg.cc/fLrYTj9G/we-Vn-GXG.jpg");
+                productoRepository.save(sonyA7IV);
 
                 // Juguetes
                 Producto legoBatman = producto(
@@ -759,7 +869,19 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Set LEGO Technic Batman Batmóvil 42127. 422 piezas. Caja sellada sin abrir. Comprado como regalo pero tenemos uno igual.",
                                 55.0, TipoOferta.VENTA, lucia, catJuguetes, "LEGO", "Batmóvil Technic 42127",
                                 CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
-                                "https://i.imgur.com/zMDYi43.jpeg[/img]");
+                                "https://i.postimg.cc/pyN8KWqX/z-MDYi43.jpg");
+
+                // Otros
+                Producto piano = producto(
+                                "Piano Vertical Yamaha U1 - Negro Pulido",
+                                "Piano vertical Yamaha U1 en perfecto estado. Afinación reciente. Sonido brillante y equilibrado. Ideal para estudiantes avanzados y profesionales.",
+                                4500.0, TipoOferta.VENTA, sofia, catOtros, "Yamaha", "U1",
+                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, true, "Madrid",
+                                "https://i.postimg.cc/VLMZpdyz/Pe-Wu-JFS.jpg");
+
+                piano.addImagenGaleria("https://i.postimg.cc/3r0t0dxB/REt-XOZE.jpg");
+                piano.addImagenGaleria("https://i.postimg.cc/9QbbH9L5/T84l0YI.jpg");
+                productoRepository.save(piano);
 
                 // --- CONTRATO PATROCINADO PARA TEST ---
                 Contrato conPatrocinio = new Contrato();
@@ -788,7 +910,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 7200.0, TipoVehiculo.MOTO, miguel, catVehiculos, "Honda", "CBR600RR",
                                 2019, 12000, "GASOLINA", "MANUAL", 120, 599, "Rojo/Negro",
                                 null, 2, "9482MNK", true, false, "Bilbao",
-                                "https://i.imgur.com/Y3WbLKk.jpeg");
+                                "https://i.postimg.cc/rsh4YG8b/Y3Wb-LKk.jpg");
 
                 Vehiculo teslaModel3 = vehiculo(
                                 "Tesla Model 3 Long Range AWD 2022",
@@ -804,7 +926,26 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 18500.0, TipoVehiculo.FURGONETA, miguel, catVehiculos, "Ford", "Transit Custom 310 L1",
                                 2020, 85000, "DIESEL", "MANUAL", 130, 1996, "Blanco",
                                 null, 2, "6621PQR", true, false, "Bilbao",
-                                "https://images.unsplash.com/photo-1595787572888-b6553d8073b7?w=800");
+                                "https://i.postimg.cc/9Xxq2phs/Ko-Mn-TRY.jpg");
+
+                Vehiculo vwTouareg = vehiculo(
+                                "Volkswagen Touareg V10 313cv de José Ramón",
+                                "Esta to muy bien cuidao. Algunas veces la dirección se va pero no pasa nada hombre. Está aquí en marchena venirse porel",
+                                9500.0, TipoVehiculo.COCHE, joserra, catVehiculos, "Volkswagen", "Touareg",
+                                2004, 200000, "DIESEL", "AUTOMATICO", 130, 1996, "Negro",
+                                null, 2, "6621PQR", true, false, "Marchena",
+                                "https://i.postimg.cc/nrMrryJ2/2o-Aaxdk.png");
+
+                vwTouareg.addImagenGaleria("https://i.postimg.cc/jdp2q3kp/muy61OC.png");
+                vehiculoRepository.save(vwTouareg);
+
+                Vehiculo audiA3 = vehiculo(
+                                "Audi A3 Sportback 2.0 TDI 190cv",
+                                "Audi A3 en perfecto estado. Motor 2.0 TDI con 190cv. Muy cuidado, siempre en garaje. Equipamiento completo.",
+                                16500.0, TipoVehiculo.COCHE, rafalillo, catVehiculos, "Audi", "A3 Sportback",
+                                2014, 180000, "DIESEL", "MANUAL", 190, 1968, "Gris",
+                                5, 5, "1234JKL", true, true, "El Saucejo",
+                                "https://i.postimg.cc/wv4xCwmJ/krh11ad.png");
 
                 Vehiculo vespa = vehiculo(
                                 "Vespa GTS 300 Super 2023 - Gris Titanio",
@@ -817,7 +958,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 // ── 8. OFERTAS (Chollometro)
                 // ──────────────────────────────────────────
                 Oferta ofertaAirpods = oferta(
-                                "AirPods Pro 2Âª Gen USB-C - Mínimo histórico en Amazon",
+                                "AirPods Pro 2ª Gen USB-C - Mínimo histórico en Amazon",
                                 "Los mejores auriculares TWS de Apple con cancelación activa de ruido H2, modo transparencia adaptativo y audio espacial. Precio mínimo histórico registrado.",
                                 179.0, 279.0, "Amazon", "https://amazon.es/airpods-pro-2",
                                 catAudio, techStore, BadgeOferta.CHOLLAZO, -72,
@@ -845,7 +986,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Xiaomi Redmi Note 13 Pro+ con Dimensity 7200 Ultra, cámara de 200MP, pantalla AMOLED 120Hz y carga de 120W. Una barbaridad por este precio.",
                                 249.0, 399.0, "MediaMarkt", "https://mediamarkt.es/xiaomi",
                                 catMoviles, maria, BadgeOferta.NUEVA, -2,
-                                "https://i.imgur.com/2Es1sv8.jpeg",
+                                "https://i.postimg.cc/KjdGz4QN/2Es1sv8.jpg",
                                 67, 4, 2100, 134);
 
                 Oferta ofertaPSPlus = oferta(
@@ -853,7 +994,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Suscripción PlayStation Plus Essential 12 meses. Acceso a juegos mensuales gratuitos y multijugador online. Precio mínimo del año.",
                                 39.99, 71.99, "PlayStation Store", "https://store.playstation.com",
                                 catConsolaJuego, pedro, BadgeOferta.DESTACADA, -24,
-                                "https://i.imgur.com/mSkgnWE.png",
+                                "https://i.postimg.cc/Dw3f3J8C/m-Skgn-WE.png",
                                 78, 3, 3200, 189);
 
                 Oferta ofertaSamsungQLED = oferta(
@@ -861,7 +1002,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Smart TV Samsung QLED 55 pulgadas Q80C. 120Hz, HDR10+, Quantum Processor. El mejor precio del mercado para este panel.",
                                 499.0, 799.0, "El Corte Inglés", "https://elcorteingles.es/samsung-q80c",
                                 catTV, sofia, BadgeOferta.PORCENTAJE, -18,
-                                "https://i.imgur.com/lqUGeAw.jpeg",
+                                "https://i.postimg.cc/CxChhh8H/lq-UGe-Aw.jpg",
                                 43, 5, 1890, 97);
 
                 Oferta ofertaRoombaIRobot = oferta(
@@ -869,7 +1010,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Roomba j9+ con base de vaciado automático Clean Base. Mapeo 3D, evita obstáculos por IA. Precio mínimo histórico con -46% de descuento.",
                                 299.0, 549.0, "Amazon", "https://amazon.es/roomba-j9",
                                 catElectrodomest, modaFashion, BadgeOferta.CHOLLAZO, -12,
-                                "https://i.imgur.com/hiTLEFK.jpeg",
+                                "https://i.postimg.cc/fLyDfYry/hi-TLEFK.jpg",
                                 112, 6, 3400, 201);
 
                 Oferta ofertaRTX4060 = oferta(
@@ -889,13 +1030,41 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
                                 34, 2, 1560, 88);
 
-                Oferta ofertaLego = oferta(
+                Oferta ofertaLegoIcons = oferta(
                                 "LEGO Icons 10281 Árbol Bonsái por 32,99€",
                                 "Set LEGO Icons Árbol Bonsái 878 piezas. Precio más bajo del año. Ideal para adultos. Envío gratis con Prime.",
                                 32.99, 54.99, "Amazon", "https://amazon.es/lego-bonsai",
                                 catJuguetes, maria, BadgeOferta.NUEVA, -1,
-                                "https://i.imgur.com/GHxtfNv.jpeg",
+                                "https://i.postimg.cc/90q2vCVw/GHxtf-Nv.jpg",
                                 23, 1, 890, 45);
+
+                Oferta ofertaAmazonGift = oferta(
+                                "Tarjeta Regalo Amazon 100€ por solo 90€",
+                                "Consigue una tarjeta regalo de Amazon de 100€ pagando solo 90€. Promoción limitada para nuevos usuarios de la app.",
+                                90.0, 100.0, "Amazon", "https://amazon.es/gift-cards",
+                                catOtros, rafalillo, BadgeOferta.CHOLLAZO, -12,
+                                "https://i.postimg.cc/CMWndKZy/Ljt-NPk-W.png",
+                                450, 45, 12000, 890);
+
+                Oferta ofertaHBO = oferta(
+                                "HBO Max 12 meses - 50% de Descuento",
+                                "Disfruta de HBO Max con todo el contenido de Warner Bros, HBO, DC y más durante un año entero por la mitad de su precio oficial.",
+                                49.99, 99.99, "HBO Max", "https://hbomax.com",
+                                catOtros, rafalillo, BadgeOferta.PORCENTAJE, -5,
+                                "https://i.postimg.cc/6ph8HLYh/dze-XIl-Z.jpg",
+                                310, 28, 8900, 412);
+
+                Oferta ofertaCamisetaCeltic = oferta(
+                                "adidas Camiseta Celtic 2025/26 Primera equipación júnior",
+                                "La adidas Camiseta Celtic 2025/26 Primera equipación júnior es ideal para los jóvenes aficionados del equipo. "
+                                                +
+                                                "Aros verdes y blancos clásicos, corte slim fit, detalles de tartán, tejido transpirable AEROREADY.",
+                                25.0, 75.0, "JD Sports", "https://jdsports.es/celtic-25-26",
+                                catModa, rafalillo, BadgeOferta.CHOLLAZO, -24,
+                                "https://i.postimg.cc/tgSYbR0T/R1Rkz9k.jpg",
+                                45, 3, 1200, 56);
+                ofertaCamisetaCeltic.addImagenGaleria("https://i.postimg.cc/9Xqr3jLp/Vt-Piz-JJ.jpg");
+                ofertaCamisetaCeltic.addImagenGaleria("https://i.postimg.cc/dt231jPw/kq-GGzg-U.jpg");
 
                 // --- VIAJES ---
                 Oferta viajeMaldivas = oferta(
@@ -909,6 +1078,57 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 viajeMaldivas.setFlashFin(LocalDateTime.now().plusHours(12));
                 viajeMaldivas.setDestacada(true);
                 ofertaRepository.save(viajeMaldivas);
+
+                // --- NUEVOS CHOLLOS FLASH ---
+                Oferta ofertaDyson = oferta(
+                                "Dyson V15 Detect - Aspiradora sin cable con láser por 499€",
+                                "La aspiradora más potente de Dyson con tecnología láser que revela el polvo invisible. Incluye todos los accesorios premium.",
+                                499.0, 749.0, "Dyson.es", "https://dyson.es/v15",
+                                catElectrodomest, techStore, BadgeOferta.CHOLLAZO, -1,
+                                "https://i.postimg.cc/CMDLPsKZ/IMG20210929152514-ki4C-1248x698-abc.jpg",
+                                320, 12, 8500, 430);
+                ofertaDyson.setEsFlash(true);
+                ofertaDyson.setFlashFin(LocalDateTime.now().plusHours(4));
+                ofertaRepository.save(ofertaDyson);
+
+                Oferta ofertaIPad = oferta(
+                                "iPad Pro M4 11\" 256GB por solo 899€ - Oferta Flash",
+                                "Nuevo iPad Pro con chip M4, pantalla Ultra Retina XDR Tandem OLED. El dispositivo más potente de Apple ahora con descuento flash.",
+                                899.0, 1199.0, "Amazon", "https://amazon.es/ipad-pro-m4",
+                                catPCs, techStore, BadgeOferta.DESTACADA, -1,
+                                "https://i.postimg.cc/h4ZSCZLw/1540-1.jpg",
+                                450, 5, 12000, 670);
+                ofertaIPad.setEsFlash(true);
+                ofertaIPad.setFlashFin(LocalDateTime.now().plusHours(8));
+                ofertaRepository.save(ofertaIPad);
+
+                Oferta ofertaSteamDeck = oferta(
+                                "Steam Deck OLED 512GB por 399€ - Reacondicionado Certificado",
+                                "La consola portátil de Valve con pantalla OLED y 512GB de almacenamiento. Versión reacondicionada certificada con garantía oficial.",
+                                399.0, 569.0, "Steam Store", "https://steampowered.com/steamdeck",
+                                catConsolaJuego, pedro, BadgeOferta.CHOLLAZO, -1,
+                                "https://i.postimg.cc/fyNg5NH9/title-0000.jpg",
+                                890, 15, 15000, 1200);
+                ofertaSteamDeck.setEsFlash(true);
+                ofertaSteamDeck.setFlashFin(LocalDateTime.now().plusHours(6));
+                ofertaRepository.save(ofertaSteamDeck);
+
+                Oferta ofertaNikeAF1 = oferta(
+                                "Nike Air Force 1 Low - Tres colores disponibles",
+                                "Nike Air Force 1 Low tres colores a este precio (Solo desde App envio gratis para miembros FLX). \n\n"
+                                                +
+                                                "Las nuevas zapatillas casual, Nike Air Force 1 Low le dan un toque más vintage a un look ya de por sí clásico. Su parte superior está confeccionada en piel y una malla para ofrecerte una mayor comodidad y un atractivo diseño.\n\n"
+                                                +
+                                                "CUPÓN: **FL10**",
+                                63.0, 119.99, "Foot Locker", "https://footlocker.es/nike-af1",
+                                catZapatillas, rafalillo, BadgeOferta.CHOLLAZO, -2,
+                                "https://i.postimg.cc/8kvqQyMW/LCwxbc9.jpg",
+                                189, 12, 4500, 234);
+                ofertaNikeAF1.setCodigoDescuento("FL10");
+                ofertaNikeAF1.setDestacada(true);
+                ofertaNikeAF1.addImagenGaleria("https://i.postimg.cc/MTVt4F4C/vo-Jr7Lr.jpg");
+                ofertaNikeAF1.addImagenGaleria("https://i.postimg.cc/d12mnTZ7/5b5L9L4.jpg");
+                ofertaRepository.save(ofertaNikeAF1);
 
                 oferta(
                                 "Vuelo + 10 días en Japón (Tokio y Kioto) - ¡Chollazo!",
@@ -1784,7 +2004,11 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 vehiculoRepository.save(vespa);
 
                 // Ofertas y Chats
-                ofertaRepository.save(ofertaLego);
+                ofertaRepository.save(ofertaLegoIcons);
+                ofertaRepository.save(ofertaAmazonGift);
+                ofertaRepository.save(ofertaHBO);
+                ofertaRepository.save(ofertaCamisetaCeltic);
+                ofertaRepository.save(ofertaNikeAF1);
 
                 chatMensajeRepository.save(chat1);
                 chatMensajeRepository.save(chat2);
@@ -1861,8 +2085,37 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 p.setPrecioEnvio(precioEnvio);
                 p.setPrecioNegociable(negociable);
                 p.setUbicacion(ubicacion);
+                assignCoords(p, ubicacion);
                 p.setEstadoProducto(EstadoProducto.DISPONIBLE);
                 return productoRepository.save(p);
+        }
+
+        private void assignCoords(Object entity, String ubicacion) {
+                if (ubicacion == null) return;
+                Double lat = null;
+                Double lng = null;
+
+                String u = ubicacion.toLowerCase();
+                if (u.contains("madrid")) { lat = 40.4168; lng = -3.7038; }
+                else if (u.contains("barcelona")) { lat = 41.3851; lng = 2.1734; }
+                else if (u.contains("valencia")) { lat = 39.4699; lng = -0.3763; }
+                else if (u.contains("sevilla")) { lat = 37.3891; lng = -5.9845; }
+                else if (u.contains("marchena")) { lat = 37.3291; lng = -5.4161; }
+                else if (u.contains("arahal")) { lat = 37.2628; lng = -5.5456; }
+                else if (u.contains("granada")) { lat = 37.1773; lng = -3.5985; }
+                else if (u.contains("bilbao")) { lat = 43.2630; lng = -2.9350; }
+                else if (u.contains("zaragoza")) { lat = 41.6488; lng = -0.8891; }
+                else if (u.contains("malaga")) { lat = 36.7213; lng = -4.4214; }
+                else if (u.contains("murcia")) { lat = 37.9922; lng = -1.1307; }
+                else if (u.contains("palma")) { lat = 39.5696; lng = 2.6502; }
+                else if (u.contains("saucejo")) { lat = 37.0697; lng = -5.0963; }
+
+                if (lat != null) {
+                        try {
+                                entity.getClass().getMethod("setLatitude", Double.class).invoke(entity, lat);
+                                entity.getClass().getMethod("setLongitude", Double.class).invoke(entity, lng);
+                        } catch (Exception e) {}
+                }
         }
 
         /** Crea y persiste un Vehículo. */
@@ -1886,7 +2139,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 v.setModelo(modelo);
                 v.setAnio(anio);
                 v.setKilometros(km);
-                v.setCombustible(TipoCombustible.GASOLINA);
+                v.setCombustible(TipoCombustible.valueOf(combustible.toUpperCase()));
                 v.setCambio(cambio);
                 v.setPotencia(potencia);
                 v.setCilindrada(cilindrada);
@@ -1897,6 +2150,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 v.setItv(itv);
                 v.setGarantia(garantia);
                 v.setUbicacion(ubicacion);
+                assignCoords(v, ubicacion);
                 v.setImagenPrincipal(imagen);
                 v.setCondicion(CondicionProducto.MUY_BUEN_ESTADO);
                 return vehiculoRepository.save(v);
@@ -1929,6 +2183,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 o.setFechaPublicacion(LocalDateTime.now().minusHours(Math.abs(sparks % 72) + 1));
                 if (fechaExpiracion != null)
                         o.setFechaExpiracion(fechaExpiracion);
+                assignCoords(o, tienda); // Intentar por nombre de tienda o ciudad
+                if (o.getCiudadOferta() != null) assignCoords(o, o.getCiudadOferta());
                 return ofertaRepository.save(o);
         }
 
@@ -1959,6 +2215,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 o.setBadge(badge);
                 long horas = Math.abs(horasAtrasPublicacion);
                 o.setFechaPublicacion(LocalDateTime.now().minusHours(horas > 0 ? horas : 1));
+                if (o.getCiudadOferta() != null) assignCoords(o, o.getCiudadOferta());
                 return ofertaRepository.save(o);
         }
 
