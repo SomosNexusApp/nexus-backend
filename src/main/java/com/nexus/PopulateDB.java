@@ -442,6 +442,50 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 }
                         }
 
+                        // --- INYECCIÓN DE INMUEBLES (Bajo demanda) ---
+                        if (productoRepository.findByTitulo("Piso luminoso en Centro Sevilla").isEmpty()) {
+                                Actor lucia = actorRepository.findByUsername("lucia_moda").orElse(null);
+                                Actor carlos = actorRepository.findByUsername("carlos88").orElse(null);
+                                Actor pedro = actorRepository.findByUsername("pedro_tech").orElse(null);
+                                Categoria catInmuebles = categoriaRepository.findBySlug("inmuebles").orElse(null);
+
+                                if (catInmuebles != null) {
+                                        if (lucia != null) {
+                                                Producto pisoCentro = producto(
+                                                                "Piso luminoso en Centro Sevilla",
+                                                                "Espectacular piso de 3 habitaciones en el corazón de Sevilla. Reformado recientemente, aire acondicionado centralizado y cocina equipada. Ideal para familias o inversión.",
+                                                                245000.0, TipoOferta.VENTA, lucia, catInmuebles, null, null,
+                                                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Sevilla",
+                                                                "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800");
+                                                pisoCentro.setAdmiteEnvio(false);
+                                                productoRepository.save(pisoCentro);
+                                        }
+
+                                        if (carlos != null) {
+                                                Producto chaletLujo = producto(
+                                                                "Chalet Independiente con Piscina",
+                                                                "Chalet de lujo en urbanización privada. 450m2 construidos, 5 habitaciones, 4 baños, piscina privada y jardín de 1000m2. Garaje para 3 coches.",
+                                                                680000.0, TipoOferta.VENTA, carlos, catInmuebles, null, null,
+                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Madrid",
+                                                                "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800");
+                                                chaletLujo.setAdmiteEnvio(false);
+                                                productoRepository.save(chaletLujo);
+                                        }
+
+                                        if (pedro != null) {
+                                                Producto oficinaModerna = producto(
+                                                                "Oficina Moderna en Distrito Financiero",
+                                                                "Espacio de oficina diáfano de 120m2. Muy luminosa, excelentes vistas, incluye 2 plazas de garaje. Edificio con seguridad 24h.",
+                                                                320000.0, TipoOferta.VENTA, pedro, catInmuebles, null, null,
+                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Valencia",
+                                                                "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800");
+                                                oficinaModerna.setAdmiteEnvio(false);
+                                                productoRepository.save(oficinaModerna);
+                                        }
+                                        System.out.println("=== PopulateDB: Inmuebles inyectados bajo demanda ===");
+                                }
+                        }
+
                         done = true;
                         return;
                 }
@@ -926,34 +970,6 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 55.0, TipoOferta.VENTA, lucia, catJuguetes, "LEGO", "Batmóvil Technic 42127",
                                 CondicionProducto.NUEVO, true, 4.99, false, "Sevilla",
                                 "https://i.postimg.cc/pyN8KWqX/z-MDYi43.jpg");
-
-                // Inmuebles
-                Producto pisoCentro = producto(
-                                "Piso luminoso en Centro Sevilla",
-                                "Espectacular piso de 3 habitaciones en el corazón de Sevilla. Reformado recientemente, aire acondicionado centralizado y cocina equipada. Ideal para familias o inversión.",
-                                245000.0, TipoOferta.VENTA, lucia, catInmuebles, null, null,
-                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Sevilla",
-                                "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800");
-                pisoCentro.setAdmiteEnvio(false);
-                productoRepository.save(pisoCentro);
-
-                Producto chaletLujo = producto(
-                                "Chalet Independiente con Piscina",
-                                "Chalet de lujo en urbanización privada. 450m2 construidos, 5 habitaciones, 4 baños, piscina privada y jardín de 1000m2. Garaje para 3 coches.",
-                                680000.0, TipoOferta.VENTA, carlos, catInmuebles, null, null,
-                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Madrid",
-                                "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800");
-                chaletLujo.setAdmiteEnvio(false);
-                productoRepository.save(chaletLujo);
-
-                Producto oficinaModerna = producto(
-                                "Oficina Moderna en Distrito Financiero",
-                                "Espacio de oficina diáfano de 120m2. Muy luminosa, excelentes vistas, incluye 2 plazas de garaje. Edificio con seguridad 24h.",
-                                320000.0, TipoOferta.VENTA, pedro, catInmuebles, null, null,
-                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Valencia",
-                                "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800");
-                oficinaModerna.setAdmiteEnvio(false);
-                productoRepository.save(oficinaModerna);
 
                 // Otros
                 Producto piano = producto(
