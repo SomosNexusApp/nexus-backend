@@ -1,4 +1,5 @@
 package com.nexus.config;
+import org.springframework.context.annotation.Lazy;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ public class DatabaseMigrationInitializer {
     private static final Logger log = LoggerFactory.getLogger(DatabaseMigrationInitializer.class);
 
     @Autowired
+    @Lazy
     private com.nexus.repository.AdminRepository adminRepository;
 
     @Autowired
