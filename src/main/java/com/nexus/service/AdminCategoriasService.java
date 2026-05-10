@@ -1,5 +1,7 @@
 package com.nexus.service;
 
+import com.nexus.dto.CategoriaRequest;
+import com.nexus.dto.ReordenarItem;
 import com.nexus.entity.Categoria;
 import com.nexus.repository.CategoriaRepository;
 import com.nexus.repository.ProductoRepository;
@@ -121,10 +123,4 @@ public class AdminCategoriasService {
                 .replaceAll("^-|-$", "");
     }
 
-    // ── DTOs record ──────────────────────────────────────────────────────────
-    public record CategoriaRequest(
-            String nombre, String slug, String icono, String color,
-            Boolean activa, Integer padreId) {}
-
-    public record ReordenarItem(Integer id, Integer nuevoOrden, Integer padreId) {}
 }

@@ -2,8 +2,8 @@ package com.nexus.controller;
 
 import com.nexus.entity.Categoria;
 import com.nexus.service.AdminCategoriasService;
-import com.nexus.service.AdminCategoriasService.CategoriaRequest;
-import com.nexus.service.AdminCategoriasService.ReordenarItem;
+import com.nexus.dto.CategoriaRequest;
+import com.nexus.dto.ReordenarItem;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

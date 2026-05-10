@@ -61,7 +61,8 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
       WHERE
         (CAST(:categoria AS TEXT) IS NULL
           OR c.nombre = ANY(string_to_array(CAST(:categoria AS TEXT), ','))
-          OR c.slug   = ANY(string_to_array(CAST(:categoria AS TEXT), ',')))
+          OR c.slug   = ANY(string_to_array(CAST(:categoria AS TEXT), ','))
+          OR ('flash' = ANY(string_to_array(CAST(:categoria AS TEXT), ',')) AND o.es_flash = TRUE))
         AND
         (CAST(:tienda AS TEXT) IS NULL
           OR LOWER(o.tienda) LIKE LOWER('%' || CAST(:tienda AS TEXT) || '%'))

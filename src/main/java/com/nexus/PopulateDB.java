@@ -228,6 +228,75 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 System.out.println("=== PopulateDB: Usuario Joserra inyectado (Emergencia) ===");
                         }
 
+                        // --- INYECCIÓN BAJO DEMANDA DE NUEVOS USUARIOS Y COCHES ---
+                        if (usuarioRepository.findByUsername("ana_escalera").isEmpty()) {
+                                Usuario ana = usuario("ana_escalera", "ana.escalera@nexus.test", "Casariche, Sevilla",
+                                                "Vendedora ocasional. Cuido mucho mis cosas.", 4.9, 5, true);
+                                ana.setNombre("Ana");
+                                ana.setApellidos("Escalera");
+                                usuarioRepository.save(ana);
+
+                                Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
+                                if (catCoches != null) {
+                                        Vehiculo vectra = vehiculo(
+                                                        "Opel Vectra 2.2 DTI 125cv 2003",
+                                                        "Opel Vectra en muy buen estado. Motor 2.2 DTI de 125cv. Consumo muy bajo. Ideal para el día a día. ITV al día y neumáticos nuevos.",
+                                                        1850.0, TipoVehiculo.COCHE, ana, catCoches, "Opel", "Vectra",
+                                                        2003, 185000, "DIESEL", "MANUAL", 125, 2200, "Gris",
+                                                        4, 5, "1234BCD", true, false, "Casariche, Sevilla",
+                                                        "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800");
+                                        vehiculoRepository.save(vectra);
+                                }
+                                System.out.println("=== PopulateDB: Ana Escalera y Opel Vectra inyectados ===");
+                        }
+
+                        if (usuarioRepository.findByUsername("manuel_lora").isEmpty()) {
+                                Usuario manuel = usuario("manuel_lora", "manuel.lora@nexus.test",
+                                                "Fuentes de Andalucía, Sevilla",
+                                                "Apasionado del motor y la tecnología.", 4.7, 8, true);
+                                manuel.setNombre("Manuel");
+                                manuel.setApellidos("Lora");
+                                usuarioRepository.save(manuel);
+
+                                Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
+                                if (catCoches != null) {
+                                        Vehiculo x2 = vehiculo(
+                                                        "BMW X2 sDrive18d 150cv 2018",
+                                                        "BMW X2 en perfecto estado. Acabado M Sport. Muy cuidado, siempre en garaje. Navegador, sensores de parking, asientos deportivos. Neumáticos al 80%.",
+                                                        22500.0, TipoVehiculo.COCHE, manuel, catCoches, "BMW", "X2",
+                                                        2018, 92000, "DIESEL", "AUTOMATICO", 150, 1995, "Azul",
+                                                        5, 5, "5678EFG", true, true, "Fuentes de Andalucía, Sevilla",
+                                                        "https://i.postimg.cc/fLYcWvFR/i6308345310.webp");
+                                        x2.addImagenGaleria("https://i.postimg.cc/1RcGLJwK/i6446231719.webp");
+                                        vehiculoRepository.save(x2);
+                                }
+                                System.out.println("=== PopulateDB: Manuel Lora y BMW Serie 2 inyectados ===");
+                        }
+
+                        if (usuarioRepository.findByUsername("jaime_caraver").isEmpty()) {
+                                Usuario jaime = usuario("jaime_caraver", "jaime.caraver@nexus.test",
+                                                "El Rubio, Sevilla",
+                                                "Busco y vendo vehículos fiables.", 4.8, 12, true);
+                                jaime.setNombre("Jaime");
+                                jaime.setApellidos("Caraver");
+                                usuarioRepository.save(jaime);
+
+                                Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
+                                if (catCoches != null) {
+                                        Vehiculo avensis = vehiculo(
+                                                        "Toyota Avensis 2.0 D-4D 126cv 2010",
+                                                        "Toyota Avensis familiar. Motor 2.0 D-4D muy fiable. Amplio maletero y muy cómodo para viajes largos. Revisiones selladas.",
+                                                        5500.0, TipoVehiculo.COCHE, jaime, catCoches, "Toyota",
+                                                        "Avensis",
+                                                        2010, 210000, "DIESEL", "MANUAL", 126, 1998, "Blanco",
+                                                        5, 5, "9012HIJ", true, false, "El Rubio, Sevilla",
+                                                        "https://i.postimg.cc/tCsghgqy/i6232520248.jpg");
+                                        avensis.addImagenGaleria("https://i.postimg.cc/Lsp6KBzV/i6232520250.jpg");
+                                        vehiculoRepository.save(avensis);
+                                }
+                                System.out.println("=== PopulateDB: Jaime Caraver y Toyota Avensis inyectados ===");
+                        }
+
                         System.out.println(
                                         "=== PopulateDB: datos ya presentes, comprobando actualizaciones de esquema ===");
                         List<Compra> todas = compraRepository.findAll();
@@ -409,7 +478,15 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         if (ofertaRepository.findByTitulo("1-2 Meses GRATIS de Super Duolingo / 2 Meses desde la APP")
                                         .isEmpty()) {
                                 Actor tech = actorRepository.findByUsername("techstore_oficial").orElse(null);
-                                Categoria catVJ = categoriaRepository.findBySlug("videojuegos").orElse(null); // O 'otros' si fuera más apropiado, pero usaremos videojuegos/software
+                                Categoria catVJ = categoriaRepository.findBySlug("videojuegos").orElse(null); // O
+                                                                                                              // 'otros'
+                                                                                                              // si
+                                                                                                              // fuera
+                                                                                                              // más
+                                                                                                              // apropiado,
+                                                                                                              // pero
+                                                                                                              // usaremos
+                                                                                                              // videojuegos/software
                                 if (tech != null && catVJ != null) {
                                         Oferta o = oferta(
                                                         "1-2 Meses GRATIS de Super Duolingo / 2 Meses desde la APP",
@@ -454,8 +531,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                 Producto pisoCentro = producto(
                                                                 "Piso luminoso en Centro Sevilla",
                                                                 "Espectacular piso de 3 habitaciones en el corazón de Sevilla. Reformado recientemente, aire acondicionado centralizado y cocina equipada. Ideal para familias o inversión.",
-                                                                245000.0, TipoOferta.VENTA, lucia, catInmuebles, null, null,
-                                                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false, "Sevilla",
+                                                                245000.0, TipoOferta.VENTA, lucia, catInmuebles, null,
+                                                                null,
+                                                                CondicionProducto.MUY_BUEN_ESTADO, false, 0.0, false,
+                                                                "Sevilla",
                                                                 "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800");
                                                 pisoCentro.setAdmiteEnvio(false);
                                                 productoRepository.save(pisoCentro);
@@ -465,8 +544,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                 Producto chaletLujo = producto(
                                                                 "Chalet Independiente con Piscina",
                                                                 "Chalet de lujo en urbanización privada. 450m2 construidos, 5 habitaciones, 4 baños, piscina privada y jardín de 1000m2. Garaje para 3 coches.",
-                                                                680000.0, TipoOferta.VENTA, carlos, catInmuebles, null, null,
-                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Madrid",
+                                                                680000.0, TipoOferta.VENTA, carlos, catInmuebles, null,
+                                                                null,
+                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false,
+                                                                "Madrid",
                                                                 "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800");
                                                 chaletLujo.setAdmiteEnvio(false);
                                                 productoRepository.save(chaletLujo);
@@ -476,8 +557,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                 Producto oficinaModerna = producto(
                                                                 "Oficina Moderna en Distrito Financiero",
                                                                 "Espacio de oficina diáfano de 120m2. Muy luminosa, excelentes vistas, incluye 2 plazas de garaje. Edificio con seguridad 24h.",
-                                                                320000.0, TipoOferta.VENTA, pedro, catInmuebles, null, null,
-                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false, "Valencia",
+                                                                320000.0, TipoOferta.VENTA, pedro, catInmuebles, null,
+                                                                null,
+                                                                CondicionProducto.COMO_NUEVO, false, 0.0, false,
+                                                                "Valencia",
                                                                 "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800");
                                                 oficinaModerna.setAdmiteEnvio(false);
                                                 productoRepository.save(oficinaModerna);
@@ -621,6 +704,24 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 rafalillo.setApellidos("López");
                 rafalillo.setAvatar("https://i.postimg.cc/jq48KBgX/s-Hg5upk.jpg");
                 usuarioRepository.save(rafalillo);
+
+                Usuario ana = usuario("ana_escalera", "ana.escalera@nexus.test", "Casariche, Sevilla",
+                                "Vendedora ocasional. Cuido mucho mis cosas.", 4.9, 5, true);
+                ana.setNombre("Ana");
+                ana.setApellidos("Escalera");
+                usuarioRepository.save(ana);
+
+                Usuario manuel = usuario("manuel_lora", "manuel.lora@nexus.test", "Fuentes de Andalucía, Sevilla",
+                                "Apasionado del motor y la tecnología.", 4.7, 8, true);
+                manuel.setNombre("Manuel");
+                manuel.setApellidos("Lora");
+                usuarioRepository.save(manuel);
+
+                Usuario jaime = usuario("jaime_caraver", "jaime.caraver@nexus.test", "El Rubio, Sevilla",
+                                "Busco y vendo vehículos fiables.", 4.8, 12, true);
+                jaime.setNombre("Jaime");
+                jaime.setApellidos("Caraver");
+                usuarioRepository.save(jaime);
 
                 // Direccion por defecto para Carlos
                 DireccionEnvio dirCarlos = new DireccionEnvio();
@@ -791,7 +892,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Abrigo de lana 100% italiano Massimo Dutti colección Studio. Color camel clásico. Perfecto para la oficina o eventos formales. Usado un par de veces.",
                                 145.0, TipoOferta.VENTA, sofia, catRopaMujer, "Massimo Dutti", "Lana Studio",
                                 CondicionProducto.COMO_NUEVO, true, 5.99, true, "Madrid",
-                                "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=800");
+                                "https://i.postimg.cc/QMcMzYwF/i6272225356.webp");
 
                 producto(
                                 "Sudadera Balenciaga Logo - Talla M (Oversize)",
@@ -870,8 +971,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Espectacular vestido de noche Pronovias. Color rojo rubí, corte sirena con pedrería fina en el escote. Talla 38. Usado una sola vez en evento.",
                                 350.0, TipoOferta.VENTA, lucia, catRopaMujer, "Pronovias", "Gala Red",
                                 CondicionProducto.MUY_BUEN_ESTADO, true, 5.0, false, "Sevilla",
-                                "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800");
-                vestidoPronovias.addImagenGaleria("https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
+                                "https://i.postimg.cc/m2MC4jvC/i6487802924.jpg");
+                vestidoPronovias.addImagenGaleria("https://i.postimg.cc/cJ1nQSrw/i6487803077.jpg");
                 productoRepository.save(vestidoPronovias);
 
                 Producto gafasPrada = producto(
@@ -1054,6 +1155,36 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 2023, 2800, "GASOLINA", "AUTOMATICO", 25, 278, "Gris Titanio",
                                 null, 2, "7763STU", true, true, "Sevilla",
                                 "https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=800");
+
+                Vehiculo vectra = vehiculo(
+                                "Opel Vectra 2.2 DTI 125cv 2003",
+                                "Opel Vectra en muy buen estado. Motor 2.2 DTI de 125cv. Consumo muy bajo. Ideal para el día a día. ITV al día y neumáticos nuevos.",
+                                1850.0, TipoVehiculo.COCHE, ana, catCoches, "Opel", "Vectra",
+                                2003, 185000, "DIESEL", "MANUAL", 125, 2200, "Gris",
+                                4, 5, "1234BCD", true, false, "Casariche, Sevilla",
+                                "https://i.postimg.cc/RZmjvPD9/i6432461667s.webp");
+                vectra.addImagenGaleria("https://i.postimg.cc/Y0gsHgNm/i6432461685.webp");
+                vectra.addImagenGaleria("https://i.postimg.cc/nhTwpnmQ/i6432461624.webp");
+                vehiculoRepository.save(vectra);
+
+                Vehiculo x2 = vehiculo(
+                                "BMW X2 sDrive18d 150cv 2018",
+                                "BMW X2 en perfecto estado. Acabado M Sport. Muy cuidado, siempre en garaje. Navegador, sensores de parking, asientos deportivos. Neumáticos al 80%.",
+                                22500.0, TipoVehiculo.COCHE, manuel, catCoches, "BMW", "X2",
+                                2018, 92000, "DIESEL", "AUTOMATICO", 150, 1995, "Azul",
+                                5, 5, "5678EFG", true, true, "Fuentes de Andalucía, Sevilla",
+                                "https://i.postimg.cc/fLYcWvFR/i6308345310.webp");
+                x2.addImagenGaleria("https://i.postimg.cc/1RcGLJwK/i6446231719.webp");
+                vehiculoRepository.save(x2);
+
+                Vehiculo avensis = vehiculo(
+                                "Toyota Avensis 2.0 D-4D 126cv 2010",
+                                "Toyota Avensis familiar. Motor 2.0 D-4D muy fiable. Amplio maletero y muy cómodo para viajes largos. Revisiones selladas.",
+                                5500.0, TipoVehiculo.COCHE, jaime, catCoches, "Toyota", "Avensis",
+                                2010, 210000, "DIESEL", "MANUAL", 126, 1998, "Blanco",
+                                5, 5, "9012HIJ", true, false, "El Rubio, Sevilla",
+                                "https://i.postimg.cc/tCsghgqy/i6232520248.jpg");
+                avensis.addImagenGaleria("https://i.postimg.cc/Lsp6KBzV/i6232520250.jpg");
 
                 // ── 8. OFERTAS (Chollometro)
                 // ──────────────────────────────────────────
@@ -2130,6 +2261,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 vehiculoRepository.save(teslaModel3);
                 vehiculoRepository.save(fordTransit);
                 vehiculoRepository.save(vespa);
+                vehiculoRepository.save(vectra);
+                vehiculoRepository.save(x2);
+                vehiculoRepository.save(avensis);
 
                 // Ofertas y Chats
                 ofertaRepository.save(ofertaLegoIcons);
@@ -2219,30 +2353,68 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         }
 
         private void assignCoords(Object entity, String ubicacion) {
-                if (ubicacion == null) return;
+                if (ubicacion == null)
+                        return;
                 Double lat = null;
                 Double lng = null;
 
                 String u = ubicacion.toLowerCase();
-                if (u.contains("madrid")) { lat = 40.4168; lng = -3.7038; }
-                else if (u.contains("barcelona")) { lat = 41.3851; lng = 2.1734; }
-                else if (u.contains("valencia")) { lat = 39.4699; lng = -0.3763; }
-                else if (u.contains("sevilla")) { lat = 37.3891; lng = -5.9845; }
-                else if (u.contains("marchena")) { lat = 37.3291; lng = -5.4161; }
-                else if (u.contains("arahal")) { lat = 37.2628; lng = -5.5456; }
-                else if (u.contains("granada")) { lat = 37.1773; lng = -3.5985; }
-                else if (u.contains("bilbao")) { lat = 43.2630; lng = -2.9350; }
-                else if (u.contains("zaragoza")) { lat = 41.6488; lng = -0.8891; }
-                else if (u.contains("malaga")) { lat = 36.7213; lng = -4.4214; }
-                else if (u.contains("murcia")) { lat = 37.9922; lng = -1.1307; }
-                else if (u.contains("palma")) { lat = 39.5696; lng = 2.6502; }
-                else if (u.contains("saucejo")) { lat = 37.0697; lng = -5.0963; }
+                if (u.contains("madrid")) {
+                        lat = 40.4168;
+                        lng = -3.7038;
+                } else if (u.contains("barcelona")) {
+                        lat = 41.3851;
+                        lng = 2.1734;
+                } else if (u.contains("valencia")) {
+                        lat = 39.4699;
+                        lng = -0.3763;
+                } else if (u.contains("sevilla")) {
+                        lat = 37.3891;
+                        lng = -5.9845;
+                } else if (u.contains("marchena")) {
+                        lat = 37.3291;
+                        lng = -5.4161;
+                } else if (u.contains("arahal")) {
+                        lat = 37.2628;
+                        lng = -5.5456;
+                } else if (u.contains("granada")) {
+                        lat = 37.1773;
+                        lng = -3.5985;
+                } else if (u.contains("bilbao")) {
+                        lat = 43.2630;
+                        lng = -2.9350;
+                } else if (u.contains("zaragoza")) {
+                        lat = 41.6488;
+                        lng = -0.8891;
+                } else if (u.contains("malaga")) {
+                        lat = 36.7213;
+                        lng = -4.4214;
+                } else if (u.contains("murcia")) {
+                        lat = 37.9922;
+                        lng = -1.1307;
+                } else if (u.contains("palma")) {
+                        lat = 39.5696;
+                        lng = 2.6502;
+                } else if (u.contains("saucejo")) {
+                        lat = 37.0697;
+                        lng = -5.0963;
+                } else if (u.contains("casariche")) {
+                        lat = 37.2631;
+                        lng = -4.7578;
+                } else if (u.contains("fuentes de andalucia")) {
+                        lat = 37.4628;
+                        lng = -5.3486;
+                } else if (u.contains("el rubio")) {
+                        lat = 37.3486;
+                        lng = -4.9903;
+                }
 
                 if (lat != null) {
                         try {
                                 entity.getClass().getMethod("setLatitude", Double.class).invoke(entity, lat);
                                 entity.getClass().getMethod("setLongitude", Double.class).invoke(entity, lng);
-                        } catch (Exception e) {}
+                        } catch (Exception e) {
+                        }
                 }
         }
 
@@ -2312,7 +2484,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 if (fechaExpiracion != null)
                         o.setFechaExpiracion(fechaExpiracion);
                 assignCoords(o, tienda); // Intentar por nombre de tienda o ciudad
-                if (o.getCiudadOferta() != null) assignCoords(o, o.getCiudadOferta());
+                if (o.getCiudadOferta() != null)
+                        assignCoords(o, o.getCiudadOferta());
                 return ofertaRepository.save(o);
         }
 
@@ -2343,7 +2516,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 o.setBadge(badge);
                 long horas = Math.abs(horasAtrasPublicacion);
                 o.setFechaPublicacion(LocalDateTime.now().minusHours(horas > 0 ? horas : 1));
-                if (o.getCiudadOferta() != null) assignCoords(o, o.getCiudadOferta());
+                if (o.getCiudadOferta() != null)
+                        assignCoords(o, o.getCiudadOferta());
                 return ofertaRepository.save(o);
         }
 
