@@ -193,7 +193,8 @@ public class AuthController {
                 return ResponseEntity.ok(Map.of(
                         "requires2FA", true,
                         "mfaToken", mfaToken,
-                        "username", actor.getUser()
+                        "username", actor.getUser(),
+                        "twoFactorMethod", actor.getTwoFactorMethod() != null ? actor.getTwoFactorMethod() : "TOTP"
                 ));
             }
 

@@ -86,6 +86,13 @@ public class Oferta extends DomainEntity {
     /** Límite de unidades de la oferta flash (null = sin límite). */
     private Integer limiteUnidades;
 
+    /** Si tiene un patrocinio activo, aparece con la etiqueta 'Patrocinado'. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean patrocinada = false;
+
+    /** Fecha hasta la que dura el patrocinio (null = indefinido). */
+    private LocalDateTime patrocinioHasta;
+
     @Transient
     private String miVoto; // 'SPARK', 'DRIP' o 'NONE'
 
@@ -193,6 +200,12 @@ public class Oferta extends DomainEntity {
 
     public Integer  getLimiteUnidades()                      { return limiteUnidades; }
     public void     setLimiteUnidades(Integer l)             { this.limiteUnidades = l; }
+
+    public Boolean  getPatrocinada()                         { return patrocinada != null && patrocinada; }
+    public void     setPatrocinada(Boolean p)                { this.patrocinada = p != null ? p : false; }
+
+    public LocalDateTime getPatrocinioHasta()                { return patrocinioHasta; }
+    public void     setPatrocinioHasta(LocalDateTime f)      { this.patrocinioHasta = f; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

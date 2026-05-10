@@ -110,6 +110,9 @@ public class Producto extends DomainEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean patrocinado = false;
 
+    /** Fecha hasta la que dura el patrocinio (null = indefinido). */
+    private LocalDateTime patrocinioHasta;
+
     /** cuando se vendio, se usa para calcular cuando hay que ocultar el producto de la lista. */
     private LocalDateTime fechaVenta;
 
@@ -248,6 +251,9 @@ public class Producto extends DomainEntity {
 
     public Boolean          getPatrocinado()                    { return patrocinado != null && patrocinado; }
     public void             setPatrocinado(Boolean p)          { this.patrocinado = p != null ? p : false; }
+
+    public LocalDateTime    getPatrocinioHasta()               { return patrocinioHasta; }
+    public void             setPatrocinioHasta(LocalDateTime f){ this.patrocinioHasta = f; }
 
     public LocalDateTime    getFechaVenta()                     { return fechaVenta; }
     public void             setFechaVenta(LocalDateTime f)      { this.fechaVenta = f; }

@@ -90,6 +90,13 @@ public class Vehiculo extends DomainEntity {
     private LocalDateTime fechaCaducidad;
     private Integer ultimoAvisoCaducidadDias;
 
+    /** Si tiene un patrocinio activo, aparece con la etiqueta 'Patrocinado'. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean patrocinado = false;
+
+    /** Fecha hasta la que dura el patrocinio (null = indefinido). */
+    private LocalDateTime patrocinioHasta;
+
     @PrePersist
     protected void onCreate() {
         if (fechaPublicacion == null) fechaPublicacion = LocalDateTime.now();
@@ -169,6 +176,12 @@ public class Vehiculo extends DomainEntity {
     public void         setFechaCaducidad(LocalDateTime f)      { this.fechaCaducidad = f; }
     public Integer      getUltimoAvisoCaducidadDias()           { return ultimoAvisoCaducidadDias; }
     public void         setUltimoAvisoCaducidadDias(Integer u)  { this.ultimoAvisoCaducidadDias = u; }
+
+    public Boolean      getPatrocinado()                        { return patrocinado != null && patrocinado; }
+    public void         setPatrocinado(Boolean p)               { this.patrocinado = p != null ? p : false; }
+
+    public LocalDateTime getPatrocinioHasta()                   { return patrocinioHasta; }
+    public void         setPatrocinioHasta(LocalDateTime f)     { this.patrocinioHasta = f; }
 
     public void addImagenGaleria(String url) {
         if (galeriaImagenes == null) galeriaImagenes = new ArrayList<>();

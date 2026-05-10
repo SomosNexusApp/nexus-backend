@@ -300,4 +300,34 @@ public class NotificacionService {
         crear(vendedorId, TipoNotificacion.ENVIO_ACTUALIZADO, "Seguimiento registrado",
                 "Has marcado como enviado «" + titulo + "». Nº seguimiento: " + tracking + ".", url);
     }
+
+    /** Notifica al admin de una nueva solicitud de patrocinio de un usuario/empresa. */
+    public void notificarSolicitudPatrocinioAdmins(List<Integer> adminIds, Integer contratoId,
+            String nombreActor, String tipoItem, String itemTitulo) {
+        String url = "/admin/patrocinios/" + contratoId;
+        String msg = nombreActor + " ha solicitado patrocinar su " + tipoItem.toLowerCase()
+                + " «" + itemTitulo + "». Revísalo en el panel de administración.";
+        for (Integer adminId : adminIds) {
+            crear(adminId, TipoNotificacion.SOLICITUD_PATROCINIO, "Nueva solicitud de patrocinio", msg, url, true,
+                    "{\"contratoId\":" + contratoId + "}");
+        }
+    }
+
+    /** Notifica al usuario que su patrocinio fue aprobado por el admin y puede pagar. */
+    public void notificarPatrocinioAprobado(Integer actorId, Integer contratoId, String itemTitulo, Double monto) {
+        String url = "/publicidad/patrocinios";
+        String msg = "¡Tu solicitud de patrocinio para «" + itemTitulo + "» ha sido aprobada! "
+                + (monto != null ? "Precio: " + String.format("%.2f €", monto) + ". " : "")
+                + "Accede a 'Mis patrocinios' para completar el pago y activarlo.";
+        crear(actorId, TipoNotificacion.PATROCINIO_APROBADO, "Patrocinio aprobado ✓", msg, url, true,
+                "{\"contratoId\":" + contratoId + "}");
+    }
+
+    /** Notifica al usuario que su solicitud de patrocinio fue cancelada por el admin. */
+    public void notificarPatrocinioCancelado(Integer actorId, Integer contratoId, String itemTitulo) {
+        String url = "/publicidad/patrocinios";
+        String msg = "Tu solicitud de patrocinio para «" + itemTitulo + "» ha sido revisada y no ha sido aprobada. "
+                + "Puedes enviar una nueva solicitud si lo deseas.";
+        crear(actorId, TipoNotificacion.PATROCINIO_CANCELADO, "Solicitud de patrocinio no aprobada", msg, url);
+    }
 }

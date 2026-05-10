@@ -16,7 +16,12 @@ public interface ContratoRepository extends JpaRepository<Contrato, Integer> {
 
     List<Contrato> findByEmpresa_IdOrderByFechaDesc(Integer empresaId);
 
+    /** Contratos iniciados por el actor (patrocinios de usuarios/empresas) */
+    List<Contrato> findByActor_IdOrderByFechaDesc(Integer actorId);
+
     List<Contrato> findByEstado(EstadoContrato estado);
+
+    List<Contrato> findByEstadoIn(List<EstadoContrato> estados);
 
     @Query("SELECT c FROM Contrato c JOIN FETCH c.empresa WHERE c.estado = :estado")
     List<Contrato> findByEstadoWithEmpresa(@Param("estado") EstadoContrato estado);

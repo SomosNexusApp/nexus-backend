@@ -46,6 +46,12 @@ public class ContratoService {
     @Autowired
     private StripeService stripeService;
 
+    @Autowired
+    private com.nexus.repository.OfertaRepository ofertaRepository;
+
+    @Autowired
+    private com.nexus.repository.VehiculoRepository vehiculoRepository;
+
     public Optional<Contrato> findById(Integer id) {
         return this.contratoRepository.findById(id);
     }
@@ -160,7 +166,8 @@ public class ContratoService {
 
         Contrato c = oc.get();
         if (c.getEstado() == EstadoContrato.ACTIVE) return;
-        if (c.getEstado() != EstadoContrato.PENDIENTE_PAGO) return;
+        if (c.getEstado() != EstadoContrato.PENDIENTE_PAGO
+                && c.getEstado() != EstadoContrato.APROBADO_PENDIENTE_PAGO) return;
 
         if (paymentIntent != null && !paymentIntent.isBlank()) {
             c.setStripePaymentIntentId(paymentIntent);
@@ -169,9 +176,31 @@ public class ContratoService {
         c.setEstado(EstadoContrato.ACTIVE);
         LocalDateTime now = LocalDateTime.now();
         if (c.getFechaInicio() == null) c.setFechaInicio(now);
-        if (c.getFechaFin() == null)    c.setFechaFin(now.plusDays(30));
+        Integer dias = c.getDiasPatrocinio();
+        if (c.getFechaFin() == null) c.setFechaFin(dias != null ? now.plusDays(dias) : now.plusDays(30));
 
-        if (c.getTipoContrato() == TipoContrato.PUBLICACION && c.getProductoId() != null) {
+        // Activar patrocinio en el item correspondiente
+        if (c.getTipoItem() != null && c.getItemId() != null) {
+            LocalDateTime hasta = c.getFechaFin();
+            switch (c.getTipoItem().toUpperCase()) {
+                case "PRODUCTO" -> productoRepository.findById(c.getItemId()).ifPresent(p -> {
+                    p.setPatrocinado(true);
+                    p.setPatrocinioHasta(hasta);
+                    productoRepository.save(p);
+                });
+                case "OFERTA" -> ofertaRepository.findById(c.getItemId()).ifPresent(o -> {
+                    o.setPatrocinada(true);
+                    o.setPatrocinioHasta(hasta);
+                    ofertaRepository.save(o);
+                });
+                case "VEHICULO" -> vehiculoRepository.findById(c.getItemId()).ifPresent(v -> {
+                    v.setPatrocinado(true);
+                    v.setPatrocinioHasta(hasta);
+                    vehiculoRepository.save(v);
+                });
+            }
+        } else if (c.getTipoContrato() == TipoContrato.PUBLICACION && c.getProductoId() != null) {
+            // Flujo legado (empresa-contrato)
             productoRepository.findById(c.getProductoId()).ifPresent(p -> {
                 p.setPatrocinado(true);
                 productoRepository.save(p);

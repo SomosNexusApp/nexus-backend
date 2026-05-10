@@ -163,17 +163,18 @@ public class UsuarioController {
         return ResponseEntity.ok(nuevoUsuario);
     }
 
-    // ✅ CORREGIDO: Subir avatar con mejor manejo de errores
+    // ✅ CORREGIDO: Subir avatar con mejor manejo de errores — usa actorRepository para soportar Empresa también
     @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Subir o actualizar avatar del usuario")
+    @Operation(summary = "Subir o actualizar avatar del usuario o empresa")
     public ResponseEntity<?> subirAvatar(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
-        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+        // Usamos actorRepository para encontrar tanto Usuario como Empresa
+        Optional<Actor> actorOptional = actorRepository.findById(id);
 
-        if (usuarioOptional.isEmpty()) {
+        if (actorOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        Usuario usuario = usuarioOptional.get();
+        Actor actor = actorOptional.get();
 
         try {
             // Subir a Cloudinary
@@ -185,16 +186,16 @@ public class UsuarioController {
             }
 
             // Eliminar avatar anterior si no es el por defecto
-            String avatarActual = usuario.getAvatar();
+            String avatarActual = actor.getAvatar();
             if (avatarActual != null && !avatarActual.contains("avatar-default")) {
                 storageService.eliminarImagen(avatarActual);
             }
 
             // Guardar nueva URL en BD e indicar que es personalizada
-            usuario.setAvatar(url);
-            usuario.setCustomAvatarUrl(url);
-            usuario.setAvatarSource("CUSTOM");
-            usuarioService.save(usuario);
+            actor.setAvatar(url);
+            actor.setCustomAvatarUrl(url);
+            actor.setAvatarSource("CUSTOM");
+            actorRepository.save(actor);
 
             return ResponseEntity.ok(Map.of("mensaje", "Avatar actualizado", "url", url));
 
@@ -481,9 +482,21 @@ public class UsuarioController {
         String tipo = body.get("tipoCuenta");
 
         try {
-            if ("EMPRESA".equals(tipo) && actor instanceof Usuario) {
-                usuarioService.convertirAEmpresa(actor.getId(), body);
-                return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa"));
+            if ("EMPRESA".equals(tipo)) {
+                if (actor instanceof Usuario) {
+                    // Conversión normal: de Usuario a Empresa
+                    usuarioService.convertirAEmpresa(actor.getId(), body);
+                    return ResponseEntity.ok(Map.of("mensaje", "Cuenta convertida a Empresa"));
+                } else if (actor instanceof Empresa) {
+                    // Idempotente: ya es Empresa, actualizamos datos si vienen en el body
+                    Empresa empresa = (Empresa) actor;
+                    if (body.containsKey("cif")) empresa.setCif(body.get("cif"));
+                    if (body.containsKey("nombreComercial")) empresa.setNombreComercial(body.get("nombreComercial"));
+                    if (body.containsKey("descripcion")) empresa.setDescripcion(body.get("descripcion"));
+                    if (body.containsKey("web")) empresa.setWeb(body.get("web"));
+                    actorRepository.save(empresa);
+                    return ResponseEntity.ok(Map.of("mensaje", "Datos de empresa actualizados"));
+                }
             } else if ("PERSONAL".equals(tipo)) {
                 if (actor instanceof Empresa) {
                     usuarioService.convertirAUsuarioPersonal(actor.getId());

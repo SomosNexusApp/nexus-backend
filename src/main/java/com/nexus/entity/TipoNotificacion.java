@@ -21,5 +21,10 @@ public enum TipoNotificacion {
     GUIA_ENVIO_VENDEDOR,
     /** Propuesta de contrato publicitario del equipo Nexus */
     CONTRATO_PROPUESTA,
+    /** Solicitud de patrocinio enviada por un usuario/empresa al admin */
+    SOLICITUD_PATROCINIO,
+    /** Admin aprueba o cancela un patrocinio */
+    PATROCINIO_APROBADO,
+    PATROCINIO_CANCELADO,
     SISTEMA
 }
