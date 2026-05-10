@@ -33,6 +33,7 @@ public class AdminPanelController {
     @Autowired private ProductoRepository productoRepo;
     @Autowired private OfertaRepository ofertaRepo;
     @Autowired private AuditLogRepository auditLogRepo;
+    @Autowired private NotificacionRepository notificacionRepository;
     @Autowired private NotificacionService notificacionService;
     @Autowired private ReporteService reporteService;
 
@@ -197,9 +198,10 @@ public class AdminPanelController {
     public ResponseEntity<Void> suspender(@PathVariable Integer id, @RequestBody Map<String, Object> body,
                                           @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         var u = actorRepo.findById(id).orElseThrow();
-        int horas = Integer.parseInt(body.get("duracionHoras").toString());
+        Object durObj = body.get("duracionHoras");
+        int horas = durObj != null ? ((Number) durObj).intValue() : 24;
         u.setSuspendidoHasta(LocalDateTime.now().plusHours(horas));
-        u.setMotivoSuspension(body.get("motivo").toString());
+        u.setMotivoSuspension(body.getOrDefault("motivo", "Sin motivo").toString());
         actorRepo.save(u);
         audit(ud, "SUSPENDER_USUARIO", "USUARIO", id.longValue(), horas + "h: " + body.get("motivo"), req);
         notificacionService.notificarAccionAdmin(id, "Cuenta suspendida temporalmente",
@@ -247,10 +249,35 @@ public class AdminPanelController {
         return ResponseEntity.ok(Map.of("token", "IMP:" + id + ":" + System.currentTimeMillis()));
     }
 
+    @GetMapping("/notificaciones")
+    public ResponseEntity<Map<String, Object>> listarNotificacionesEnviadas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        // Por ahora devolvemos un listado genérico de las últimas notificaciones del sistema
+        // para evitar errores 404/500 si el frontend consulta este endpoint.
+        Page<NotificacionInApp> paged = notificacionRepository.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
+        List<Object> content = paged.stream().map(n -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.getId());
+            m.put("titulo", n.getTitulo());
+            m.put("mensaje", n.getMensaje());
+            m.put("fecha", n.getFecha());
+            m.put("tipo", n.getTipo());
+            if (n.getActor() != null) {
+                m.put("destinatario", Map.of("id", n.getActor().getId(), "user", n.getActor().getUser()));
+            }
+            return (Object) m;
+        }).toList();
+        return ResponseEntity.ok(buildPage(content, paged));
+    }
+
     @PostMapping("/notificaciones")
     public ResponseEntity<Void> enviarAviso(@RequestBody Map<String, Object> body,
                                              @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        int uid = Integer.parseInt(body.get("usuarioId").toString());
+        Object uidObj = body.get("usuarioId");
+        if (uidObj == null) return ResponseEntity.badRequest().build();
+        
+        int uid = ((Number) uidObj).intValue();
         String mensaje = body.getOrDefault("mensaje", "").toString();
         audit(ud, "ENVIAR_AVISO", "USUARIO", (long) uid, mensaje, req);
         notificacionService.notificarAccionAdmin(uid, "Aviso del equipo Nexus", mensaje, "/perfil?tab=configuracion");
@@ -366,20 +393,29 @@ public class AdminPanelController {
     @Transactional
     public ResponseEntity<Void> suspenderYResolver(@RequestBody Map<String, Object> body,
                                                     @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        int uid = Integer.parseInt(body.get("usuarioId").toString());
-        int dur = Integer.parseInt(body.get("duracionHoras").toString());
-        String mot = body.get("motivo").toString();
+        Object uidObj = body.get("usuarioId");
+        Object durObj = body.get("duracionHoras");
+        if (uidObj == null || durObj == null) return ResponseEntity.badRequest().build();
+
+        int uid = ((Number) uidObj).intValue();
+        int dur = ((Number) durObj).intValue();
+        String mot = body.getOrDefault("motivo", "Moderación").toString();
+        
         var u = actorRepo.findById(uid).orElseThrow();
         u.setSuspendidoHasta(LocalDateTime.now().plusHours(dur));
         u.setMotivoSuspension(mot);
         actorRepo.save(u);
+        
         if (body.containsKey("reporteId")) {
-            int rid = Integer.parseInt(body.get("reporteId").toString());
-            Reporte r = reporteRepo.findById(rid).orElseThrow();
-            r.setEstado(EstadoReporte.RESUELTO);
-            r.setResolucion("Suspensión " + dur + "h: " + mot);
-            reporteRepo.save(r);
-            reporteService.notificarResolucionReporte(r);
+            Object ridObj = body.get("reporteId");
+            if (ridObj != null) {
+                int rid = ((Number) ridObj).intValue();
+                Reporte r = reporteRepo.findById(rid).orElseThrow();
+                r.setEstado(EstadoReporte.RESUELTO);
+                r.setResolucion("Suspensión " + dur + "h: " + mot);
+                reporteRepo.save(r);
+                reporteService.notificarResolucionReporte(r);
+            }
         }
         notificacionService.notificarAccionAdmin(uid, "Cuenta suspendida",
                 "Suspensión " + dur + " h. Motivo: " + mot, "/perfil?tab=configuracion");
@@ -448,10 +484,22 @@ public class AdminPanelController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "30") int size
     ) {
-        LocalDateTime d = desde != null ? LocalDateTime.parse(desde + "T00:00:00") : null;
-        LocalDateTime h = hasta != null ? LocalDateTime.parse(hasta + "T23:59:59") : null;
+        LocalDateTime d = (desde != null && !desde.isBlank()) ? LocalDateTime.parse(desde + "T00:00:00") : null;
+        LocalDateTime h = (hasta != null && !hasta.isBlank()) ? LocalDateTime.parse(hasta + "T23:59:59") : null;
         var paged = auditLogRepo.filter(admin, accion, entidadTipo, d, h, PageRequest.of(page, size));
-        List<Object> content = new ArrayList<>(paged.getContent());
+        List<Object> content = paged.stream().map(a -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", a.getId());
+            m.put("adminId", a.getAdminId());
+            m.put("adminUser", a.getAdminUser());
+            m.put("accion", a.getAccion());
+            m.put("entidadTipo", a.getEntidadTipo());
+            m.put("entidadId", a.getEntidadId());
+            m.put("detalle", a.getDetalle());
+            m.put("ip", a.getIp());
+            m.put("timestamp", a.getTimestamp());
+            return (Object) m;
+        }).toList();
         return ResponseEntity.ok(buildPage(content, paged));
     }
 
@@ -548,12 +596,20 @@ public class AdminPanelController {
 
     private Map<String, Object> miniActor(com.nexus.entity.Actor a) {
         if (a == null) return null;
-        return Map.of("id", a.getId(), "user", a.getUser(), "avatar", a.getAvatar() != null ? a.getAvatar() : "");
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", a.getId());
+        m.put("user", a.getUser() != null ? a.getUser() : "—");
+        m.put("avatar", a.getAvatar() != null ? a.getAvatar() : "");
+        return m;
     }
 
     private Map<String, Object> miniProducto(com.nexus.entity.Producto p) {
         if (p == null) return null;
-        return Map.of("id", p.getId(), "titulo", p.getTitulo(), "imagenPrincipal", p.getImagenPrincipal() != null ? p.getImagenPrincipal() : "");
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", p.getId());
+        m.put("titulo", p.getTitulo() != null ? p.getTitulo() : "—");
+        m.put("imagenPrincipal", p.getImagenPrincipal() != null ? p.getImagenPrincipal() : "");
+        return m;
     }
 
     private Map<String, Object> buildPage(List<Object> content, Page<?> page) {
