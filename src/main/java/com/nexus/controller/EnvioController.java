@@ -168,7 +168,7 @@ public class EnvioController {
                 return ResponseEntity.badRequest().body(Map.of("error", "codigoEnvio y estado son obligatorios"));
             }
             EstadoEnvio estado = EstadoEnvio.valueOf(estadoRaw.toUpperCase());
-            Envio actualizado = envioService.registrarEventoTransportista(codigoEnvio, estado);
+            Envio actualizado = envioService.registrarEventoCorreos(codigoEnvio, estado);
             return ResponseEntity.ok(actualizado);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

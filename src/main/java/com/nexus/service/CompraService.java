@@ -63,7 +63,7 @@ public class CompraService {
             String nombreDest, String direccion,
             String ciudad, String cp, String pais,
             String telefonoDest, Double precioEnvio,
-            Double pesoKg, Transportista transportista) {
+            Double pesoKg) {
 
         Compra compra = compraRepository.findById(compraId)
                 .orElseThrow(() -> new IllegalArgumentException("Compra no encontrada: " + compraId));
@@ -92,10 +92,10 @@ public class CompraService {
 
         Compra guardada = compraRepository.save(compra);
 
-        // creamos el envio con todos los datos necesarios para el transportista
+        // creamos el envio con todos los datos necesarios (siempre con Correos)
         envioService.crearEnvio(guardada, metodoEntrega,
                 nombreDest, direccion, ciudad, cp, pais, telefonoDest, precioEnvio,
-                pesoKg, transportista);
+                pesoKg);
 
         // notificamos tanto al comprador como al vendedor
         Producto p = guardada.getProducto();

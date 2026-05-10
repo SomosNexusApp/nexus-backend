@@ -152,8 +152,7 @@ public class CompraController {
             @RequestParam TipoEnvio tipoEnvio,
             @RequestParam(defaultValue = "false") boolean esRecogida,
             @RequestParam(required = false) String direccionCompleta,
-            @RequestParam(required = false) String puntoRecogidaId,
-            @RequestParam(required = false) String transportista) {
+            @RequestParam(required = false) String puntoRecogidaId) {
 
         Optional<Producto> p = productoService.findById(productoId);
         Optional<Actor> a = actorRepository.findById(compradorId);
@@ -199,12 +198,8 @@ public class CompraController {
             
             if (necesitaEnvio) {
                 double baseFallback = shippingPriceService.calculateShippingPrice(pesoFinal, esRecogida);
-                if (transportista != null && !transportista.isBlank()) {
-                    costoEnvio = carrierApiService.getPriceForCarrier(transportista, pesoFinal, esRecogida, baseFallback);
-                } else {
-                    Double precioApi = carrierApiService.getBestPrice(pesoFinal, esRecogida);
-                    costoEnvio = (precioApi != null) ? precioApi : baseFallback;
-                }
+                Double precioApi = carrierApiService.getBestPrice(pesoFinal, esRecogida);
+                costoEnvio = (precioApi != null) ? precioApi : baseFallback;
             }
 
             double totalCobrar = precioProducto + costoEnvio + comisionNexus;
@@ -223,7 +218,6 @@ public class CompraController {
             compra.setTipoEnvio(tipoEnvio);
             compra.setCostoEnvio(costoEnvio);
             compra.setComisionNexus(comisionNexus);
-            compra.setTransportista(transportista != null ? transportista : "ESTANDAR");
             compra.setStripePaymentIntentId(intent.getId());
 
             if (tipoEnvio == TipoEnvio.DOMICILIO)
@@ -303,22 +297,15 @@ public class CompraController {
                     ? Double.valueOf(body.get("precioEnvio").toString())
                     : 0.0;
 
-            // Nuevos campos de peso y transportista
+            // Peso del paquete
             Double pesoKg = body.get("pesoKg") != null
                     ? Double.valueOf(body.get("pesoKg").toString())
                     : 0.5;
-            Transportista transportista = Transportista.CORREOS;
-            if (body.get("transportista") != null) {
-                try {
-                    transportista = Transportista.valueOf(body.get("transportista").toString().toUpperCase());
-                } catch (IllegalArgumentException ignored) {
-                }
-            }
 
             Compra compra = compraService.confirmarPago(
                     compraId, paymentIntentId, metodo,
                     nombreDest, direccion, ciudad, cp, pais, telefono, precioEnvio,
-                    pesoKg, transportista);
+                    pesoKg);
 
             // Recuperar el envío para devolver código y QR al frontend
             Map<String, Object> resp = new HashMap<>();

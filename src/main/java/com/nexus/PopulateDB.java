@@ -1760,9 +1760,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 envio1.setCodigoPostal("08012");
                 envio1.setPais("España");
                 envio1.setTelefono("600333444");
-                envio1.setTransportista("MRW");
-                envio1.setNumeroSeguimiento("MRW2024001122334");
-                envio1.setUrlSeguimiento("https://www.mrw.es/seguimiento_envios?ref=MRW2024001122334");
+                envio1.setTransportista("Correos");
+                envio1.setNumeroSeguimiento("ES000000001ES");
+                envio1.setUrlSeguimiento("https://www.correos.es/es/es/herramientas/localizador/envios/detalle?tracking-number=ES000000001ES");
                 envio1.setPrecioEnvio(5.0);
                 envio1.setFechaEnvio(LocalDateTime.now().minusDays(29));
                 envio1.setFechaEstimadaEntrega(LocalDateTime.now().minusDays(27));
@@ -1793,8 +1793,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 envio3.setCodigoPostal("28009");
                 envio3.setPais("España");
                 envio3.setTelefono("600555666");
-                envio3.setTransportista("SEUR");
-                envio3.setNumeroSeguimiento("SEUR-PROBAR-123");
+                envio3.setTransportista("Correos");
+                envio3.setNumeroSeguimiento("ES000000003ES");
                 envio3.setUrlSeguimiento("https://www.google.com");
                 envio3.setPrecioEnvio(15.0);
                 envio3.setFechaEnvio(LocalDateTime.now().minusDays(2));
@@ -1943,7 +1943,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 dev2.setNotaVendedor(
                                 "Entendido, aceptamos la devolución. Envía el producto de vuelta con el embalaje original.");
                 dev2.setTrackingDevolucion("CORREOS2024998877");
-                dev2.setTransportistaDevolucion("Correos");
+                // transportista siempre es Correos, campo eliminado
                 dev2.setImporteDevolucion(320.0);
                 dev2.setFechaSolicitud(LocalDateTime.now().minusDays(22));
                 dev2.setFechaResolucion(LocalDateTime.now().minusDays(18));

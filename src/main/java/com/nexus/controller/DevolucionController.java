@@ -88,16 +88,16 @@ public class DevolucionController {
     }
 
     /**
-     * Comprador confirma que envió el producto de vuelta.
-     * Body: { "transportista": "Correos", "tracking": "1Z999..." }
+     * Comprador confirma que envió el producto de vuelta por Correos.
+     * Body: { "tracking": "1Z999..." }
      */
     @PostMapping("/{id}/enviada")
-    @Operation(summary = "Comprador confirma el envío del producto de vuelta")
+    @Operation(summary = "Comprador confirma el envío del producto de vuelta por Correos")
     public ResponseEntity<?> marcarEnviada(@PathVariable Integer id,
             @RequestBody Map<String, String> body) {
         try {
             return ResponseEntity.ok(devolucionService.marcarDevolucionEnviada(
-                    id, body.get("transportista"), body.get("tracking")));
+                    id, body.get("tracking")));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

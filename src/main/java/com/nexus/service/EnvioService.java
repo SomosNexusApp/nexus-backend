@@ -52,17 +52,14 @@ public class EnvioService {
             String nombreDestinatario, String direccion,
             String ciudad, String cp, String pais,
             String telefono, Double precioEnvio,
-            Double pesoKg, Transportista transportista) {
+            Double pesoKg) {
         Envio envio = new Envio();
         envio.setCompra(compra);
         envio.setMetodoEntrega(metodo);
         envio.setEstado(EstadoEnvio.PENDIENTE_ENVIO);
         envio.setStripePaymentIntentId(compra.getStripePaymentIntentId());
         envio.setPesoKg(pesoKg);
-        envio.setTransportistaEnum(transportista);
-        if (transportista != null) {
-            envio.setTransportista(transportista.name()); // legado / compatibilidad
-        }
+        envio.setTransportista("Correos"); // único transportista admitido
 
         // Generar código único y QR
         String codigo = shippingPriceService.generateShippingCode();
@@ -140,13 +137,12 @@ public class EnvioService {
 
         envio.setEstado(EstadoEnvio.ENVIADO);
         String transportistaFinal = (transportista != null && !transportista.isBlank())
-                ? transportista
-                : (envio.getTransportistaEnum() != null ? envio.getTransportistaEnum().name() : "CORREOS");
+                ? transportista : "Correos";
         envio.setTransportista(transportistaFinal);
         envio.setNumeroSeguimiento(trackingFinal);
         envio.setUrlSeguimiento((urlSeguimiento != null && !urlSeguimiento.isBlank())
                 ? urlSeguimiento
-                : buildTrackingUrl(transportistaFinal, trackingFinal));
+                : buildTrackingUrl(trackingFinal));
         envio.setFechaEnvio(LocalDateTime.now());
         envio.setFechaEstimadaEntrega(fechaEstimadaEntrega);
 
@@ -248,10 +244,10 @@ public class EnvioService {
     }
 
     @Transactional
-    public Envio registrarEventoTransportista(String codigoEnvio, EstadoEnvio estado) {
+    public Envio registrarEventoCorreos(String codigoEnvio, EstadoEnvio estado) {
         Envio envio = envioRepository.findByCodigoEnvio(codigoEnvio)
                 .orElseThrow(() -> new IllegalArgumentException("Código de envío no encontrado"));
-        return avanzarEstadoTracking(envio, estado, "Evento recibido del transportista");
+        return avanzarEstadoTracking(envio, estado, "Evento recibido de Correos");
     }
 
     @Transactional
@@ -543,15 +539,8 @@ public class EnvioService {
         return actual == EstadoEnvio.EN_REPARTO && siguiente == EstadoEnvio.ENTREGADO;
     }
 
-    private String buildTrackingUrl(String transportista, String tracking) {
-        String t = transportista != null ? transportista.toUpperCase() : "CORREOS";
-        if ("SEUR".equals(t)) {
-            return "https://www.seur.com/livetracking/pages/seguimiento-online.do?segOnlineIdentificador="
-                    + tracking;
-        }
-        if ("MRW".equals(t)) {
-            return "https://www.mrw.es/seguimiento_envios/MRW_tracking.asp?codigo=" + tracking;
-        }
+    /** Siempre Correos (unico transportista de la plataforma). */
+    private String buildTrackingUrl(String tracking) {
         return "https://www.correos.es/es/es/herramientas/localizador/envios/detalle?tracking-number=" + tracking;
     }
 }

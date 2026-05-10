@@ -113,11 +113,10 @@ public class DevolucionService {
     }
 
     /**
-     * El comprador confirma que ha enviado el producto de vuelta al vendedor.
+     * El comprador confirma que ha enviado el producto de vuelta al vendedor (siempre por Correos).
      */
     @Transactional
-    public Devolucion marcarDevolucionEnviada(Integer devolucionId,
-            String transportista, String tracking) {
+    public Devolucion marcarDevolucionEnviada(Integer devolucionId, String tracking) {
         Devolucion d = devolucionRepository.findById(devolucionId)
                 .orElseThrow(() -> new IllegalArgumentException("Devolución no encontrada"));
 
@@ -125,15 +124,14 @@ public class DevolucionService {
             throw new IllegalStateException("La devolución no está en estado ACEPTADA");
 
         d.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
-        d.setTransportistaDevolucion(transportista);
         d.setTrackingDevolucion(tracking);
 
         Devolucion actualizada = devolucionRepository.save(d);
-        notificarEnChat(d.getCompra(), "📦 El comprador ha enviado el producto de vuelta. Tracking: " + tracking);
+        notificarEnChat(d.getCompra(), "📦 El comprador ha enviado el producto de vuelta por Correos. Tracking: " + tracking);
         Compra c = d.getCompra();
         notificacionService.notificarDevolucionActualizacion(c.getProducto().getPublicador().getId(),
                 c.getProducto().getTitulo(),
-                "El comprador ha enviado la devolución. Tracking: " + tracking,
+                "El comprador ha enviado la devolución por Correos. Tracking: " + tracking,
                 "/perfil?tab=compras");
         return actualizada;
     }

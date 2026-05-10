@@ -38,14 +38,10 @@ public class Envio extends DomainEntity {
     private String pais;
     private String telefono;
 
-    // Seguimiento del paquete
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transportista_enum")
-    private Transportista transportistaEnum; // CORREOS, SEUR, MRW
-
-    private String transportista; // Nombre libre (legado / integraciones futuras)
+    // Seguimiento del paquete (siempre Correos)
+    private String transportista;
     private String numeroSeguimiento;
-    private String urlSeguimiento; // URL de seguimiento del transportista
+    private String urlSeguimiento; // URL de seguimiento de Correos
 
     // Código de envío único (SHIP-XXXXXXXX)
     @Column(unique = true)
@@ -185,14 +181,6 @@ public class Envio extends DomainEntity {
 
     public void setPrecioEnvio(Double precioEnvio) {
         this.precioEnvio = precioEnvio;
-    }
-
-    public Transportista getTransportistaEnum() {
-        return transportistaEnum;
-    }
-
-    public void setTransportistaEnum(Transportista t) {
-        this.transportistaEnum = t;
     }
 
     public String getCodigoEnvio() {

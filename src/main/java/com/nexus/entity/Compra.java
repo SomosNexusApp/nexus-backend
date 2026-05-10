@@ -61,7 +61,6 @@ public class Compra extends DomainEntity {
     private Double comisionNexus;
     private String direccionCompleta;
     private String puntoRecogidaId;
-    private String transportista;
 
     @PrePersist
     protected void onCreate() {
@@ -266,13 +265,5 @@ public class Compra extends DomainEntity {
 
     public void setPuntoRecogidaId(String p) {
         this.puntoRecogidaId = p;
-    }
-
-    public String getTransportista() {
-        return transportista;
-    }
-
-    public void setTransportista(String t) {
-        this.transportista = t;
     }
 }

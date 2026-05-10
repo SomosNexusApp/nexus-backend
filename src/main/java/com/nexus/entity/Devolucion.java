@@ -33,7 +33,6 @@ public class Devolucion extends DomainEntity {
     private LocalDateTime fechaResolucion;
     
     private String trackingDevolucion;
-    private String transportistaDevolucion;
     private Double importeDevolucion;
     private String direccionEnvio;
 
@@ -68,10 +67,7 @@ public class Devolucion extends DomainEntity {
     public void setFechaResolucion(LocalDateTime fechaResolucion) { this.fechaResolucion = fechaResolucion; }
 
     public String getTrackingDevolucion() { return trackingDevolucion; }
-    public void setTrackingDevolucion(String trackingDevolucion) { this.trackingDevolucion = trackingDevolucion; }
-
-    public String getTransportistaDevolucion() { return transportistaDevolucion; }
-    public void setTransportistaDevolucion(String transportistaDevolucion) { this.transportistaDevolucion = transportistaDevolucion; }
+    public void setTrackingDevolucion(String t) { this.trackingDevolucion = t; }
 
     public Double getImporteDevolucion() { return importeDevolucion; }
     public void setImporteDevolucion(Double importeDevolucion) { this.importeDevolucion = importeDevolucion; }
