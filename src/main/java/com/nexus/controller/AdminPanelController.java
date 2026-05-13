@@ -585,12 +585,36 @@ public class AdminPanelController {
         m.put("fecha", r.getFecha()); m.put("resolucion", r.getResolucion());
         if (r.getReportador() != null) m.put("reportador", miniActor(r.getReportador()));
         if (r.getActorDenunciado() != null) m.put("actorDenunciado", miniActor(r.getActorDenunciado()));
+        
         if (r.getProductoDenunciado() != null) {
             var pd = new LinkedHashMap<String, Object>();
-            pd.put("id", r.getProductoDenunciado().getId()); pd.put("titulo", r.getProductoDenunciado().getTitulo());
+            pd.put("id", r.getProductoDenunciado().getId()); 
+            pd.put("titulo", r.getProductoDenunciado().getTitulo());
             pd.put("imagenPrincipal", r.getProductoDenunciado().getImagenPrincipal());
             m.put("productoDenunciado", pd);
         }
+        
+        if (r.getVehiculoDenunciado() != null) {
+            var vd = new LinkedHashMap<String, Object>();
+            vd.put("id", r.getVehiculoDenunciado().getId());
+            vd.put("titulo", r.getVehiculoDenunciado().getTitulo());
+            m.put("vehiculoDenunciado", vd);
+        }
+        
+        if (r.getOfertaDenunciada() != null) {
+            var od = new LinkedHashMap<String, Object>();
+            od.put("id", r.getOfertaDenunciada().getId());
+            od.put("titulo", r.getOfertaDenunciada().getTitulo());
+            m.put("ofertaDenunciada", od);
+        }
+
+        if (r.getComentarioDenunciado() != null) {
+            var cd = new LinkedHashMap<String, Object>();
+            cd.put("id", r.getComentarioDenunciado().getId());
+            cd.put("contenido", r.getComentarioDenunciado().getTexto());
+            m.put("comentarioDenunciado", cd);
+        }
+        
         return m;
     }
 

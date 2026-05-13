@@ -214,6 +214,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 joserra.setNombre("José Ramón");
                                 joserra.setApellidos("López Guisado");
                                 joserra.setAvatar("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
+                                joserra.setAvatarSource("CUSTOM");
+                                joserra.setCustomAvatarUrl("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
 
                                 DireccionEnvio dirJoserra = new DireccionEnvio();
                                 dirJoserra.setNombre("José Ramón López Guisado");
@@ -273,12 +275,22 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 System.out.println("=== PopulateDB: Manuel Lora y BMW Serie 2 inyectados ===");
                         }
 
+                        usuarioRepository.findByUsername("jaime_caraver").ifPresent(jaime -> {
+                                jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                                jaime.setAvatarSource("CUSTOM");
+                                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                                usuarioRepository.save(jaime);
+                        });
+
                         if (usuarioRepository.findByUsername("jaime_caraver").isEmpty()) {
                                 Usuario jaime = usuario("jaime_caraver", "jaime.caraver@nexus.test",
                                                 "El Rubio, Sevilla",
                                                 "Busco y vendo vehículos fiables.", 4.8, 12, true);
                                 jaime.setNombre("Jaime");
                                 jaime.setApellidos("Caraver");
+                                jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                                jaime.setAvatarSource("CUSTOM");
+                                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 usuarioRepository.save(jaime);
 
                                 Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
@@ -695,6 +707,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 joserra.setNombre("José Ramón");
                 joserra.setApellidos("López Guisado");
                 joserra.setAvatar("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
+                joserra.setAvatarSource("CUSTOM");
+                joserra.setCustomAvatarUrl("https://i.postimg.cc/nrb1ZGBb/W9VJj1c.jpg");
 
                 usuarioRepository.save(joserra);
 
@@ -703,6 +717,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 rafalillo.setNombre("Rafa");
                 rafalillo.setApellidos("López");
                 rafalillo.setAvatar("https://i.postimg.cc/jq48KBgX/s-Hg5upk.jpg");
+                rafalillo.setAvatarSource("CUSTOM");
+                rafalillo.setCustomAvatarUrl("https://i.postimg.cc/jq48KBgX/s-Hg5upk.jpg");
                 usuarioRepository.save(rafalillo);
 
                 Usuario ana = usuario("ana_escalera", "ana.escalera@nexus.test", "Casariche, Sevilla",
@@ -721,6 +737,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Busco y vendo vehículos fiables.", 4.8, 12, true);
                 jaime.setNombre("Jaime");
                 jaime.setApellidos("Caraver");
+                jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                jaime.setAvatarSource("CUSTOM");
+                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                 usuarioRepository.save(jaime);
 
                 // Direccion por defecto para Carlos
@@ -1141,10 +1160,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 vehiculoRepository.save(vwTouareg);
 
                 Vehiculo audiA3 = vehiculo(
-                                "Audi A3 Sportback 2.0 TDI 190cv",
-                                "Audi A3 en perfecto estado. Motor 2.0 TDI con 190cv. Muy cuidado, siempre en garaje. Equipamiento completo.",
+                                "Audi A3 Sportback 2.0 TDI 150cv",
+                                "Audi A3 en perfecto estado. Motor 2.0 TDI con 150cv. Muy cuidado, siempre en garaje. Equipamiento completo.",
                                 16500.0, TipoVehiculo.COCHE, rafalillo, catVehiculos, "Audi", "A3 Sportback",
-                                2014, 180000, "DIESEL", "MANUAL", 190, 1968, "Gris",
+                                2014, 180000, "DIESEL", "MANUAL", 150, 1968, "Gris",
                                 5, 5, "1234JKL", true, true, "El Saucejo",
                                 "https://i.postimg.cc/wv4xCwmJ/krh11ad.png");
 
@@ -1183,8 +1202,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 5500.0, TipoVehiculo.COCHE, jaime, catCoches, "Toyota", "Avensis",
                                 2010, 210000, "DIESEL", "MANUAL", 126, 1998, "Blanco",
                                 5, 5, "9012HIJ", true, false, "El Rubio, Sevilla",
-                                "https://i.postimg.cc/tCsghgqy/i6232520248.jpg");
-                avensis.addImagenGaleria("https://i.postimg.cc/Lsp6KBzV/i6232520250.jpg");
+                                "https://i.postimg.cc/63357zkQ/avensis.png");
 
                 // ── 8. OFERTAS (Chollometro)
                 // ──────────────────────────────────────────
@@ -1762,7 +1780,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 envio1.setTelefono("600333444");
                 envio1.setTransportista("Correos");
                 envio1.setNumeroSeguimiento("ES000000001ES");
-                envio1.setUrlSeguimiento("https://www.correos.es/es/es/herramientas/localizador/envios/detalle?tracking-number=ES000000001ES");
+                envio1.setUrlSeguimiento(
+                                "https://www.correos.es/es/es/herramientas/localizador/envios/detalle?tracking-number=ES000000001ES");
                 envio1.setPrecioEnvio(5.0);
                 envio1.setFechaEnvio(LocalDateTime.now().minusDays(29));
                 envio1.setFechaEstimadaEntrega(LocalDateTime.now().minusDays(27));

@@ -26,10 +26,11 @@ public class ModerationService {
 	private void debugLog(String msg) {
 		try {
 			String log = LocalDateTime.now() + " : " + msg + "\n";
-			Files.write(Paths.get("C:/Users/josem/nexus_debug.txt"), log.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-		} catch (Exception e) {}
+			Files.write(Paths.get("C:/Users/josem/nexus_debug.txt"), log.getBytes(), StandardOpenOption.CREATE,
+					StandardOpenOption.APPEND);
+		} catch (Exception e) {
+		}
 	}
-
 
 	// 1. Lista base de palabras prohibidas (limpias, en minúscula y sin tildes)
 	// Puedes añadir las que quieras, el sistema generará sus variantes
@@ -137,7 +138,7 @@ public class ModerationService {
 			"perra", "perras", "perraco",
 			"cabron", "cabrona", "cabrones", "cabroncete", "cabronazo", "cabroncito",
 			"gilipollas", "gilipollez", "gilipollitas", "gilipolleces",
-			"maricon", "maricona", "mariconazo", "maricones", "mariconsete",
+			"maricon", "maricona", "mariconazo", "maricones", "mariconsete", "marica",
 			"idiota", "idiotas", "idiotazo", "idiotez",
 			"imbecil", "imbeciles",
 			"estupido", "estupida", "estupidos", "estupidas",
@@ -559,7 +560,7 @@ public class ModerationService {
 		String customWords = configRepository.findById("sensitiveKeywords")
 				.map(com.nexus.config.AdminConfig::getValue)
 				.orElse("");
-		
+
 		java.util.List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));
 		if (!customWords.isEmpty()) {
 			allWords.addAll(Arrays.asList(customWords.split("\\s*,\\s*")));
@@ -611,7 +612,8 @@ public class ModerationService {
 	 */
 	public boolean esContenidoApropiado(String texto) {
 		debugLog("Validando contenido: " + texto);
-		if (texto == null || texto.trim().isEmpty()) return true;
+		if (texto == null || texto.trim().isEmpty())
+			return true;
 		boolean apropiado = !getPattern().matcher(texto).find();
 		debugLog("Resultado validacion: " + apropiado);
 		return apropiado;
@@ -637,12 +639,13 @@ public class ModerationService {
 	 */
 	public String censurarTexto(String texto) {
 		debugLog("Censurando texto: " + texto);
-		if (texto == null || texto.trim().isEmpty()) return texto;
-		
+		if (texto == null || texto.trim().isEmpty())
+			return texto;
+
 		Matcher matcher = getPattern().matcher(texto);
 		StringBuilder sb = new StringBuilder();
 		int lastEnd = 0;
-		
+
 		while (matcher.find()) {
 			sb.append(texto, lastEnd, matcher.start());
 			String match = matcher.group();
@@ -667,7 +670,7 @@ public class ModerationService {
 		String customWords = configRepository.findById("sensitiveKeywords")
 				.map(com.nexus.config.AdminConfig::getValue)
 				.orElse("");
-		
+
 		List<String> allWords = new java.util.ArrayList<>(Arrays.asList(PALABRAS_BASE));
 		if (!customWords.isEmpty()) {
 			allWords.addAll(Arrays.asList(customWords.split("\\s*,\\s*")));
