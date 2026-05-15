@@ -72,4 +72,8 @@ public interface ProductoRepository
     List<String> findCategoriasDistintas();
 
     long countByCategoriaId(Integer categoriaId);
+
+    @Query("SELECT p FROM Producto p WHERE p.precio > 5000 OR p.vendedor.flagFraude = true " +
+           "OR (SELECT COUNT(r) FROM Reporte r WHERE r.actorDenunciado = p.vendedor) > 2")
+    List<Producto> findSospechosos();
 }

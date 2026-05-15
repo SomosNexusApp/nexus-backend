@@ -98,6 +98,35 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         System.err.println("=== PopulateDB: Error al verificar schema de producto: " + e.getMessage());
                 }
 
+                // --- ASEGURAR USUARIOS FLAGUEADOS PARA PRUEBAS (FRAUDE) ---
+                try {
+                    usuarioRepository.findByUsername("miguel_motor").ifPresent(u -> {
+                        u.setFlagFraude(true);
+                        u.setMotivoFlag("Múltiples reportes por ventas de piezas no originales en el sector motor.");
+                        usuarioRepository.save(u);
+                    });
+                    usuarioRepository.findByUsername("scammer_pro").ifPresent(u -> {
+                        u.setFlagFraude(true);
+                        u.setMotivoFlag("Detección de comportamiento automatizado y reportes de phishing.");
+                        usuarioRepository.save(u);
+                    });
+
+                    // --- SANCIONES PARA PRUEBAS (ADMIN PANEL) ---
+                    usuarioRepository.findByUsername("andres_libros").ifPresent(u -> {
+                        u.setBaneado(true);
+                        u.setMotivoBan("Intento de estafa detectado en múltiples transacciones y reportes de usuarios.");
+                        usuarioRepository.save(u);
+                    });
+
+                    usuarioRepository.findByUsername("carlos_vendedor").ifPresent(u -> {
+                        u.setSuspendidoHasta(LocalDateTime.now().plusDays(7));
+                        u.setMotivoSuspension("Incumplimiento reiterado de los tiempos de envío y falta de respuesta a soporte.");
+                        usuarioRepository.save(u);
+                    });
+
+                    System.out.println("=== PopulateDB: Sanciones y Banderas de Fraude actualizadas ===");
+                } catch (Exception e) {}
+
                 // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos
                 // (Postgres Safe) ---
                 try {
@@ -711,6 +740,15 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Amante de la moda sostenible. Doy segunda vida a la ropa.", 4.6, 145, false);
                 Usuario miguel = usuario("miguel_motor", "miguel@nexus.test", "Bilbao, Casco Viejo",
                                 "Mecanico aficionado. Compro y vendo vehiculos y piezas.", 4.3, 56, true);
+                miguel.setFlagFraude(true);
+                miguel.setMotivoFlag("Múltiples reportes por ventas de piezas no originales en el sector motor.");
+                usuarioRepository.save(miguel);
+
+                Usuario fraudulento = usuario("scammer_pro", "scam@nexus.test", "Unknown, Proxy",
+                                "Vendedor de confianza, precios imbatibles.", 1.2, 0, false);
+                fraudulento.setFlagFraude(true);
+                fraudulento.setMotivoFlag("Detección de comportamiento automatizado y reportes de phishing.");
+                usuarioRepository.save(fraudulento);
                 Usuario sofia = usuario("sofia_hogar", "sofia@nexus.test", "Madrid, Retiro",
                                 "Interiorista. Renuevo muebles y electrodomesticos frecuentemente.", 4.7, 178, true);
                 Usuario andres = usuario("andres_libros", "andres@nexus.test", "Granada, Albaicin",
@@ -1605,6 +1643,25 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 ChatMensaje chat12 = chatTexto(macbookPro, pedro, sofia,
                                 "Ninguna. Perfecto. Siempre con funda de cuero desde el primer día.", -45);
 
+                // Productos sospechosos para probar el sistema de fraude
+                productoRepository.save(producto(
+                                "Samsung Galaxy S24 Ultra - Precintado",
+                                "Samsung Galaxy S24 Ultra de 512GB, color Titanium Black. Precintado, con factura y garantía. No acepto cambios.",
+                                150.0, TipoOferta.VENTA, fraudulento, catMoviles,
+                                "Samsung", "S24 Ultra", CondicionProducto.NUEVO, true, 5.0, false, "Madrid, España", "https://i.postimg.cc/tT9Vqf8T/s-l1600.jpg"));
+
+                productoRepository.save(producto(
+                                "MacBook Pro 14 M3 Max - 32GB RAM / 1TB SSD",
+                                "Último modelo de MacBook Pro con chip M3 Max. Sin abrir, regalo de empresa que no voy a usar.",
+                                250.0, TipoOferta.VENTA, fraudulento, catPCs,
+                                "Apple", "M3 Max", CondicionProducto.NUEVO, true, 15.0, false, "Barcelona, España", "https://i.postimg.cc/mD8G4C4B/61-CH6-B8v8-L.jpg"));
+
+                productoRepository.save(producto(
+                                "Bicicleta Specialized Tarmac SL7",
+                                "Bicicleta de carretera en perfecto estado, grupo Shimano Ultegra Di2. Poco uso.",
+                                950.0, TipoOferta.VENTA, miguel, catDeportes,
+                                "Specialized", "Tarmac SL7", CondicionProducto.COMO_NUEVO, false, 0.0, true, "Bilbao, España", "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800"));
+
                 // ── 14. COMPRAS
                 // ───────────────────────────────────────────────────────
                 // Compra 1: COMPLETADA (iPhone 14 Pro - maria compra a carlos)
@@ -1984,6 +2041,27 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 dev2.setFechaSolicitud(LocalDateTime.now().minusDays(22));
                 dev2.setFechaResolucion(LocalDateTime.now().minusDays(18));
                 devolucionRepository.save(dev2);
+
+                // Devolución compra3 (MacBook Pro - rechazada por admin)
+                Devolucion dev3 = new Devolucion();
+                dev3.setCompra(compra3);
+                dev3.setEstado(EstadoDevolucion.RECHAZADA);
+                dev3.setMotivo(MotivoDevolucion.OTRO);
+                dev3.setDescripcion("El comprador dice que el color no es el que esperaba, pero en las fotos se ve claramente.");
+                dev3.setNotaAdmin("Disputa cerrada. El color coincide con la descripción original. No procede devolución.");
+                dev3.setFechaSolicitud(LocalDateTime.now().minusDays(5));
+                dev3.setFechaResolucion(LocalDateTime.now().minusDays(4));
+                devolucionRepository.save(dev3);
+
+                // Devolución compra4 (Sony WH - en tránsito)
+                Devolucion dev4 = new Devolucion();
+                dev4.setCompra(compra4);
+                dev4.setEstado(EstadoDevolucion.EN_TRANSITO);
+                dev4.setMotivo(MotivoDevolucion.CAMBIO_OPINION);
+                dev4.setDescripcion("He decidido que prefiero el modelo superior. El producto está precintado.");
+                dev4.setTrackingDevolucion("TRACK-DEV-12345");
+                dev4.setFechaSolicitud(LocalDateTime.now().minusDays(2));
+                devolucionRepository.save(dev4);
 
                 // ── 18. REPORTES
                 // ──────────────────────────────────────────────────────

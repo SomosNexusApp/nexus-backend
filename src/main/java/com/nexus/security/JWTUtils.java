@@ -73,6 +73,11 @@ public class JWTUtils {
         if (StringUtils.hasText(tokenBearer) && tokenBearer.startsWith("Bearer ")) {
             return tokenBearer.substring(7); // quitamos "Bearer " y nos quedamos solo con el token
         }
+        // SOPORTE PARA DESCARGAS: También buscamos el token en la URL (parámetro query)
+        String tokenParam = request.getParameter("token");
+        if (StringUtils.hasText(tokenParam)) {
+            return tokenParam;
+        }
         return null;
     }
 

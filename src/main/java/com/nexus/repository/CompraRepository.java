@@ -64,4 +64,7 @@ public interface CompraRepository extends JpaRepository<Compra, Integer> {
            "FROM Compra c WHERE c.fechaCompra >= :since " +
            "GROUP BY CAST(c.fechaCompra AS LocalDate) ORDER BY CAST(c.fechaCompra AS LocalDate) ASC")
     List<Map<String, Object>> getComprasPorDia(@Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(c) FROM Compra c WHERE c.producto.vendedor.id = :vendedorId AND c.estado = :estado")
+    long countByVendedorIdAndEstado(@Param("vendedorId") Integer vendedorId, @Param("estado") EstadoCompra estado);
 }

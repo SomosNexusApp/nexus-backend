@@ -296,6 +296,7 @@ public class SecurityConfiguration {
 
                                                 // BLOQUE 16 – PERMIT ALL BY DEFAULT (para permitir que rutas no mapeadas lleguen al 404)
                                                 .anyRequest().permitAll())
+                                .httpBasic(org.springframework.security.config.Customizer.withDefaults()) // Permite login nativo del navegador para exportaciones
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();

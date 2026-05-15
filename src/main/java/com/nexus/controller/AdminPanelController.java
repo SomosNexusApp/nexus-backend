@@ -19,6 +19,8 @@ import com.nexus.dto.EnvioNotificacionAdminDTO;
 import com.nexus.entity.TipoNotificacion;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.springframework.http.HttpHeaders;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -458,6 +460,29 @@ public class AdminPanelController {
 
     // ════════════════════════════════ SANCIONES ════════════════════════════════
 
+    @GetMapping("/sanciones/export")
+    public ResponseEntity<byte[]> exportSanciones() {
+        StringBuilder csv = new StringBuilder("ID,Usuario,Tipo,Motivo,FechaFin\n");
+        actorRepo.findAll().stream()
+            .filter(u -> u.isBaneado() || (u.getSuspendidoHasta() != null && u.getSuspendidoHasta().isAfter(LocalDateTime.now())))
+            .forEach(u -> {
+                String tipo = u.isBaneado() ? "BAN" : "SUSPENSION";
+                String motivo = u.isBaneado() ? u.getMotivoBan() : u.getMotivoSuspension();
+                String fechaFin = u.isBaneado() ? "PERMANENTE" : u.getSuspendidoHasta().toString();
+                csv.append(u.getId()).append(",")
+                   .append(u.getUser()).append(",")
+                   .append(tipo).append(",")
+                   .append("\"").append(motivo != null ? motivo.replace("\"", "'") : "").append("\",")
+                   .append(fechaFin).append("\n");
+            });
+
+        byte[] data = csv.toString().getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sanciones.csv")
+            .header(HttpHeaders.CONTENT_TYPE, "text/csv")
+            .body(data);
+    }
+    
     @GetMapping("/sanciones")
     public ResponseEntity<Map<String, Object>> sanciones(@RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "20") int size) {
@@ -481,8 +506,13 @@ public class AdminPanelController {
     public ResponseEntity<List<Object>> fraudeFlags() {
         var list = actorRepo.findAll().stream().filter(Actor::isFlagFraude).map(u -> {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", u.getId()); m.put("user", u.getUser()); m.put("avatar", u.getAvatar());
-            m.put("motivo", u.getMotivoFlag()); m.put("nReportes", 0); m.put("nVentasFallidas", 0);
+            m.put("id", u.getId());
+            m.put("user", u.getUser());
+            m.put("avatar", u.getAvatar());
+            m.put("motivo", u.getMotivoFlag());
+            m.put("nReportes", reporteRepo.countByActorDenunciadoId(u.getId()));
+            m.put("nVentasFallidas", compraRepo.countByVendedorIdAndEstado(u.getId(), EstadoCompra.CANCELADA));
+            m.put("fechaPrimerFlag", u.getFechaRegistro()); 
             m.put("estado", "PENDIENTE");
             return (Object) m;
         }).toList();
@@ -490,10 +520,62 @@ public class AdminPanelController {
     }
 
     @GetMapping("/fraude/productos-sospechosos")
-    public ResponseEntity<List<Object>> productosSospechosos() { return ResponseEntity.ok(List.of()); }
+    public ResponseEntity<List<Object>> productosSospechosos() {
+        List<Producto> todos = productoRepo.findByEstado(EstadoProducto.DISPONIBLE);
+        Map<Integer, Double> medias = new HashMap<>();
+        Map<Integer, Integer> counts = new HashMap<>();
+        
+        for (Producto p : todos) {
+            if (p.getCategoria() != null) {
+                int cid = p.getCategoria().getId();
+                medias.put(cid, medias.getOrDefault(cid, 0.0) + p.getPrecio());
+                counts.put(cid, counts.getOrDefault(cid, 0) + 1);
+            }
+        }
+        
+        medias.forEach((cid, sum) -> medias.put(cid, sum / counts.get(cid)));
+
+        var list = todos.stream()
+            .filter(p -> p.getCategoria() != null)
+            .filter(p -> {
+                double media = medias.getOrDefault(p.getCategoria().getId(), 0.0);
+                // Criterio: precio < 30% de la media O precio > 5000 O vendedor flagged
+                return (media > 0 && p.getPrecio() < (media * 0.3)) 
+                       || p.getPrecio() > 5000 
+                       || (p.getVendedor() != null && p.getVendedor().isFlagFraude());
+            })
+            .map(p -> {
+                double media = medias.getOrDefault(p.getCategoria().getId(), 0.0);
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", p.getId());
+                m.put("titulo", p.getTitulo());
+                m.put("imagenPrincipal", p.getImagenPrincipal());
+                m.put("precio", p.getPrecio());
+                m.put("mediaPorCategoria", media);
+                m.put("porcentajeBajoMedia", media > 0 ? ((media - p.getPrecio()) / media) * 100 : 0);
+                m.put("vendedor", miniActor(p.getVendedor()));
+                m.put("categoria", p.getCategoria().getNombre());
+                return (Object) m;
+            }).toList();
+        return ResponseEntity.ok(list);
+    }
 
     @GetMapping("/fraude/estadisticas")
-    public ResponseEntity<List<Object>> fraudeEstadisticas() { return ResponseEntity.ok(List.of()); }
+    public ResponseEntity<List<Object>> fraudeEstadisticas() {
+        LocalDateTime since = LocalDateTime.now().minusDays(15).withHour(0).withMinute(0);
+        List<Object> res = new ArrayList<>();
+        
+        for (int i = 0; i < 15; i++) {
+            LocalDateTime day = since.plusDays(i);
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("dia", day.toLocalDate().toString());
+            m.put("valor", reporteRepo.findAll().stream()
+                .filter(r -> r.getFecha() != null && r.getFecha().toLocalDate().equals(day.toLocalDate()))
+                .count());
+            res.add(m);
+        }
+        return ResponseEntity.ok(res);
+    }
 
     @PatchMapping("/fraude/flags/{userId}/revisado")
     public ResponseEntity<Void> marcarRevisado(@PathVariable Integer userId,
