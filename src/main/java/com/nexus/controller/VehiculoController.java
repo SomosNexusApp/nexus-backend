@@ -68,15 +68,28 @@ public class VehiculoController {
             @RequestParam(required = false) Boolean itv,
             @RequestParam(required = false) String ubicacion,
             @RequestParam(required = false) String orden,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radius,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
             
+        Double minLat = null, maxLat = null, minLng = null, maxLng = null;
+        if (lat != null && lng != null && radius != null && radius > 0) {
+            double deltaLat = radius / 111.1;
+            double deltaLng = radius / (111.1 * Math.cos(Math.toRadians(lat)));
+            minLat = lat - deltaLat;
+            maxLat = lat + deltaLat;
+            minLng = lng - deltaLng;
+            maxLng = lng + deltaLng;
+        }
+
         org.springframework.data.domain.Sort sort = getSort(orden);
 
-        Page<Vehiculo> r = vehiculoService.buscarPaginado(tipo, marca, modelo,
-                precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
+        Page<Vehiculo> r = vehiculoService.buscarPaginadoGeografico(
+                tipo, marca, modelo, precioMin, precioMax, anioMin, anioMax, kmMax, combustible,
                 cambio, busqueda, condicion, ubicacion, potenciaMin, cilindradaMin, color, numeroPuertas, plazas,
-                garantia, itv, PageRequest.of(page, size, sort));
+                garantia, itv, minLat, maxLat, minLng, maxLng, PageRequest.of(page, size, sort));
                 
         return ResponseEntity.ok(Map.of(
                 "contenido", r.getContent(), 

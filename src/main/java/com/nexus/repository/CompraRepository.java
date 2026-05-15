@@ -56,4 +56,12 @@ public interface CompraRepository extends JpaRepository<Compra, Integer> {
            "FROM Compra c WHERE c.estado IN (com.nexus.entity.EstadoCompra.PAGADO, com.nexus.entity.EstadoCompra.ENVIADO, com.nexus.entity.EstadoCompra.ENTREGADO, com.nexus.entity.EstadoCompra.COMPLETADA) AND c.fechaCompra >= :since " +
            "GROUP BY CAST(c.fechaCompra AS LocalDate) ORDER BY CAST(c.fechaCompra AS LocalDate) ASC")
     List<Map<String, Object>> getComisionesPorDia(@Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(c) FROM Compra c WHERE c.fechaCompra BETWEEN :start AND :end")
+    long countByFechaCompraBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT CAST(c.fechaCompra AS LocalDate) as dia, COUNT(c) as valor " +
+           "FROM Compra c WHERE c.fechaCompra >= :since " +
+           "GROUP BY CAST(c.fechaCompra AS LocalDate) ORDER BY CAST(c.fechaCompra AS LocalDate) ASC")
+    List<Map<String, Object>> getComprasPorDia(@Param("since") LocalDateTime since);
 }

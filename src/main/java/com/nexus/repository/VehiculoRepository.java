@@ -64,7 +64,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
             "AND (:plazas        IS NULL OR v.plazas        = :plazas) " +
             "AND (:garantia      IS NULL OR v.garantia      = :garantia) " +
             "AND (:itv           IS NULL OR v.itv           = :itv) " +
-            "AND (:ubicacion     IS NULL OR LOWER(v.ubicacion) LIKE LOWER(CONCAT('%', CAST(:ubicacion AS string), '%'))) " +
+            "AND (:ubicacion     IS NULL OR :minLat IS NOT NULL OR LOWER(v.ubicacion) LIKE LOWER(CONCAT('%', CAST(:ubicacion AS string), '%'))) " +
             "AND (:minLat        IS NULL OR v.latitude      >= :minLat) " +
             "AND (:maxLat        IS NULL OR v.latitude      <= :maxLat) " +
             "AND (:minLng        IS NULL OR v.longitude     >= :minLng) " +
@@ -94,7 +94,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer>,
             "AND (:plazas        IS NULL OR v.plazas        = :plazas) " +
             "AND (:garantia      IS NULL OR v.garantia      = :garantia) " +
             "AND (:itv           IS NULL OR v.itv           = :itv) " +
-            "AND (:ubicacion     IS NULL OR LOWER(v.ubicacion) LIKE LOWER(CONCAT('%', CAST(:ubicacion AS string), '%'))) " +
+            "AND (:ubicacion     IS NULL OR :minLat IS NOT NULL OR LOWER(v.ubicacion) LIKE LOWER(CONCAT('%', CAST(:ubicacion AS string), '%'))) " +
             "AND (:minLat        IS NULL OR v.latitude      >= :minLat) " +
             "AND (:maxLat        IS NULL OR v.latitude      <= :maxLat) " +
             "AND (:minLng        IS NULL OR v.longitude     >= :minLng) " +

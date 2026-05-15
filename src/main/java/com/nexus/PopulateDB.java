@@ -319,26 +319,43 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 }
                         }
 
-                        // Incluso si ya hay actores, nos aseguramos de que haya compras extras para el
-                        // gráfico
-                        if (compraRepository.count() < 15) {
-                                Usuario m = usuarioRepository.findByUsername("maria_chollos").orElse(null);
-                                List<Producto> todosProds = productoRepository.findAll();
-                                if (m != null && !todosProds.isEmpty()) {
-                                        for (int i = 0; i < 30; i++) {
+                        // --- INYECCIÓN DE VENTAS VARIADAS PARA RANKING Y DASHBOARD ---
+                        if (compraRepository.count() < 100) {
+                                List<Usuario> compradores = usuarioRepository.findAll();
+                                List<Producto> productos = productoRepository.findAll();
+                                
+                                if (!compradores.isEmpty() && !productos.isEmpty()) {
+                                        System.out.println("=== PopulateDB: Inyectando 100+ ventas variadas para estadísticas ===");
+                                        for (int i = 0; i < 120; i++) {
+                                                Usuario comprador = compradores.get(i % compradores.size());
+                                                Producto p = productos.get(i % productos.size());
+                                                
+                                                // Evitar que el vendedor se compre a sí mismo
+                                                if (p.getVendedor() != null && p.getVendedor().getId().equals(comprador.getId())) {
+                                                        comprador = compradores.get((i + 1) % compradores.size());
+                                                }
+                                                
                                                 Compra extra = new Compra();
-                                                extra.setComprador(m);
-                                                extra.setProducto(todosProds.get(i % todosProds.size()));
+                                                extra.setComprador(comprador);
+                                                extra.setProducto(p);
                                                 extra.setEstado(EstadoCompra.COMPLETADA);
-                                                double precioBase = 50.0 + (Math.random() * 500.0);
-                                                extra.setPrecioFinal(precioBase);
-                                                extra.setComisionNexus(precioBase * 0.10);
-                                                extra.setFechaCompra(LocalDateTime.now().minusDays(i % 30)
-                                                                .minusHours(i % 12));
+                                                
+                                                double precio = p.getPrecio() > 0 ? p.getPrecio() : 10.0 + (Math.random() * 50.0);
+                                                extra.setPrecioFinal(precio);
+                                                extra.setComisionNexus(precio * 0.10);
+                                                
+                                                // Distribuir en los últimos 6 meses para que el gráfico anual tenga info
+                                                extra.setFechaCompra(LocalDateTime.now()
+                                                        .minusMonths(i % 6)
+                                                        .minusDays(i % 28)
+                                                        .minusHours(i % 24));
                                                 extra.setFechaPago(extra.getFechaCompra().plusMinutes(10));
-                                                extra.setStripePaymentIntentId("pi_test_extra_final_" + i);
+                                                extra.setFechaCompletada(extra.getFechaCompra().plusDays(2));
+                                                extra.setStripePaymentIntentId("pi_gen_" + UUID.randomUUID().toString().substring(0, 8));
+                                                
                                                 compraRepository.save(extra);
                                         }
+                                        System.out.println("=== PopulateDB: Ventas inyectadas correctamente ===");
                                 }
                         }
 
@@ -2378,7 +2395,25 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 Double lng = null;
 
                 String u = ubicacion.toLowerCase();
-                if (u.contains("madrid")) {
+                if (u.contains("marchena")) {
+                        lat = 37.3291;
+                        lng = -5.4161;
+                } else if (u.contains("arahal")) {
+                        lat = 37.2628;
+                        lng = -5.5456;
+                } else if (u.contains("saucejo")) {
+                        lat = 37.0697;
+                        lng = -5.0963;
+                } else if (u.contains("casariche")) {
+                        lat = 37.2631;
+                        lng = -4.7578;
+                } else if (u.contains("fuentes de andalucia")) {
+                        lat = 37.4628;
+                        lng = -5.3486;
+                } else if (u.contains("el rubio")) {
+                        lat = 37.3486;
+                        lng = -4.9903;
+                } else if (u.contains("madrid")) {
                         lat = 40.4168;
                         lng = -3.7038;
                 } else if (u.contains("barcelona")) {
@@ -2390,12 +2425,6 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 } else if (u.contains("sevilla")) {
                         lat = 37.3891;
                         lng = -5.9845;
-                } else if (u.contains("marchena")) {
-                        lat = 37.3291;
-                        lng = -5.4161;
-                } else if (u.contains("arahal")) {
-                        lat = 37.2628;
-                        lng = -5.5456;
                 } else if (u.contains("granada")) {
                         lat = 37.1773;
                         lng = -3.5985;
@@ -2414,18 +2443,6 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 } else if (u.contains("palma")) {
                         lat = 39.5696;
                         lng = 2.6502;
-                } else if (u.contains("saucejo")) {
-                        lat = 37.0697;
-                        lng = -5.0963;
-                } else if (u.contains("casariche")) {
-                        lat = 37.2631;
-                        lng = -4.7578;
-                } else if (u.contains("fuentes de andalucia")) {
-                        lat = 37.4628;
-                        lng = -5.3486;
-                } else if (u.contains("el rubio")) {
-                        lat = 37.3486;
-                        lng = -4.9903;
                 }
 
                 if (lat != null) {

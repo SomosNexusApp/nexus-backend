@@ -96,7 +96,8 @@ public class ProductoSpecification {
 
 
             // ── Ubicación (Texto) ──────────────────────────────────────────
-            if (ubicacion != null && !ubicacion.isBlank()) {
+            // Si hay coordenadas (minLat), ignoramos el filtro de texto para evitar conflictos
+            if (ubicacion != null && !ubicacion.isBlank() && minLat == null) {
                 String pattern = "%" + ubicacion.toLowerCase() + "%";
                 where.add(cb.like(cb.lower(root.get("ubicacion")), pattern));
             }

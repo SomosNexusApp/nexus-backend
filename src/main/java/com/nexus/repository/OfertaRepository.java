@@ -79,6 +79,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
         (CAST(:ubicacion AS TEXT) IS NULL
+          OR CAST(CAST(:minLat AS TEXT) AS NUMERIC) IS NOT NULL
           OR LOWER(o.ciudad_oferta) LIKE LOWER('%' || CAST(:ubicacion AS TEXT) || '%'))
         AND
         (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
@@ -116,6 +117,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, Integer> {
         (:soloActivas = FALSE OR o.es_activa = TRUE)
         AND
         (CAST(:ubicacion AS TEXT) IS NULL
+          OR CAST(CAST(:minLat AS TEXT) AS NUMERIC) IS NOT NULL
           OR LOWER(o.ciudad_oferta) LIKE LOWER('%' || CAST(:ubicacion AS TEXT) || '%'))
         AND
         (CAST(CAST(:actorId AS TEXT) AS NUMERIC) IS NULL
