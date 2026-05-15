@@ -31,4 +31,7 @@ public interface ReporteRepository extends JpaRepository<Reporte, Integer> {
 
     @Query("SELECT COUNT(r) FROM Reporte r WHERE r.estado = :estado")
     long countByEstado(@Param("estado") EstadoReporte estado);
+
+    @Query("SELECT COUNT(r) FROM Reporte r WHERE r.actorDenunciado.id = :actorId")
+    long countByActorDenunciadoId(@Param("actorId") Integer actorId);
 }

@@ -606,7 +606,16 @@ public class AdminPanelController {
             m.put("rol", "ADMIN");
         }
 
-        m.put("totalVentas", 0); m.put("reportesRecibidos", 0);
+        if (a instanceof Usuario || a instanceof Empresa) {
+            long ventas = compraRepo.findByVendedorId(a.getId()).stream()
+                .filter(c -> c.getEstado() == EstadoCompra.COMPLETADA || c.getEstado() == EstadoCompra.ENTREGADO || c.getEstado() == EstadoCompra.ENVIADO)
+                .count();
+            m.put("totalVentas", ventas);
+        } else {
+            m.put("totalVentas", 0);
+        }
+        
+        m.put("reportesRecibidos", reporteRepo.countByActorDenunciadoId(a.getId()));
         return m;
     }
 
