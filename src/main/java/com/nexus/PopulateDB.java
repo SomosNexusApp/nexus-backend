@@ -2056,8 +2056,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 // Devolución compra4 (Sony WH - en tránsito)
                 Devolucion dev4 = new Devolucion();
                 dev4.setCompra(compra4);
-                dev4.setEstado(EstadoDevolucion.EN_TRANSITO);
-                dev4.setMotivo(MotivoDevolucion.CAMBIO_OPINION);
+                dev4.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
+                dev4.setMotivo(MotivoDevolucion.CAMBIO_DE_OPINION);
                 dev4.setDescripcion("He decidido que prefiero el modelo superior. El producto está precintado.");
                 dev4.setTrackingDevolucion("TRACK-DEV-12345");
                 dev4.setFechaSolicitud(LocalDateTime.now().minusDays(2));

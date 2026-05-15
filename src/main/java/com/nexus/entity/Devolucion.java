@@ -29,6 +29,7 @@ public class Devolucion extends DomainEntity {
     private EstadoDevolucion estado = EstadoDevolucion.SOLICITADA;
 
     private String notaVendedor;
+    private String notaAdmin;
     private LocalDateTime fechaSolicitud;
     private LocalDateTime fechaResolucion;
     
@@ -59,6 +60,9 @@ public class Devolucion extends DomainEntity {
 
     public String getNotaVendedor() { return notaVendedor; }
     public void setNotaVendedor(String notaVendedor) { this.notaVendedor = notaVendedor; }
+
+    public String getNotaAdmin() { return notaAdmin; }
+    public void setNotaAdmin(String notaAdmin) { this.notaAdmin = notaAdmin; }
 
     public LocalDateTime getFechaSolicitud() { return fechaSolicitud; }
     public void setFechaSolicitud(LocalDateTime fechaSolicitud) { this.fechaSolicitud = fechaSolicitud; }
