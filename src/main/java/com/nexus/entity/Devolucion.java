@@ -20,7 +20,7 @@ public class Devolucion extends DomainEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String descripcion;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "devolucion_fotos", joinColumns = @JoinColumn(name = "devolucion_id"))
     @Column(name = "foto_url")
     private List<String> fotos = new ArrayList<>();

@@ -38,6 +38,7 @@ public class AdminPanelController {
     @Autowired private NotificacionRepository notificacionRepository;
     @Autowired private NotificacionService notificacionService;
     @Autowired private ReporteService reporteService;
+    @Autowired private DevolucionRepository devolucionRepo;
 
     // ════════════════════════════════ SISTEMA ════════════════════════════════
 
@@ -642,8 +643,60 @@ public class AdminPanelController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        // Proxy through DevolucionRepository
-        return ResponseEntity.ok(buildPage(List.of(), Page.empty()));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<Devolucion> paged;
+        if (estado != null && !estado.isEmpty() && !estado.equals("TODAS")) {
+            try {
+                paged = devolucionRepo.findByEstado(EstadoDevolucion.valueOf(estado), pageable);
+            } catch (IllegalArgumentException e) {
+                paged = devolucionRepo.findAll(pageable);
+            }
+        } else {
+            paged = devolucionRepo.findAll(pageable);
+        }
+        List<Object> content = paged.stream().map(this::mapDevolucion).map(m -> (Object) m).toList();
+        return ResponseEntity.ok(buildPage(content, paged));
+    }
+
+    @PatchMapping("/devoluciones/{id}/aceptar")
+    @Transactional
+    public ResponseEntity<Void> aceptarDevolucion(@PathVariable Integer id, @RequestBody Map<String, Object> body,
+                                                 @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
+        Devolucion d = devolucionRepo.findById(id).orElseThrow();
+        d.setEstado(EstadoDevolucion.ACEPTADA);
+        d.setNotaAdmin(body.getOrDefault("nota", "Aceptada por administración").toString());
+        if (body.containsKey("importeReembolso")) {
+            d.setImporteDevolucion(Double.parseDouble(body.get("importeReembolso").toString()));
+        }
+        devolucionRepo.save(d);
+        audit(ud, "ACEPTAR_DEVOLUCION", "DEVOLUCION", id.longValue(), body.toString(), req);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/devoluciones/{id}/rechazar")
+    @Transactional
+    public ResponseEntity<Void> rechazarDevolucion(@PathVariable Integer id, @RequestBody Map<String, Object> body,
+                                                  @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
+        Devolucion d = devolucionRepo.findById(id).orElseThrow();
+        d.setEstado(EstadoDevolucion.RECHAZADA);
+        d.setNotaAdmin(body.getOrDefault("motivo", "Rechazada por administración").toString());
+        d.setFechaResolucion(LocalDateTime.now());
+        devolucionRepo.save(d);
+        audit(ud, "RECHAZAR_DEVOLUCION", "DEVOLUCION", id.longValue(), body.toString(), req);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/devoluciones/{id}/cerrar-admin")
+    @Transactional
+    public ResponseEntity<Void> cerrarDevolucion(@PathVariable Integer id, @RequestBody Map<String, Object> body,
+                                                @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
+        Devolucion d = devolucionRepo.findById(id).orElseThrow();
+        d.setEstado(EstadoDevolucion.COMPLETADA);
+        d.setNotaAdmin(body.getOrDefault("motivo", "Cerrada por administración").toString());
+        d.setFechaResolucion(LocalDateTime.now());
+        devolucionRepo.save(d);
+        audit(ud, "CERRAR_DEVOLUCION", "DEVOLUCION", id.longValue(), body.toString(), req);
+        return ResponseEntity.ok().build();
     }
 
     // ════════════════════════════════ HELPERS ════════════════════════════════
@@ -698,6 +751,33 @@ public class AdminPanelController {
         }
         
         m.put("reportesRecibidos", reporteRepo.countByActorDenunciadoId(a.getId()));
+        return m;
+    }
+
+    private Map<String, Object> mapDevolucion(Devolucion d) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", d.getId());
+        m.put("estado", d.getEstado() != null ? d.getEstado().name() : "SOLICITADA");
+        m.put("motivo", d.getMotivo() != null ? d.getMotivo().name() : "OTRO");
+        m.put("descripcion", d.getDescripcion());
+        m.put("fechaSolicitud", d.getFechaSolicitud());
+        m.put("fechaResolucion", d.getFechaResolucion());
+        m.put("notaVendedor", d.getNotaVendedor());
+        m.put("notaAdmin", d.getNotaAdmin());
+        m.put("trackingDevolucion", d.getTrackingDevolucion());
+        m.put("importeDevolucion", d.getImporteDevolucion());
+        m.put("fotos", d.getFotos() != null ? new java.util.ArrayList<>(d.getFotos()) : new java.util.ArrayList<>());
+        
+        if (d.getCompra() != null) {
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("id", d.getCompra().getId());
+            c.put("precioFinal", d.getCompra().getPrecioFinal());
+            c.put("fechaCompra", d.getCompra().getFechaCompra());
+            c.put("comprador", miniActor(d.getCompra().getComprador()));
+            c.put("producto", miniProducto(d.getCompra().getProducto()));
+            m.put("compra", c);
+        }
+        
         return m;
     }
 

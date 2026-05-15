@@ -125,7 +125,11 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                     });
 
                     System.out.println("=== PopulateDB: Sanciones y Banderas de Fraude actualizadas ===");
-                } catch (Exception e) {}
+
+
+                } catch (Exception e) {
+                    System.err.println("=== PopulateDB: Error en actualización forzada: " + e.getMessage());
+                }
 
                 // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos
                 // (Postgres Safe) ---
@@ -2317,6 +2321,58 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 notif(andres, TipoNotificacion.NUEVA_VALORACION, "Has recibido una valoración",
                                 "Revisa la valoración que has recibido de Carlos en tu perfil de vendedor.", "/perfil",
                                 true, -18);
+
+                // --- ASEGURAR DEVOLUCIONES PARA PRUEBAS (ADMIN PANEL) ---
+                List<Compra> compras = compraRepository.findAll();
+                if (!compras.isEmpty()) {
+                    int numDevs = 0;
+                    // Dev 1: Solicitada
+                    if (compras.size() > 0 && devolucionRepository.findByCompraId(compras.get(0).getId()).isEmpty()) {
+                        Devolucion d = new Devolucion();
+                        d.setCompra(compras.get(0));
+                        d.setEstado(EstadoDevolucion.SOLICITADA);
+                        d.setMotivo(MotivoDevolucion.PRODUCTO_NO_CORRESPONDE);
+                        d.setDescripcion("El producto no coincide con las fotos originales. Solicito revisión.");
+                        devolucionRepository.save(d);
+                        numDevs++;
+                    }
+                    // Dev 2: Completada
+                    if (compras.size() > 1 && devolucionRepository.findByCompraId(compras.get(1).getId()).isEmpty()) {
+                        Devolucion d = new Devolucion();
+                        d.setCompra(compras.get(1));
+                        d.setEstado(EstadoDevolucion.COMPLETADA);
+                        d.setMotivo(MotivoDevolucion.PRODUCTO_DEFECTUOSO);
+                        d.setDescripcion("No funciona el puerto de carga tras el primer uso.");
+                        d.setFechaResolucion(LocalDateTime.now().minusDays(1));
+                        d.setImporteDevolucion(compras.get(1).getPrecioFinal());
+                        devolucionRepository.save(d);
+                        numDevs++;
+                    }
+                    // Dev 3: Rechazada
+                    if (compras.size() > 2 && devolucionRepository.findByCompraId(compras.get(2).getId()).isEmpty()) {
+                        Devolucion d = new Devolucion();
+                        d.setCompra(compras.get(2));
+                        d.setEstado(EstadoDevolucion.RECHAZADA);
+                        d.setMotivo(MotivoDevolucion.OTRO);
+                        d.setDescripcion("El comprador dice que el color no es de su agrado tras una semana.");
+                        d.setNotaAdmin("No procede. El cambio de opinión por estética no está cubierto tras desprecintar.");
+                        d.setFechaResolucion(LocalDateTime.now().minusHours(5));
+                        devolucionRepository.save(d);
+                        numDevs++;
+                    }
+                    // Dev 4: Enviada
+                    if (compras.size() > 3 && devolucionRepository.findByCompraId(compras.get(3).getId()).isEmpty()) {
+                        Devolucion d = new Devolucion();
+                        d.setCompra(compras.get(3));
+                        d.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
+                        d.setMotivo(MotivoDevolucion.CAMBIO_DE_OPINION);
+                        d.setDescripcion("He decidido devolverlo porque he encontrado un modelo superior.");
+                        d.setTrackingDevolucion("CORREOS-DEV-887766");
+                        devolucionRepository.save(d);
+                        numDevs++;
+                    }
+                    if (numDevs > 0) System.out.println("=== PopulateDB: " + numDevs + " Devoluciones de prueba inyectadas ===");
+                }
 
                 System.out.println("=== PopulateDB completado con éxito ===");
                 System.out.println("  - Categorías:    " + categoriaRepository.count());
