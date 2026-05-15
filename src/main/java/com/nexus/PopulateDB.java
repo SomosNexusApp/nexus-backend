@@ -12,6 +12,7 @@ import com.nexus.repository.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,6 +79,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
         @Autowired
         private NotificacionRepository notificacionRepository;
         @Autowired
+        private CuponRepository cuponRepository;
+        @Autowired
         private PasswordEncoder passwordEncoder;
         @Autowired
         private JdbcTemplate jdbcTemplate;
@@ -96,6 +99,19 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         System.out.println("=== PopulateDB: Schema de producto verificado/corregido (TEXT) ===");
                 } catch (Exception e) {
                         System.err.println("=== PopulateDB: Error al verificar schema de producto: " + e.getMessage());
+                }
+
+                // --- LIMPIEZA DE CONTRATOS ANTIGUOS ---
+                try {
+                    java.util.List<Contrato> contratos = contratoRepository.findAll();
+                    for (Contrato c : contratos) {
+                        if (c.getTipoItem() == null || c.getItemId() == null) {
+                            contratoRepository.delete(c);
+                        }
+                    }
+                    System.out.println("=== PopulateDB: Contratos defectuosos/antiguos eliminados ===");
+                } catch (Exception e) {
+                    System.err.println("=== PopulateDB: Error al limpiar contratos: " + e.getMessage());
                 }
 
                 // --- ASEGURAR USUARIOS FLAGUEADOS PARA PRUEBAS (FRAUDE) ---
@@ -630,6 +646,39 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                         System.out.println("=== PopulateDB: Inmuebles inyectados bajo demanda ===");
                                 }
                         }
+
+                        // --- CUPONES DE PRUEBA ---
+                        if (cuponRepository.findByCodigo("NEXUS20").isEmpty()) {
+                                Cupon c1 = new Cupon();
+                                c1.setCodigo("NEXUS20");
+                                c1.setTipo(TipoDescuento.PORCENTAJE);
+                                c1.setValor(new BigDecimal("20"));
+                                c1.setAlcance(AlcanceCupon.TODOS);
+                                c1.setDescripcionInterna("Cupón de bienvenida 20% para todos");
+                                cuponRepository.save(c1);
+                        }
+
+                        if (cuponRepository.findByCodigo("SAVE10").isEmpty()) {
+                                Cupon c2 = new Cupon();
+                                c2.setCodigo("SAVE10");
+                                c2.setTipo(TipoDescuento.FIJO);
+                                c2.setValor(new BigDecimal("10"));
+                                c2.setAlcance(AlcanceCupon.TODOS);
+                                c2.setImporteMinimo(new BigDecimal("50"));
+                                c2.setDescripcionInterna("10€ de descuento en compras de más de 50€");
+                                cuponRepository.save(c2);
+                        }
+
+                        if (cuponRepository.findByCodigo("FREESHIP").isEmpty()) {
+                                Cupon c3 = new Cupon();
+                                c3.setCodigo("FREESHIP");
+                                c3.setTipo(TipoDescuento.ENVIO_GRATIS);
+                                c3.setAlcance(AlcanceCupon.TODOS);
+                                c3.setDescripcionInterna("Envío gratis para todos");
+                                cuponRepository.save(c3);
+                        }
+                        
+                        System.out.println("=== PopulateDB: Cupones de prueba verificados/inyectados ===");
 
                         done = true;
                         return;
@@ -2374,6 +2423,41 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                     if (numDevs > 0) System.out.println("=== PopulateDB: " + numDevs + " Devoluciones de prueba inyectadas ===");
                 }
 
+
+
+                // --- CUPONES DE PRUEBA ---
+                if (cuponRepository.findByCodigo("NEXUS20").isEmpty()) {
+                        Cupon c1 = new Cupon();
+                        c1.setCodigo("NEXUS20");
+                        c1.setTipo(TipoDescuento.PORCENTAJE);
+                        c1.setValor(new BigDecimal("20"));
+                        c1.setAlcance(AlcanceCupon.TODOS);
+                        c1.setDescripcionInterna("Cupón de bienvenida 20% para todos");
+                        cuponRepository.save(c1);
+                }
+
+                if (cuponRepository.findByCodigo("SAVE10").isEmpty()) {
+                        Cupon c2 = new Cupon();
+                        c2.setCodigo("SAVE10");
+                        c2.setTipo(TipoDescuento.FIJO);
+                        c2.setValor(new BigDecimal("10"));
+                        c2.setAlcance(AlcanceCupon.TODOS);
+                        c2.setImporteMinimo(new BigDecimal("50"));
+                        c2.setDescripcionInterna("10€ de descuento en compras de más de 50€");
+                        cuponRepository.save(c2);
+                }
+
+                if (cuponRepository.findByCodigo("FREESHIP").isEmpty()) {
+                        Cupon c3 = new Cupon();
+                        c3.setCodigo("FREESHIP");
+                        c3.setTipo(TipoDescuento.ENVIO_GRATIS);
+                        c3.setAlcance(AlcanceCupon.TODOS);
+                        c3.setDescripcionInterna("Envío gratis para todos");
+                        cuponRepository.save(c3);
+                }
+                
+                System.out.println("=== PopulateDB: Cupones de prueba verificados/inyectados ===");
+
                 System.out.println("=== PopulateDB completado con éxito ===");
                 System.out.println("  - Categorías:    " + categoriaRepository.count());
                 System.out.println("  - Actores:       " + actorRepository.count()
@@ -2390,6 +2474,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 System.out.println("  - Envíos:        " + envioRepository.count());
                 System.out.println("  - Valoraciones:  " + valoracionRepository.count());
                 System.out.println("  - Devoluciones:  " + devolucionRepository.count());
+                System.out.println("  - Cupones:       " + cuponRepository.count());
                 System.out.println("  - Reportes:      " + reporteRepository.count());
                 System.out.println("  - Bloqueos:      " + bloqueoRepository.count());
                 System.out.println("  - Contratos:     " + contratoRepository.count());
