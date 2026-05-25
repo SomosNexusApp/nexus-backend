@@ -11,11 +11,11 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     @Query("""
         SELECT a FROM AuditLog a
-        WHERE (:admin IS NULL OR LOWER(a.adminUser) LIKE LOWER(CONCAT('%', :admin, '%')))
-          AND (:accion IS NULL OR a.accion = :accion)
-          AND (:entidadTipo IS NULL OR a.entidadTipo = :entidadTipo)
-          AND (:desde IS NULL OR a.timestamp >= :desde)
-          AND (:hasta IS NULL OR a.timestamp <= :hasta)
+        WHERE (:admin = '' OR LOWER(a.adminUser) LIKE LOWER(CONCAT('%', :admin, '%')))
+          AND (:accion = '' OR a.accion = :accion)
+          AND (:entidadTipo = '' OR a.entidadTipo = :entidadTipo)
+          AND (a.timestamp >= :desde)
+          AND (a.timestamp <= :hasta)
         ORDER BY a.timestamp DESC
     """)
     Page<AuditLog> filter(

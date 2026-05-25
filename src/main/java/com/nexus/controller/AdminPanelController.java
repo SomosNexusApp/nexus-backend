@@ -600,9 +600,14 @@ public class AdminPanelController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "30") int size
     ) {
-        LocalDateTime d = (desde != null && !desde.isBlank()) ? LocalDateTime.parse(desde + "T00:00:00") : null;
-        LocalDateTime h = (hasta != null && !hasta.isBlank()) ? LocalDateTime.parse(hasta + "T23:59:59") : null;
-        var paged = auditLogRepo.filter(admin, accion, entidadTipo, d, h, PageRequest.of(page, size));
+        LocalDateTime d = (desde != null && !desde.isBlank()) ? LocalDateTime.parse(desde + "T00:00:00") : LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime h = (hasta != null && !hasta.isBlank()) ? LocalDateTime.parse(hasta + "T23:59:59") : LocalDateTime.of(2999, 12, 31, 23, 59);
+        
+        String safeAdmin = (admin == null) ? "" : admin;
+        String safeAccion = (accion == null) ? "" : accion;
+        String safeEntidad = (entidadTipo == null) ? "" : entidadTipo;
+
+        var paged = auditLogRepo.filter(safeAdmin, safeAccion, safeEntidad, d, h, PageRequest.of(page, size));
         List<Object> content = paged.stream().map(a -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", a.getId());
@@ -612,8 +617,37 @@ public class AdminPanelController {
             m.put("entidadTipo", a.getEntidadTipo());
             m.put("entidadId", a.getEntidadId());
             m.put("detalle", a.getDetalle());
-            m.put("ip", a.getIp());
             m.put("timestamp", a.getTimestamp());
+            
+            // Resolve specific entity name
+            String entidadNombre = "—";
+            try {
+                if (a.getEntidadId() != null && a.getEntidadId() > 0 && a.getEntidadTipo() != null) {
+                    switch (a.getEntidadTipo().toUpperCase()) {
+                        case "USUARIO":
+                        case "ACTOR":
+                        case "EMPRESA":
+                            entidadNombre = actorRepo.findById(a.getEntidadId().intValue()).map(Actor::getUser).orElse("Usuario desconocido");
+                            break;
+                        case "PRODUCTO":
+                            entidadNombre = productoRepo.findById(a.getEntidadId().intValue()).map(Producto::getTitulo).orElse("Producto eliminado");
+                            break;
+                        case "OFERTA":
+                            entidadNombre = ofertaRepo.findById(a.getEntidadId().intValue()).map(Oferta::getTitulo).orElse("Oferta eliminada");
+                            break;
+                        case "REPORTE":
+                            entidadNombre = reporteRepo.findById(a.getEntidadId().intValue()).map(r -> "Reporte #" + r.getId()).orElse("Reporte eliminado");
+                            break;
+                        case "DEVOLUCION":
+                            entidadNombre = devolucionRepo.findById(a.getEntidadId().intValue()).map(d2 -> "Devolución #" + d2.getId()).orElse("Devolución eliminada");
+                            break;
+                        default:
+                            entidadNombre = a.getEntidadTipo() + " #" + a.getEntidadId();
+                    }
+                }
+            } catch (Exception e) {}
+            m.put("entidadNombre", entidadNombre);
+            
             return (Object) m;
         }).toList();
         return ResponseEntity.ok(buildPage(content, paged));
