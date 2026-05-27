@@ -28,6 +28,7 @@ public class NotificacionService {
     @Autowired private ActorRepository actorRepository;
     @Autowired private ProductoRepository productoRepository;
     @Autowired private SimpMessagingTemplate messagingTemplate;
+    @Autowired private FcmService fcmService;
 
     public List<NotificacionInApp> getNoLeidas(Integer actorId) {
         return notificacionRepository.findByActorIdAndLeidaFalseOrderByFechaDesc(actorId);
@@ -109,6 +110,8 @@ public class NotificacionService {
         n.setFecha(LocalDateTime.now());
         NotificacionInApp g = notificacionRepository.save(n);
         enviarPorWebSocket(g);
+        // Enviamos también push nativa (llega aunque la app esté en background)
+        fcmService.sendPush(actorId, titulo, mensaje, url);
         return g;
     }
 
@@ -131,6 +134,8 @@ public class NotificacionService {
         n.setFecha(LocalDateTime.now());
         
         enviarPorWebSocket(n);
+        // Push nativa para mensajes de chat recibidos en background
+        fcmService.sendPush(actorId, titulo, mensaje, url);
     }
 
     private void enviarPorWebSocket(NotificacionInApp g) {

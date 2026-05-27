@@ -36,3 +36,7 @@ target/classes/application.properties
 target/classes/application.properties
 src/main/resources/application.properties
 src/main/resources/application-secrets.properties
+
+# --- Firebase (credenciales privadas — NUNCA subir a git) ---
+src/main/resources/firebase-service-account.json
+**/firebase-service-account.json

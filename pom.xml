@@ -150,6 +150,20 @@
 			<version>3.5.3</version>
 		</dependency>
 
+		<!-- Firebase Admin SDK — notificaciones push via FCM -->
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.3.0</version>
+			<exclusions>
+				<!-- Excluimos commons-logging para evitar conflictos con Spring -->
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>

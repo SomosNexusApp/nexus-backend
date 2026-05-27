@@ -284,6 +284,7 @@ public class SecurityConfiguration {
                                                 .requestMatchers("/favorito/**", "/api/favoritos/**").authenticated()
                                                 .requestMatchers("/bloqueo/**", "/api/bloqueos/**").authenticated()
                                                 .requestMatchers("/api/notificaciones/**").authenticated()
+                                                .requestMatchers("/api/push-tokens/**").authenticated()
                                                 .requestMatchers("/envio/**", "/api/envios/**").authenticated()
                                                 .requestMatchers("/ajustes/**", "/api/usuarios/me/**").authenticated()
 
