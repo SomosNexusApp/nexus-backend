@@ -348,6 +348,10 @@ public class AuthController {
         perfil.put("fechaRegistro", actor.getFechaRegistro());
         perfil.put("cuentaVerificada", actor.isCuentaVerificada());
         perfil.put("onboardingCompletado", actor.isOnboardingCompletado());
+        perfil.put("baneado", actor.isBaneado());
+        perfil.put("motivoBan", actor.getMotivoBan());
+        perfil.put("suspendidoHasta", actor.getSuspendidoHasta());
+        perfil.put("motivoSuspension", actor.getMotivoSuspension());
 
         if (actor instanceof Usuario u) {
             perfil.put("rol", "ROLE_USER");

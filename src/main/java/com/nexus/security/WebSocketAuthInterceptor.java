@@ -1,17 +1,23 @@
 package com.nexus.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import com.nexus.repository.ActorRepository;
+
+import java.time.LocalDateTime;
 
 /**
  * Interceptor para autenticar conexiones WebSocket usando JWT.
@@ -26,6 +32,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     @Autowired
     private UserDetailsService userDetailsService;
+
+    @Autowired
+    @Lazy
+    private ActorRepository actorRepository;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -44,6 +54,22 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                     if (userDetails != null) {
+                        // Comprobar si el actor está baneado o suspendido temporalmente
+                        boolean blocked = actorRepository.findByUsername(username)
+                            .or(() -> actorRepository.findByEmail(username))
+                            .map(actor -> {
+                                boolean isSuspended = actor.getSuspendidoHasta() != null && 
+                                                      actor.getSuspendidoHasta().isAfter(LocalDateTime.now());
+                                boolean isBanned = actor.isBaneado();
+                                return isBanned || isSuspended;
+                            })
+                            .orElse(false);
+
+                        if (blocked) {
+                            System.err.println("❌ WS Auth denegada: Usuario bloqueado o suspendido: " + username);
+                            throw new AccessDeniedException("Usuario bloqueado o suspendido");
+                        }
+
                         UsernamePasswordAuthenticationToken authentication = 
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         

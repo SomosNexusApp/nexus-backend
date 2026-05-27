@@ -1,6 +1,8 @@
 package com.nexus.security;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -12,6 +14,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.nexus.entity.Actor;
+import com.nexus.repository.ActorRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -42,6 +47,10 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     @Lazy
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    @Lazy
+    private ActorRepository actorRepository;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
@@ -70,16 +79,38 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
+                    // Comprobar si el actor está baneado o suspendido temporalmente
+                    Optional<Actor> actorOpt = actorRepository.findByUsername(username)
+                            .or(() -> actorRepository.findByEmail(username));
 
-                    // Adjuntar detalles de la request (IP, session id…)
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
+                    boolean blocked = false;
+                    if (actorOpt.isPresent()) {
+                        Actor actor = actorOpt.get();
+                        boolean isSuspended = actor.getSuspendidoHasta() != null && 
+                                              actor.getSuspendidoHasta().isAfter(LocalDateTime.now());
+                        boolean isBanned = actor.isBaneado();
+                        blocked = isBanned || isSuspended;
+                    }
 
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    String uri = request.getRequestURI();
+                    boolean isMeRoute = uri.endsWith("/api/auth/me") || uri.endsWith("/auth/me");
+                    boolean isLogoutRoute = uri.contains("/logout");
+
+                    if (blocked && !isMeRoute && !isLogoutRoute) {
+                        // Usuario bloqueado intentando acceder a ruta restringida -> no autenticar
+                        SecurityContextHolder.clearContext();
+                    } else {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities());
+
+                        // Adjuntar detalles de la request (IP, session id…)
+                        authToken.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             }
             // Si validateToken devuelve false: token inválido/expirado
