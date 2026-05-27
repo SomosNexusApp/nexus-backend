@@ -54,7 +54,7 @@ public class PushTokenController {
         }
 
         String username = auth.getName();
-        Actor actor = actorRepository.findByUser(username).orElse(null);
+        Actor actor = actorRepository.findByUsername(username).orElse(null);
         if (actor == null) {
             return ResponseEntity.notFound().build();
         }
