@@ -12,17 +12,13 @@ WORKDIR /app
 COPY --from=build /app/target/nexus-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", \
-  "-Xmx380m", "-Xms96m", "-Xss256k", \
+  "-Xmx380m", "-Xms48m", "-Xss256k", \
   "-XX:+UseContainerSupport", \
   "-XX:MaxMetaspaceSize=120m", \
   "-XX:CompressedClassSpaceSize=64m", \
   "-XX:+UseSerialGC", \
   "-XX:+DisableExplicitGC", \
-  "-XX:+UseStringDeduplication", \
-  "-XX:TieredStopAtLevel=1", \
   "-Djava.security.egd=file:/dev/./urandom", \
   "-Dspring.backgroundpreinitializer.ignore=true", \
   "-Dfile.encoding=UTF-8", \
-  "-Dhttp.keepAlive=true", \
-  "-Dhttp.maxConnections=5", \
   "-jar", "app.jar"]
