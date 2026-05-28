@@ -77,7 +77,7 @@ public class AdminOfertasController {
                 (String) body.get("imagenPrincipal"),
                 (String) body.get("tienda"),
                 (String) body.get("urlOferta"),
-                body.get("categoriaId") != null ? ((Number) body.get("categoriaId")).intValue() : null
+                safeIntValue(body.get("categoriaId"))
         );
         return ResponseEntity.ok(service.crearFlash(req, ud.getUsername()));
     }
@@ -90,5 +90,11 @@ public class AdminOfertasController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Integer safeIntValue(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).intValue();
+        try { return Integer.parseInt(val.toString()); } catch (Exception e) { return null; }
     }
 }

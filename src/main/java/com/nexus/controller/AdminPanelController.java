@@ -549,19 +549,54 @@ public class AdminPanelController {
     
     @GetMapping("/sanciones")
     public ResponseEntity<Map<String, Object>> sanciones(@RequestParam(defaultValue = "0") int page,
-                                                          @RequestParam(defaultValue = "20") int size) {
-        Page<Actor> paged = actorRepo.findAll(PageRequest.of(page, size));
+                                                          @RequestParam(defaultValue = "20") int size,
+                                                          @RequestParam(required = false) String estado) {
+        // First filter all actors that have or had any sanction
+        List<Actor> todos = actorRepo.findAll();
+        List<Actor> sancionados;
+
+        if ("ACTIVA".equalsIgnoreCase(estado)) {
+            // Active sanctions: currently banned OR suspension still in effect
+            sancionados = todos.stream().filter(u ->
+                u.isBaneado() || (u.getSuspendidoHasta() != null && u.getSuspendidoHasta().isAfter(LocalDateTime.now()))
+            ).toList();
+        } else if ("HISTORICO".equalsIgnoreCase(estado)) {
+            // Historical sanctions: suspension expired (not banned, suspendidoHasta in the past)
+            sancionados = todos.stream().filter(u ->
+                !u.isBaneado() && u.getSuspendidoHasta() != null && u.getSuspendidoHasta().isBefore(LocalDateTime.now())
+            ).toList();
+        } else {
+            // All sanctions (active + historical)
+            sancionados = todos.stream().filter(u ->
+                u.isBaneado() || u.getSuspendidoHasta() != null
+            ).toList();
+        }
+
+        // Manual pagination over filtered list
+        int total = sancionados.size();
+        int totalPages = (int) Math.ceil((double) total / size);
+        int fromIndex = Math.min(page * size, total);
+        int toIndex = Math.min(fromIndex + size, total);
+        List<Actor> pageContent = sancionados.subList(fromIndex, toIndex);
+
         List<Object> content = new ArrayList<>();
-        for (Actor u : paged) {
-            if (!u.isBaneado() && u.getSuspendidoHasta() == null) continue;
+        for (Actor u : pageContent) {
+            boolean activo = u.isBaneado() || (u.getSuspendidoHasta() != null && u.getSuspendidoHasta().isAfter(LocalDateTime.now()));
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", u.getId()); m.put("user", u.getUser()); m.put("avatar", u.getAvatar());
             m.put("tipo", u.isBaneado() ? "BAN" : "SUSPENSION");
             m.put("motivo", u.isBaneado() ? u.getMotivoBan() : u.getMotivoSuspension());
-            m.put("fechaFin", u.getSuspendidoHasta()); m.put("activo", true);
+            m.put("fechaFin", u.getSuspendidoHasta()); m.put("activo", activo);
             content.add(m);
         }
-        return ResponseEntity.ok(buildPage(content, paged));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("content", content);
+        result.put("totalElements", (long) total);
+        result.put("totalPages", totalPages);
+        result.put("number", page);
+        result.put("size", size);
+        return ResponseEntity.ok(result);
     }
 
     // ════════════════════════════════ FRAUDE ════════════════════════════════
