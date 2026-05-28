@@ -307,6 +307,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                                 "Apasionado del motor y la tecnología.", 4.7, 8, true);
                                 manuel.setNombre("Manuel");
                                 manuel.setApellidos("Lora");
+                                manuel.setAvatar(
+                                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
                                 usuarioRepository.save(manuel);
 
                                 Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
