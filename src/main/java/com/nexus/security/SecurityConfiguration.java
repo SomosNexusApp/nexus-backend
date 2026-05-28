@@ -49,15 +49,21 @@ public class SecurityConfiguration {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowCredentials(true); // necesario para enviar cookies o cabeceras de autenticacion
 
-		// origins permitidos: produccion, vercel y localhost para desarrollo
+		// origins permitidos: produccion, vercel, localhost para desarrollo
+		// y orígenes nativos de Capacitor (APK Android e IPA iOS)
 		// usamos patrones con wildcard porque allowCredentials=true no permite "*"
 		config.setAllowedOriginPatterns(java.util.List.of(
 			"https://nexus-app.es",
 			"https://*.nexus-app.es",
-			"https://*.vercel.app", // para previews en vercel
+			"https://*.vercel.app",  // para previews en vercel
 			"http://localhost:4200",
 			"http://localhost:4201",
-			"http://127.0.0.1:4200"
+			"http://127.0.0.1:4200",
+			"capacitor://localhost",  // Android (Capacitor)
+			"capacitor://*",          // Android — cualquier app Capacitor
+			"ionic://localhost",      // iOS (Capacitor/Ionic)
+			"ionic://*",              // iOS — cualquier app Ionic/Capacitor
+			"http://localhost"        // emulador Android (localhost sin puerto)
 		));
 
 		// cabeceras que el frontend puede mandar y las que puede leer de la respuesta
