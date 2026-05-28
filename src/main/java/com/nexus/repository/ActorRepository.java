@@ -25,4 +25,9 @@ public interface ActorRepository extends JpaRepository<Actor, Integer> {
            "FROM Actor a WHERE a.fechaRegistro >= :since " +
            "GROUP BY CAST(a.fechaRegistro AS LocalDate) ORDER BY CAST(a.fechaRegistro AS LocalDate) ASC")
     List<java.util.Map<String, Object>> getUsuariosPorDia(@org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
-}
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Actor a SET a.flagFraude = false WHERE a.id = :id")
+    void clearFlagFraude(@org.springframework.data.repository.query.Param("id") Integer id);
+}
