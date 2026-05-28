@@ -186,11 +186,72 @@ public class AdminPanelController {
     @GetMapping("/usuarios")
     public ResponseEntity<Map<String, Object>> usuarios(
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) String tipo,
+        @RequestParam(required = false) String verificado,
+        @RequestParam(required = false) String estado
     ) {
-        Page<Actor> paged = actorRepo.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
-        List<Object> content = paged.stream().map(this::mapUsuario).map(m -> (Object) m).toList();
-        return ResponseEntity.ok(buildPage(content, paged));
+        // Cargamos todos sin filtrar para poder aplicar filtros en memoria
+        // (la tabla de actores es pequeña, normalmente <10k registros)
+        List<Actor> todos = actorRepo.findAll(Sort.by("id").descending());
+
+        // Filtro por búsqueda de texto (nombre, username, email)
+        if (q != null && !q.isBlank()) {
+            String lower = q.trim().toLowerCase();
+            todos = todos.stream().filter(a ->
+                (a.getUser() != null && a.getUser().toLowerCase().contains(lower)) ||
+                (a.getEmail() != null && a.getEmail().toLowerCase().contains(lower)) ||
+                (a.getNombre() != null && a.getNombre().toLowerCase().contains(lower)) ||
+                (a.getApellidos() != null && a.getApellidos().toLowerCase().contains(lower))
+            ).toList();
+        }
+
+        // Filtro por tipo de actor (USUARIO, EMPRESA, ADMIN)
+        if (tipo != null && !tipo.isBlank()) {
+            todos = switch (tipo.toUpperCase()) {
+                case "USUARIO" -> todos.stream().filter(a -> a instanceof com.nexus.entity.Usuario).toList();
+                case "EMPRESA" -> todos.stream().filter(a -> a instanceof com.nexus.entity.Empresa).toList();
+                case "ADMIN"   -> todos.stream().filter(a -> a instanceof com.nexus.entity.Admin).toList();
+                default -> todos;
+            };
+        }
+
+        // Filtro por verificación
+        if (verificado != null && !verificado.isBlank()) {
+            boolean esVerificado = Boolean.parseBoolean(verificado);
+            todos = todos.stream().filter(a -> a.isCuentaVerificada() == esVerificado).toList();
+        }
+
+        // Filtro por estado (ACTIVO, SUSPENDIDO_TEMP, BANEADO)
+        if (estado != null && !estado.isBlank()) {
+            todos = switch (estado.toUpperCase()) {
+                case "BANEADO" -> todos.stream().filter(Actor::isBaneado).toList();
+                case "SUSPENDIDO_TEMP" -> todos.stream().filter(a ->
+                    !a.isBaneado() && a.getSuspendidoHasta() != null && a.getSuspendidoHasta().isAfter(LocalDateTime.now())
+                ).toList();
+                case "ACTIVO" -> todos.stream().filter(a ->
+                    !a.isBaneado() && (a.getSuspendidoHasta() == null || a.getSuspendidoHasta().isBefore(LocalDateTime.now()))
+                ).toList();
+                default -> todos;
+            };
+        }
+
+        // Paginación manual sobre la lista filtrada
+        int total = todos.size();
+        int totalPages = (int) Math.ceil((double) total / size);
+        int fromIndex = Math.min(page * size, total);
+        int toIndex = Math.min(fromIndex + size, total);
+        List<Object> content = todos.subList(fromIndex, toIndex).stream()
+            .map(this::mapUsuario).map(m -> (Object) m).toList();
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("content", content);
+        res.put("totalElements", (long) total);
+        res.put("totalPages", totalPages);
+        res.put("number", page);
+        res.put("size", size);
+        return ResponseEntity.ok(res);
     }
 
     @GetMapping("/usuarios/{id}")
@@ -279,6 +340,7 @@ public class AdminPanelController {
     }
 
     @PostMapping("/usuarios/{id}/impersonar")
+    @Transactional
     public ResponseEntity<Map<String, Object>> impersonar(@PathVariable Integer id,
                                                            @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         audit(ud, "IMPERSONAR_USUARIO", "USUARIO", id.longValue(), "Impersonación iniciada", req);
@@ -308,6 +370,7 @@ public class AdminPanelController {
     }
 
     @PostMapping("/notificaciones")
+    @Transactional
     public ResponseEntity<Void> enviarAviso(@RequestBody Map<String, Object> body,
                                              @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         Object uidObj = body.get("usuarioId");

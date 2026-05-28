@@ -23,11 +23,13 @@ import com.nexus.entity.Oferta;
 import com.nexus.entity.Producto;
 import com.nexus.entity.Vehiculo;
 import com.nexus.repository.CompraRepository;
+import com.nexus.repository.FavoritoRepository;
 import com.nexus.repository.OfertaRepository;
 import com.nexus.repository.ProductoRepository;
 import com.nexus.repository.SoporteChatMessageRepository;
 import com.nexus.repository.SoporteChatSessionRepository;
 import com.nexus.repository.VehiculoRepository;
+import com.nexus.repository.ActorRepository;
 
 @Service
 public class SoporteChatService {
@@ -40,6 +42,8 @@ public class SoporteChatService {
     private final ProductoRepository productoRepository;
     private final OfertaRepository ofertaRepository;
     private final VehiculoRepository vehiculoRepository;
+    private final FavoritoRepository favoritoRepository;
+    private final ActorRepository actorRepository;
     private final EnvioService envioService;
     private final NotificacionService notificacionService;
     private final EmailService emailService;
@@ -55,6 +59,8 @@ public class SoporteChatService {
             ProductoRepository productoRepository,
             OfertaRepository ofertaRepository,
             VehiculoRepository vehiculoRepository,
+            FavoritoRepository favoritoRepository,
+            ActorRepository actorRepository,
             EnvioService envioService,
             NotificacionService notificacionService,
             EmailService emailService) {
@@ -66,6 +72,8 @@ public class SoporteChatService {
         this.productoRepository = productoRepository;
         this.ofertaRepository = ofertaRepository;
         this.vehiculoRepository = vehiculoRepository;
+        this.favoritoRepository = favoritoRepository;
+        this.actorRepository = actorRepository;
         this.envioService = envioService;
         this.notificacionService = notificacionService;
         this.emailService = emailService;
@@ -174,6 +182,23 @@ public class SoporteChatService {
             row.put("insistenciaAgente", s.getInsistenciaAgente());
             row.put("actualizadoEn", s.getActualizadoEn() != null ? s.getActualizadoEn().toString() : "");
             row.put("numMensajes", n);
+
+            // Enrich with user profile data when session is authenticated
+            if (s.getUsuarioId() != null) {
+                actorRepository.findById(s.getUsuarioId()).ifPresent(actor -> {
+                    java.util.HashMap<String, Object> u = new java.util.HashMap<>();
+                    u.put("id", actor.getId());
+                    u.put("user", actor.getUser() != null ? actor.getUser() : "");
+                    u.put("nombre", actor.getNombre() != null ? actor.getNombre() : "");
+                    u.put("apellidos", actor.getApellidos() != null ? actor.getApellidos() : "");
+                    u.put("email", actor.getEmail() != null ? actor.getEmail() : "");
+                    u.put("avatar", actor.getAvatar() != null ? actor.getAvatar() : "");
+                    u.put("baneado", actor.isBaneado());
+                    u.put("verificado", actor.isCuentaVerificada());
+                    row.put("usuario", u);
+                });
+            }
+
             out.add(row);
         }
         return out;
@@ -356,15 +381,47 @@ public class SoporteChatService {
                     .collect(Collectors.toList());
         }
         if ("OFERTA".equals(tipo)) {
-            return ofertaRepository.findByActorId(s.getUsuarioId()).stream()
-                    .map(this::refOferta)
+            LinkedHashMap<Integer, Map<String, Object>> acc = new LinkedHashMap<>();
+            // Ofertas publicadas por el usuario
+            for (Oferta o : ofertaRepository.findByActorId(s.getUsuarioId())) {
+                if (!acc.containsKey(o.getId())) {
+                    Map<String, Object> row = refOferta(o);
+                    row.put("origen", "PUBLICADA");
+                    acc.put(o.getId(), row);
+                }
+            }
+            // Ofertas que tiene en favoritos
+            for (com.nexus.entity.Favorito fav : favoritoRepository.findByActorId(s.getUsuarioId())) {
+                if (fav.getOferta() != null && !acc.containsKey(fav.getOferta().getId())) {
+                    Map<String, Object> row = refOferta(fav.getOferta());
+                    row.put("origen", "FAVORITO");
+                    acc.put(fav.getOferta().getId(), row);
+                }
+            }
+            return acc.values().stream()
                     .filter(row -> q.isBlank() || ((String) row.getOrDefault("titulo", "")).toLowerCase(Locale.ROOT).contains(q))
                     .limit(30)
                     .collect(Collectors.toList());
         }
         if ("VEHICULO".equals(tipo)) {
-            return vehiculoRepository.findByPublicadorIdOrderByFechaPublicacionDesc(s.getUsuarioId()).stream()
-                    .map(this::refVehiculo)
+            LinkedHashMap<Integer, Map<String, Object>> acc = new LinkedHashMap<>();
+            // Vehículos publicados por el usuario
+            for (Vehiculo v : vehiculoRepository.findByPublicadorIdOrderByFechaPublicacionDesc(s.getUsuarioId())) {
+                if (!acc.containsKey(v.getId())) {
+                    Map<String, Object> row = refVehiculo(v);
+                    row.put("origen", "PUBLICADO");
+                    acc.put(v.getId(), row);
+                }
+            }
+            // Vehículos que tiene en favoritos
+            for (com.nexus.entity.Favorito fav : favoritoRepository.findByActorId(s.getUsuarioId())) {
+                if (fav.getVehiculo() != null && !acc.containsKey(fav.getVehiculo().getId())) {
+                    Map<String, Object> row = refVehiculo(fav.getVehiculo());
+                    row.put("origen", "FAVORITO");
+                    acc.put(fav.getVehiculo().getId(), row);
+                }
+            }
+            return acc.values().stream()
                     .filter(row -> q.isBlank() || ((String) row.getOrDefault("titulo", "")).toLowerCase(Locale.ROOT).contains(q))
                     .limit(30)
                     .collect(Collectors.toList());
