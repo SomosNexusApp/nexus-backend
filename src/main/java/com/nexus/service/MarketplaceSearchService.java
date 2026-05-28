@@ -359,9 +359,15 @@ public class MarketplaceSearchService {
         if (o.getActor() != null) {
             String nombre = o.getActor().getNombre() != null
                     ? o.getActor().getNombre() : o.getActor().getUser();
-            m.put("vendedor", Map.of(
-                    "nombre",     nombre,
-                    "verificado", o.getActor().isCuentaVerificada()));
+            java.util.Map<String, Object> vendMap = new java.util.HashMap<>();
+            vendMap.put("nombre", nombre);
+            vendMap.put("verificado", o.getActor().isCuentaVerificada());
+            vendMap.put("user", o.getActor().getUser());
+            vendMap.put("avatar", o.getActor().getAvatar());
+            vendMap.put("googleAvatarUrl", o.getActor().getGoogleAvatarUrl());
+            vendMap.put("avatarSource", o.getActor().getAvatarSource());
+            vendMap.put("customAvatarUrl", o.getActor().getCustomAvatarUrl());
+            m.put("vendedor", vendMap);
         }
         return m;
     }
@@ -386,9 +392,15 @@ public class MarketplaceSearchService {
         if (p.getVendedor() != null) {
             String nombre = p.getVendedor().getNombre() != null
                     ? p.getVendedor().getNombre() : "Usuario";
-            m.put("vendedor", Map.of(
-                    "nombre",     nombre,
-                    "verificado", p.getVendedor().isCuentaVerificada()));
+            java.util.Map<String, Object> vendMap = new java.util.HashMap<>();
+            vendMap.put("nombre", nombre);
+            vendMap.put("verificado", p.getVendedor().isCuentaVerificada());
+            vendMap.put("user", p.getVendedor().getUser());
+            vendMap.put("avatar", p.getVendedor().getAvatar());
+            vendMap.put("googleAvatarUrl", p.getVendedor().getGoogleAvatarUrl());
+            vendMap.put("avatarSource", p.getVendedor().getAvatarSource());
+            vendMap.put("customAvatarUrl", p.getVendedor().getCustomAvatarUrl());
+            m.put("vendedor", vendMap);
         }
 
         if (p.getEstado() == EstadoProducto.VENDIDO && p.getFechaVenta() != null) {
@@ -425,9 +437,15 @@ public class MarketplaceSearchService {
         if (v.getPublicador() != null) {
             String nombre = v.getPublicador().getNombre() != null
                     ? v.getPublicador().getNombre() : v.getPublicador().getUser();
-            m.put("vendedor", Map.of(
-                    "nombre",     nombre,
-                    "verificado", v.getPublicador().isCuentaVerificada()));
+            java.util.Map<String, Object> vendMap = new java.util.HashMap<>();
+            vendMap.put("nombre", nombre);
+            vendMap.put("verificado", v.getPublicador().isCuentaVerificada());
+            vendMap.put("user", v.getPublicador().getUser());
+            vendMap.put("avatar", v.getPublicador().getAvatar());
+            vendMap.put("googleAvatarUrl", v.getPublicador().getGoogleAvatarUrl());
+            vendMap.put("avatarSource", v.getPublicador().getAvatarSource());
+            vendMap.put("customAvatarUrl", v.getPublicador().getCustomAvatarUrl());
+            m.put("vendedor", vendMap);
         }
         return m;
     }

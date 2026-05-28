@@ -309,6 +309,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 manuel.setApellidos("Lora");
                                 manuel.setAvatar(
                                                 "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
+                                manuel.setAvatarSource("CUSTOM");
+                                manuel.setCustomAvatarUrl(
+                                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
                                 usuarioRepository.save(manuel);
 
                                 Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
@@ -332,6 +335,15 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 jaime.setCustomAvatarUrl(
                                                 "https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 usuarioRepository.save(jaime);
+                        });
+
+                        usuarioRepository.findByUsername("manuel_lora").ifPresent(manuel -> {
+                                manuel.setAvatar(
+                                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
+                                manuel.setAvatarSource("CUSTOM");
+                                manuel.setCustomAvatarUrl(
+                                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
+                                usuarioRepository.save(manuel);
                         });
 
                         if (usuarioRepository.findByUsername("jaime_caraver").isEmpty()) {
@@ -842,12 +854,18 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Vendedora ocasional. Cuido mucho mis cosas.", 4.9, 5, true);
                 ana.setNombre("Ana");
                 ana.setApellidos("Escalera");
+
                 usuarioRepository.save(ana);
 
                 Usuario manuel = usuario("manuel_lora", "manuel.lora@nexus.test", "Fuentes de Andalucía, Sevilla",
                                 "Apasionado del motor y la tecnología.", 4.7, 8, true);
                 manuel.setNombre("Manuel");
                 manuel.setApellidos("Lora");
+                manuel.setAvatar(
+                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
+                manuel.setAvatarSource("CUSTOM");
+                manuel.setCustomAvatarUrl(
+                                "https://i.postimg.cc/JzVgmJ7j/55963439-2392887610946985-4942355477531983872-n.jpg");
                 usuarioRepository.save(manuel);
 
                 Usuario jaime = usuario("jaime_caraver", "jaime.caraver@nexus.test", "El Rubio, Sevilla",
