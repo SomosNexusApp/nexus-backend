@@ -30,6 +30,8 @@ import com.nexus.repository.SoporteChatMessageRepository;
 import com.nexus.repository.SoporteChatSessionRepository;
 import com.nexus.repository.VehiculoRepository;
 import com.nexus.repository.ActorRepository;
+import com.nexus.repository.SparkVotoRepository;
+import com.nexus.entity.SparkVoto;
 
 @Service
 public class SoporteChatService {
@@ -44,6 +46,7 @@ public class SoporteChatService {
     private final VehiculoRepository vehiculoRepository;
     private final FavoritoRepository favoritoRepository;
     private final ActorRepository actorRepository;
+    private final SparkVotoRepository sparkVotoRepository;
     private final EnvioService envioService;
     private final NotificacionService notificacionService;
     private final EmailService emailService;
@@ -61,6 +64,7 @@ public class SoporteChatService {
             VehiculoRepository vehiculoRepository,
             FavoritoRepository favoritoRepository,
             ActorRepository actorRepository,
+            SparkVotoRepository sparkVotoRepository,
             EnvioService envioService,
             NotificacionService notificacionService,
             EmailService emailService) {
@@ -74,6 +78,7 @@ public class SoporteChatService {
         this.vehiculoRepository = vehiculoRepository;
         this.favoritoRepository = favoritoRepository;
         this.actorRepository = actorRepository;
+        this.sparkVotoRepository = sparkVotoRepository;
         this.envioService = envioService;
         this.notificacionService = notificacionService;
         this.emailService = emailService;
@@ -386,6 +391,14 @@ public class SoporteChatService {
                     acc.put(fav.getProducto().getId(), row);
                 }
             }
+            // Productos a los que el usuario ha reaccionado (spark/drip)
+            for (SparkVoto voto : sparkVotoRepository.findByActorId(s.getUsuarioId())) {
+                if (voto.getProducto() != null && !acc.containsKey(voto.getProducto().getId())) {
+                    Map<String, Object> row = refProducto(voto.getProducto());
+                    row.put("origen", voto.getValor() > 0 ? "SPARK" : "DRIP");
+                    acc.put(voto.getProducto().getId(), row);
+                }
+            }
             return acc.values().stream()
                     .filter(row -> q.isBlank() || ((String) row.getOrDefault("titulo", "")).toLowerCase(Locale.ROOT).contains(q))
                     .limit(30)
@@ -407,6 +420,14 @@ public class SoporteChatService {
                     Map<String, Object> row = refOferta(fav.getOferta());
                     row.put("origen", "FAVORITO");
                     acc.put(fav.getOferta().getId(), row);
+                }
+            }
+            // Ofertas a las que el usuario ha reaccionado (spark/drip)
+            for (SparkVoto voto : sparkVotoRepository.findByActorId(s.getUsuarioId())) {
+                if (voto.getOferta() != null && !acc.containsKey(voto.getOferta().getId())) {
+                    Map<String, Object> row = refOferta(voto.getOferta());
+                    row.put("origen", voto.getValor() > 0 ? "SPARK" : "DRIP");
+                    acc.put(voto.getOferta().getId(), row);
                 }
             }
             return acc.values().stream()
