@@ -680,10 +680,11 @@ public class AdminPanelController {
     @Transactional
     public ResponseEntity<Void> marcarRevisado(@PathVariable Integer userId,
                                                 @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
-        var u = actorRepo.findById(userId).orElseThrow();
-        u.setFlagFraude(false);
-        actorRepo.save(u);
-        audit(ud, "FRAUDE_REVISADO", "ACTOR", userId.longValue(), "Flag eliminado", req);
+        if (!actorRepo.existsById(userId)) {
+            return ResponseEntity.notFound().build();
+        }
+        // Actualización directa JPQL — sin cargar entidad ni lazy collections
+        actorRepo.clearFlagFraude(userId);
         return ResponseEntity.ok().build();
     }
 
