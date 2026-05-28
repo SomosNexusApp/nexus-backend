@@ -366,14 +366,25 @@ public class SoporteChatService {
 
         if ("PRODUCTO".equals(tipo)) {
             LinkedHashMap<Integer, Map<String, Object>> acc = new LinkedHashMap<>();
+            // Productos publicados por el usuario
             for (Producto p : productoRepository.findByVendedorIdOrderByFechaPublicacionDesc(s.getUsuarioId())) {
                 addReferenciaProducto(acc, p, "SUBIDO");
             }
+            // Productos que el usuario ha comprado
             for (Compra c : compraRepository.findByCompradorIdOrderByFechaCompraDesc(s.getUsuarioId())) {
                 if (c.getProducto() != null) addReferenciaProducto(acc, c.getProducto(), "COMPRADO");
             }
+            // Productos en los que el usuario ha sido vendedor
             for (Compra c : compraRepository.findByVendedorId(s.getUsuarioId())) {
                 if (c.getProducto() != null) addReferenciaProducto(acc, c.getProducto(), "VENDIDO");
+            }
+            // Productos que el usuario tiene en favoritos
+            for (com.nexus.entity.Favorito fav : favoritoRepository.findByActorId(s.getUsuarioId())) {
+                if (fav.getProducto() != null && !acc.containsKey(fav.getProducto().getId())) {
+                    Map<String, Object> row = refProducto(fav.getProducto());
+                    row.put("origen", "FAVORITO");
+                    acc.put(fav.getProducto().getId(), row);
+                }
             }
             return acc.values().stream()
                     .filter(row -> q.isBlank() || ((String) row.getOrDefault("titulo", "")).toLowerCase(Locale.ROOT).contains(q))
