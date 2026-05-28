@@ -677,6 +677,7 @@ public class AdminPanelController {
     }
 
     @PatchMapping("/fraude/flags/{userId}/revisado")
+    @Transactional
     public ResponseEntity<Void> marcarRevisado(@PathVariable Integer userId,
                                                 @AuthenticationPrincipal UserDetails ud, HttpServletRequest req) {
         var u = actorRepo.findById(userId).orElseThrow();
