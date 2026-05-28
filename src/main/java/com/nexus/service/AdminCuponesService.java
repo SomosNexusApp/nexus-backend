@@ -34,10 +34,13 @@ public class AdminCuponesService {
         if (cupon.getCodigo() == null || cupon.getCodigo().isBlank()) {
             throw new IllegalArgumentException("El código del cupón no puede estar vacío.");
         }
-        if (cuponRepo.existsByCodigo(cupon.getCodigo().toUpperCase())) {
-            throw new RuntimeException("El código de cupón ya existe.");
+        String codigoUpper = cupon.getCodigo().toUpperCase();
+        if (cuponRepo.existsByCodigo(codigoUpper)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT,
+                "El código '" + codigoUpper + "' ya existe.");
         }
-        cupon.setCodigo(cupon.getCodigo().toUpperCase());
+        cupon.setCodigo(codigoUpper);
         Cupon saved = cuponRepo.save(cupon);
         auditLogService.registrar("CUPON_CREADO", saved.getId(), "admin", "Código: " + saved.getCodigo());
         return saved;
