@@ -103,48 +103,48 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
                 // --- LIMPIEZA DE CONTRATOS ANTIGUOS ---
                 try {
-                    java.util.List<Contrato> contratos = contratoRepository.findAll();
-                    for (Contrato c : contratos) {
-                        if (c.getTipoItem() == null || c.getItemId() == null) {
-                            contratoRepository.delete(c);
+                        java.util.List<Contrato> contratos = contratoRepository.findAll();
+                        for (Contrato c : contratos) {
+                                if (c.getTipoItem() == null || c.getItemId() == null) {
+                                        contratoRepository.delete(c);
+                                }
                         }
-                    }
-                    System.out.println("=== PopulateDB: Contratos defectuosos/antiguos eliminados ===");
+                        System.out.println("=== PopulateDB: Contratos defectuosos/antiguos eliminados ===");
                 } catch (Exception e) {
-                    System.err.println("=== PopulateDB: Error al limpiar contratos: " + e.getMessage());
+                        System.err.println("=== PopulateDB: Error al limpiar contratos: " + e.getMessage());
                 }
 
                 // --- ASEGURAR USUARIOS FLAGUEADOS PARA PRUEBAS (FRAUDE) ---
                 try {
-                    usuarioRepository.findByUsername("miguel_motor").ifPresent(u -> {
-                        u.setFlagFraude(true);
-                        u.setMotivoFlag("Múltiples reportes por ventas de piezas no originales en el sector motor.");
-                        usuarioRepository.save(u);
-                    });
-                    usuarioRepository.findByUsername("scammer_pro").ifPresent(u -> {
-                        u.setFlagFraude(true);
-                        u.setMotivoFlag("Detección de comportamiento automatizado y reportes de phishing.");
-                        usuarioRepository.save(u);
-                    });
+                        usuarioRepository.findByUsername("miguel_motor").ifPresent(u -> {
+                                u.setFlagFraude(true);
+                                u.setMotivoFlag("Múltiples reportes por ventas de piezas no originales en el sector motor.");
+                                usuarioRepository.save(u);
+                        });
+                        usuarioRepository.findByUsername("scammer_pro").ifPresent(u -> {
+                                u.setFlagFraude(true);
+                                u.setMotivoFlag("Detección de comportamiento automatizado y reportes de phishing.");
+                                usuarioRepository.save(u);
+                        });
 
-                    // --- SANCIONES PARA PRUEBAS (ADMIN PANEL) ---
-                    usuarioRepository.findByUsername("andres_libros").ifPresent(u -> {
-                        u.setBaneado(true);
-                        u.setMotivoBan("Intento de estafa detectado en múltiples transacciones y reportes de usuarios.");
-                        usuarioRepository.save(u);
-                    });
+                        // --- SANCIONES PARA PRUEBAS (ADMIN PANEL) ---
+                        usuarioRepository.findByUsername("andres_libros").ifPresent(u -> {
+                                u.setBaneado(true);
+                                u.setMotivoBan("Intento de estafa detectado en múltiples transacciones y reportes de usuarios.");
+                                usuarioRepository.save(u);
+                        });
 
-                    usuarioRepository.findByUsername("carlos_vendedor").ifPresent(u -> {
-                        u.setSuspendidoHasta(LocalDateTime.now().plusDays(7));
-                        u.setMotivoSuspension("Incumplimiento reiterado de los tiempos de envío y falta de respuesta a soporte.");
-                        usuarioRepository.save(u);
-                    });
+                        usuarioRepository.findByUsername("carlos_vendedor").ifPresent(u -> {
+                                u.setSuspendidoHasta(LocalDateTime.now().plusDays(7));
+                                u.setMotivoSuspension(
+                                                "Incumplimiento reiterado de los tiempos de envío y falta de respuesta a soporte.");
+                                usuarioRepository.save(u);
+                        });
 
-                    System.out.println("=== PopulateDB: Sanciones y Banderas de Fraude actualizadas ===");
-
+                        System.out.println("=== PopulateDB: Sanciones y Banderas de Fraude actualizadas ===");
 
                 } catch (Exception e) {
-                    System.err.println("=== PopulateDB: Error en actualización forzada: " + e.getMessage());
+                        System.err.println("=== PopulateDB: Error en actualización forzada: " + e.getMessage());
                 }
 
                 // --- MIGRACION DE EMERGENCIA: Corregir Foreign Keys Chat/Bloqueo/Favoritos
@@ -327,7 +327,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         usuarioRepository.findByUsername("jaime_caraver").ifPresent(jaime -> {
                                 jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 jaime.setAvatarSource("CUSTOM");
-                                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                                jaime.setCustomAvatarUrl(
+                                                "https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 usuarioRepository.save(jaime);
                         });
 
@@ -339,7 +340,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 jaime.setApellidos("Caraver");
                                 jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 jaime.setAvatarSource("CUSTOM");
-                                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                                jaime.setCustomAvatarUrl(
+                                                "https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                                 usuarioRepository.save(jaime);
 
                                 Categoria catCoches = categoriaRepository.findBySlug("coches").orElse(null);
@@ -372,36 +374,41 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         if (compraRepository.count() < 100) {
                                 List<Usuario> compradores = usuarioRepository.findAll();
                                 List<Producto> productos = productoRepository.findAll();
-                                
+
                                 if (!compradores.isEmpty() && !productos.isEmpty()) {
-                                        System.out.println("=== PopulateDB: Inyectando 100+ ventas variadas para estadísticas ===");
+                                        System.out.println(
+                                                        "=== PopulateDB: Inyectando 100+ ventas variadas para estadísticas ===");
                                         for (int i = 0; i < 120; i++) {
                                                 Usuario comprador = compradores.get(i % compradores.size());
                                                 Producto p = productos.get(i % productos.size());
-                                                
+
                                                 // Evitar que el vendedor se compre a sí mismo
-                                                if (p.getVendedor() != null && p.getVendedor().getId().equals(comprador.getId())) {
+                                                if (p.getVendedor() != null
+                                                                && p.getVendedor().getId().equals(comprador.getId())) {
                                                         comprador = compradores.get((i + 1) % compradores.size());
                                                 }
-                                                
+
                                                 Compra extra = new Compra();
                                                 extra.setComprador(comprador);
                                                 extra.setProducto(p);
                                                 extra.setEstado(EstadoCompra.COMPLETADA);
-                                                
-                                                double precio = p.getPrecio() > 0 ? p.getPrecio() : 10.0 + (Math.random() * 50.0);
+
+                                                double precio = p.getPrecio() > 0 ? p.getPrecio()
+                                                                : 10.0 + (Math.random() * 50.0);
                                                 extra.setPrecioFinal(precio);
                                                 extra.setComisionNexus(precio * 0.10);
-                                                
-                                                // Distribuir en los últimos 6 meses para que el gráfico anual tenga info
+
+                                                // Distribuir en los últimos 6 meses para que el gráfico anual tenga
+                                                // info
                                                 extra.setFechaCompra(LocalDateTime.now()
-                                                        .minusMonths(i % 6)
-                                                        .minusDays(i % 28)
-                                                        .minusHours(i % 24));
+                                                                .minusMonths(i % 6)
+                                                                .minusDays(i % 28)
+                                                                .minusHours(i % 24));
                                                 extra.setFechaPago(extra.getFechaCompra().plusMinutes(10));
                                                 extra.setFechaCompletada(extra.getFechaCompra().plusDays(2));
-                                                extra.setStripePaymentIntentId("pi_gen_" + UUID.randomUUID().toString().substring(0, 8));
-                                                
+                                                extra.setStripePaymentIntentId("pi_gen_"
+                                                                + UUID.randomUUID().toString().substring(0, 8));
+
                                                 compraRepository.save(extra);
                                         }
                                         System.out.println("=== PopulateDB: Ventas inyectadas correctamente ===");
@@ -677,7 +684,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 c3.setDescripcionInterna("Envío gratis para todos");
                                 cuponRepository.save(c3);
                         }
-                        
+
                         System.out.println("=== PopulateDB: Cupones de prueba verificados/inyectados ===");
 
                         done = true;
@@ -847,7 +854,8 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 jaime.setApellidos("Caraver");
                 jaime.setAvatar("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                 jaime.setAvatarSource("CUSTOM");
-                jaime.setCustomAvatarUrl("https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
+                jaime.setCustomAvatarUrl(
+                                "https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                 usuarioRepository.save(jaime);
 
                 // Direccion por defecto para Carlos
@@ -1701,19 +1709,23 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Samsung Galaxy S24 Ultra - Precintado",
                                 "Samsung Galaxy S24 Ultra de 512GB, color Titanium Black. Precintado, con factura y garantía. No acepto cambios.",
                                 150.0, TipoOferta.VENTA, fraudulento, catMoviles,
-                                "Samsung", "S24 Ultra", CondicionProducto.NUEVO, true, 5.0, false, "Madrid, España", "https://i.postimg.cc/tT9Vqf8T/s-l1600.jpg"));
+                                "Samsung", "S24 Ultra", CondicionProducto.NUEVO, true, 5.0, false, "Madrid, España",
+                                "https://i.postimg.cc/F1tSdh1f/i5958220045.jpg"));
 
                 productoRepository.save(producto(
                                 "MacBook Pro 14 M3 Max - 32GB RAM / 1TB SSD",
                                 "Último modelo de MacBook Pro con chip M3 Max. Sin abrir, regalo de empresa que no voy a usar.",
                                 250.0, TipoOferta.VENTA, fraudulento, catPCs,
-                                "Apple", "M3 Max", CondicionProducto.NUEVO, true, 15.0, false, "Barcelona, España", "https://i.postimg.cc/mD8G4C4B/61-CH6-B8v8-L.jpg"));
+                                "Apple", "M3 Max", CondicionProducto.NUEVO, true, 15.0, false, "Barcelona, España",
+                                "https://i.postimg.cc/ZRRpXf1W/i6459122761.jpg"));
 
                 productoRepository.save(producto(
                                 "Bicicleta Specialized Tarmac SL7",
                                 "Bicicleta de carretera en perfecto estado, grupo Shimano Ultegra Di2. Poco uso.",
                                 950.0, TipoOferta.VENTA, miguel, catDeportes,
-                                "Specialized", "Tarmac SL7", CondicionProducto.COMO_NUEVO, false, 0.0, true, "Bilbao, España", "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800"));
+                                "Specialized", "Tarmac SL7", CondicionProducto.COMO_NUEVO, false, 0.0, true,
+                                "Bilbao, España",
+                                "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800"));
 
                 // ── 14. COMPRAS
                 // ───────────────────────────────────────────────────────
@@ -2100,8 +2112,10 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 dev3.setCompra(compra3);
                 dev3.setEstado(EstadoDevolucion.RECHAZADA);
                 dev3.setMotivo(MotivoDevolucion.OTRO);
-                dev3.setDescripcion("El comprador dice que el color no es el que esperaba, pero en las fotos se ve claramente.");
-                dev3.setNotaAdmin("Disputa cerrada. El color coincide con la descripción original. No procede devolución.");
+                dev3.setDescripcion(
+                                "El comprador dice que el color no es el que esperaba, pero en las fotos se ve claramente.");
+                dev3.setNotaAdmin(
+                                "Disputa cerrada. El color coincide con la descripción original. No procede devolución.");
                 dev3.setFechaSolicitud(LocalDateTime.now().minusDays(5));
                 dev3.setFechaResolucion(LocalDateTime.now().minusDays(4));
                 devolucionRepository.save(dev3);
@@ -2374,56 +2388,61 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 // --- ASEGURAR DEVOLUCIONES PARA PRUEBAS (ADMIN PANEL) ---
                 List<Compra> compras = compraRepository.findAll();
                 if (!compras.isEmpty()) {
-                    int numDevs = 0;
-                    // Dev 1: Solicitada
-                    if (compras.size() > 0 && devolucionRepository.findByCompraId(compras.get(0).getId()).isEmpty()) {
-                        Devolucion d = new Devolucion();
-                        d.setCompra(compras.get(0));
-                        d.setEstado(EstadoDevolucion.SOLICITADA);
-                        d.setMotivo(MotivoDevolucion.PRODUCTO_NO_CORRESPONDE);
-                        d.setDescripcion("El producto no coincide con las fotos originales. Solicito revisión.");
-                        devolucionRepository.save(d);
-                        numDevs++;
-                    }
-                    // Dev 2: Completada
-                    if (compras.size() > 1 && devolucionRepository.findByCompraId(compras.get(1).getId()).isEmpty()) {
-                        Devolucion d = new Devolucion();
-                        d.setCompra(compras.get(1));
-                        d.setEstado(EstadoDevolucion.COMPLETADA);
-                        d.setMotivo(MotivoDevolucion.PRODUCTO_DEFECTUOSO);
-                        d.setDescripcion("No funciona el puerto de carga tras el primer uso.");
-                        d.setFechaResolucion(LocalDateTime.now().minusDays(1));
-                        d.setImporteDevolucion(compras.get(1).getPrecioFinal());
-                        devolucionRepository.save(d);
-                        numDevs++;
-                    }
-                    // Dev 3: Rechazada
-                    if (compras.size() > 2 && devolucionRepository.findByCompraId(compras.get(2).getId()).isEmpty()) {
-                        Devolucion d = new Devolucion();
-                        d.setCompra(compras.get(2));
-                        d.setEstado(EstadoDevolucion.RECHAZADA);
-                        d.setMotivo(MotivoDevolucion.OTRO);
-                        d.setDescripcion("El comprador dice que el color no es de su agrado tras una semana.");
-                        d.setNotaAdmin("No procede. El cambio de opinión por estética no está cubierto tras desprecintar.");
-                        d.setFechaResolucion(LocalDateTime.now().minusHours(5));
-                        devolucionRepository.save(d);
-                        numDevs++;
-                    }
-                    // Dev 4: Enviada
-                    if (compras.size() > 3 && devolucionRepository.findByCompraId(compras.get(3).getId()).isEmpty()) {
-                        Devolucion d = new Devolucion();
-                        d.setCompra(compras.get(3));
-                        d.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
-                        d.setMotivo(MotivoDevolucion.CAMBIO_DE_OPINION);
-                        d.setDescripcion("He decidido devolverlo porque he encontrado un modelo superior.");
-                        d.setTrackingDevolucion("CORREOS-DEV-887766");
-                        devolucionRepository.save(d);
-                        numDevs++;
-                    }
-                    if (numDevs > 0) System.out.println("=== PopulateDB: " + numDevs + " Devoluciones de prueba inyectadas ===");
+                        int numDevs = 0;
+                        // Dev 1: Solicitada
+                        if (compras.size() > 0
+                                        && devolucionRepository.findByCompraId(compras.get(0).getId()).isEmpty()) {
+                                Devolucion d = new Devolucion();
+                                d.setCompra(compras.get(0));
+                                d.setEstado(EstadoDevolucion.SOLICITADA);
+                                d.setMotivo(MotivoDevolucion.PRODUCTO_NO_CORRESPONDE);
+                                d.setDescripcion(
+                                                "El producto no coincide con las fotos originales. Solicito revisión.");
+                                devolucionRepository.save(d);
+                                numDevs++;
+                        }
+                        // Dev 2: Completada
+                        if (compras.size() > 1
+                                        && devolucionRepository.findByCompraId(compras.get(1).getId()).isEmpty()) {
+                                Devolucion d = new Devolucion();
+                                d.setCompra(compras.get(1));
+                                d.setEstado(EstadoDevolucion.COMPLETADA);
+                                d.setMotivo(MotivoDevolucion.PRODUCTO_DEFECTUOSO);
+                                d.setDescripcion("No funciona el puerto de carga tras el primer uso.");
+                                d.setFechaResolucion(LocalDateTime.now().minusDays(1));
+                                d.setImporteDevolucion(compras.get(1).getPrecioFinal());
+                                devolucionRepository.save(d);
+                                numDevs++;
+                        }
+                        // Dev 3: Rechazada
+                        if (compras.size() > 2
+                                        && devolucionRepository.findByCompraId(compras.get(2).getId()).isEmpty()) {
+                                Devolucion d = new Devolucion();
+                                d.setCompra(compras.get(2));
+                                d.setEstado(EstadoDevolucion.RECHAZADA);
+                                d.setMotivo(MotivoDevolucion.OTRO);
+                                d.setDescripcion("El comprador dice que el color no es de su agrado tras una semana.");
+                                d.setNotaAdmin("No procede. El cambio de opinión por estética no está cubierto tras desprecintar.");
+                                d.setFechaResolucion(LocalDateTime.now().minusHours(5));
+                                devolucionRepository.save(d);
+                                numDevs++;
+                        }
+                        // Dev 4: Enviada
+                        if (compras.size() > 3
+                                        && devolucionRepository.findByCompraId(compras.get(3).getId()).isEmpty()) {
+                                Devolucion d = new Devolucion();
+                                d.setCompra(compras.get(3));
+                                d.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
+                                d.setMotivo(MotivoDevolucion.CAMBIO_DE_OPINION);
+                                d.setDescripcion("He decidido devolverlo porque he encontrado un modelo superior.");
+                                d.setTrackingDevolucion("CORREOS-DEV-887766");
+                                devolucionRepository.save(d);
+                                numDevs++;
+                        }
+                        if (numDevs > 0)
+                                System.out.println("=== PopulateDB: " + numDevs
+                                                + " Devoluciones de prueba inyectadas ===");
                 }
-
-
 
                 // --- CUPONES DE PRUEBA ---
                 if (cuponRepository.findByCodigo("NEXUS20").isEmpty()) {
@@ -2455,7 +2474,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                         c3.setDescripcionInterna("Envío gratis para todos");
                         cuponRepository.save(c3);
                 }
-                
+
                 System.out.println("=== PopulateDB: Cupones de prueba verificados/inyectados ===");
 
                 System.out.println("=== PopulateDB completado con éxito ===");
