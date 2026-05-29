@@ -219,6 +219,24 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
 
                 if (done || (actorRepository.count() > 0 && productoRepository.count() > 20
                                 && categoriaRepository.count() > 10)) {
+                        // Asegurar que los productos nuevos de Alan, Adrian y Juanjo salgan los primeros en 'Lo último'
+                        try {
+                                productoRepository.findByTitulo("Mesa de Mezclas de DJ").ifPresent(p -> {
+                                        p.setFechaPublicacion(LocalDateTime.now().plusDays(3));
+                                        productoRepository.save(p);
+                                });
+                                productoRepository.findByTitulo("Piedra Preciosa").ifPresent(p -> {
+                                        p.setFechaPublicacion(LocalDateTime.now().plusDays(2));
+                                        productoRepository.save(p);
+                                });
+                                productoRepository.findByTitulo("Pastel Artesanal de Chocolate").ifPresent(p -> {
+                                        p.setFechaPublicacion(LocalDateTime.now().plusDays(1));
+                                        productoRepository.save(p);
+                                });
+                        } catch (Exception e) {
+                                System.err.println("=== PopulateDB: Error al forzar fechas de publicación futuras: " + e.getMessage());
+                        }
+
                         // --- INYECCIÓN BAJO DEMANDA DE MODA FALTANTE ---
                         if (productoRepository.findByTitulo("Chaqueta de Cuero Biker Premium - AllSaints").isEmpty()) {
                                 Usuario lucia_fashion = usuarioRepository.findByUsername("lucia_moda")
@@ -372,6 +390,78 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                         vehiculoRepository.save(avensis);
                                 }
                                 System.out.println("=== PopulateDB: Jaime Caraver y Toyota Avensis inyectados ===");
+                        }
+
+                        if (usuarioRepository.findByUsername("alan_cabezas").isEmpty()) {
+                                Usuario alan = usuario("alan_cabezas", "alan.cabezas@nexus.test", "Lora de Estepa, Sevilla",
+                                                "Apasionado de la repostería artesanal.", 5.0, 1, true);
+                                alan.setNombre("Alan");
+                                alan.setApellidos("Cabezas");
+                                alan.setAvatar("https://i.postimg.cc/8PFJDgFR/556926897-18176614552354476-2731999329609575851-n-jpg-stp-dst-jpg-s150x150-tt6-nc-cat-101-ccb-7-5.jpg");
+                                alan.setAvatarSource("CUSTOM");
+                                alan.setCustomAvatarUrl("https://i.postimg.cc/8PFJDgFR/556926897-18176614552354476-2731999329609575851-n-jpg-stp-dst-jpg-s150x150-tt6-nc-cat-101-ccb-7-5.jpg");
+                                usuarioRepository.save(alan);
+
+                                Categoria catOtros = categoriaRepository.findBySlug("otros").orElse(null);
+                                if (catOtros != null) {
+                                        Producto pastelChoc = producto(
+                                                        "Pastel Artesanal de Chocolate",
+                                                        "Delicioso pastel artesanal de chocolate elaborado con ingredientes de alta calidad y de forma tradicional. Sabor intenso y textura esponjosa.",
+                                                        19.99, TipoOferta.VENTA, alan, catOtros, null, null,
+                                                        CondicionProducto.NUEVO, false, 0.0, false, "Lora de Estepa, Sevilla",
+                                                        "https://i.postimg.cc/B6r6nXP5/images-q-tbn-ANd9Gc-Tds-DYWk-EDy-CE29U3Oe-L6mp-Uiz-IM6o1EYx-AKQ-s.jpg");
+                                        pastelChoc.setFechaPublicacion(LocalDateTime.now().plusDays(1));
+                                        productoRepository.save(pastelChoc);
+                                }
+                                System.out.println("=== PopulateDB: Alan Cabezas y Pastel de Chocolate inyectados ===");
+                        }
+
+                        if (usuarioRepository.findByUsername("adrian_linares").isEmpty()) {
+                                Usuario adrian = usuario("adrian_linares", "adrian.linares@nexus.test", "Osuna, Sevilla",
+                                                "Coleccionista de minerales y piedras preciosas.", 5.0, 1, true);
+                                adrian.setNombre("Adrian");
+                                adrian.setApellidos("Linares");
+                                adrian.setAvatar("https://i.postimg.cc/MGwmvpVM/504827786-18376575007123298-431859721931340906-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3Rh.jpg");
+                                adrian.setAvatarSource("CUSTOM");
+                                adrian.setCustomAvatarUrl("https://i.postimg.cc/MGwmvpVM/504827786-18376575007123298-431859721931340906-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3Rh.jpg");
+                                usuarioRepository.save(adrian);
+
+                                Categoria catOtros = categoriaRepository.findBySlug("otros").orElse(null);
+                                if (catOtros != null) {
+                                        Producto piedraPreciosa = producto(
+                                                        "Piedra Preciosa",
+                                                        "Exclusiva piedra preciosa de gran brillo y pureza. Una pieza de colección única.",
+                                                        1299.99, TipoOferta.VENTA, adrian, catOtros, null, null,
+                                                        CondicionProducto.COMO_NUEVO, true, 9.99, true, "Osuna, Sevilla",
+                                                        "https://i.postimg.cc/XYs97kjw/images-q-tbn-ANd9Gc-Thk-Axbg-Qo-Q5b-Bpa-Yk-ELVox6-Upeq-T-Ve0A-s.jpg");
+                                        piedraPreciosa.setFechaPublicacion(LocalDateTime.now().plusDays(2));
+                                        productoRepository.save(piedraPreciosa);
+                                }
+                                System.out.println("=== PopulateDB: Adrian Linares y Piedra Preciosa inyectados ===");
+                        }
+
+                        if (usuarioRepository.findByUsername("juanjoo_dj").isEmpty()) {
+                                Usuario juanjo = usuario("juanjoo_dj", "juanjo@nexus.test", "Casariche, Sevilla",
+                                                "DJ profesional. Apasionado de la música y el sonido.", 5.0, 1, true);
+                                juanjo.setNombre("Juan José");
+                                juanjo.setApellidos("Gamero");
+                                juanjo.setAvatar("https://i.postimg.cc/0jzBcytx/675520648-18348052912213620-5071647577450790651-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3R.jpg");
+                                juanjo.setAvatarSource("CUSTOM");
+                                juanjo.setCustomAvatarUrl("https://i.postimg.cc/0jzBcytx/675520648-18348052912213620-5071647577450790651-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3R.jpg");
+                                usuarioRepository.save(juanjo);
+
+                                Categoria catAudio = categoriaRepository.findBySlug("audio").orElse(null);
+                                if (catAudio != null) {
+                                        Producto mesaMezclas = producto(
+                                                        "Mesa de Mezclas de DJ",
+                                                        "Mesa de mezclas profesional para DJ. Ideal para eventos, mezclas en directo y grabaciones de alta calidad.",
+                                                        299.99, TipoOferta.VENTA, juanjo, catAudio, null, null,
+                                                        CondicionProducto.COMO_NUEVO, true, 8.99, true, "Casariche, Sevilla",
+                                                        "https://i.postimg.cc/0jSL9N7W/images-q-tbn-ANd9Gc-Tg-k-Egp9q81h-Syy78T-u-XZk-NUNMf-Pw-Quuil-Q-s.jpg");
+                                        mesaMezclas.setFechaPublicacion(LocalDateTime.now().plusDays(3));
+                                        productoRepository.save(mesaMezclas);
+                                }
+                                System.out.println("=== PopulateDB: Juan José Gamero y Mesa de Mezclas inyectados ===");
                         }
 
                         System.out.println(
@@ -878,6 +968,33 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "https://i.postimg.cc/fRyNfk2M/images-q-tbn-ANd9Gc-Qpwd-KJEYh0TSVIKe-W4S7j-TDMPWISvh5s-XGRQ-s.jpg");
                 usuarioRepository.save(jaime);
 
+                Usuario alan = usuario("alan_cabezas", "alan.cabezas@nexus.test", "Lora de Estepa, Sevilla",
+                                "Apasionado de la repostería artesanal.", 5.0, 1, true);
+                alan.setNombre("Alan");
+                alan.setApellidos("Cabezas");
+                alan.setAvatar("https://i.postimg.cc/8PFJDgFR/556926897-18176614552354476-2731999329609575851-n-jpg-stp-dst-jpg-s150x150-tt6-nc-cat-101-ccb-7-5.jpg");
+                alan.setAvatarSource("CUSTOM");
+                alan.setCustomAvatarUrl("https://i.postimg.cc/8PFJDgFR/556926897-18176614552354476-2731999329609575851-n-jpg-stp-dst-jpg-s150x150-tt6-nc-cat-101-ccb-7-5.jpg");
+                usuarioRepository.save(alan);
+
+                Usuario adrian = usuario("adrian_linares", "adrian.linares@nexus.test", "Osuna, Sevilla",
+                                "Coleccionista de minerales y piedras preciosas.", 5.0, 1, true);
+                adrian.setNombre("Adrian");
+                adrian.setApellidos("Linares");
+                adrian.setAvatar("https://i.postimg.cc/MGwmvpVM/504827786-18376575007123298-431859721931340906-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3Rh.jpg");
+                adrian.setAvatarSource("CUSTOM");
+                adrian.setCustomAvatarUrl("https://i.postimg.cc/MGwmvpVM/504827786-18376575007123298-431859721931340906-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3Rh.jpg");
+                usuarioRepository.save(adrian);
+
+                Usuario juanjo = usuario("juanjoo_dj", "juanjo@nexus.test", "Casariche, Sevilla",
+                                "DJ profesional. Apasionado de la música y el sonido.", 5.0, 1, true);
+                juanjo.setNombre("Juan José");
+                juanjo.setApellidos("Gamero");
+                juanjo.setAvatar("https://i.postimg.cc/0jzBcytx/675520648-18348052912213620-5071647577450790651-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3R.jpg");
+                juanjo.setAvatarSource("CUSTOM");
+                juanjo.setCustomAvatarUrl("https://i.postimg.cc/0jzBcytx/675520648-18348052912213620-5071647577450790651-n-jpg-stp-dst-jpg-s150x150-tt6-efg-ey-J2ZW5jb2Rl-X3R.jpg");
+                usuarioRepository.save(juanjo);
+
                 // Direccion por defecto para Carlos
                 DireccionEnvio dirCarlos = new DireccionEnvio();
                 dirCarlos.setNombre("Carlos Garcia");
@@ -1238,6 +1355,30 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 piano.addImagenGaleria("https://i.postimg.cc/3r0t0dxB/REt-XOZE.jpg");
                 piano.addImagenGaleria("https://i.postimg.cc/9QbbH9L5/T84l0YI.jpg");
                 productoRepository.save(piano);
+
+                Producto pastelChoc = producto(
+                                "Pastel Artesanal de Chocolate",
+                                "Delicioso pastel artesanal de chocolate elaborado con ingredientes de alta calidad y de forma tradicional. Sabor intenso y textura esponjosa.",
+                                19.99, TipoOferta.VENTA, alan, catOtros, null, null,
+                                CondicionProducto.NUEVO, false, 0.0, false, "Lora de Estepa, Sevilla",
+                                "https://i.postimg.cc/B6r6nXP5/images-q-tbn-ANd9Gc-Tds-DYWk-EDy-CE29U3Oe-L6mp-Uiz-IM6o1EYx-AKQ-s.jpg");
+                pastelChoc.setFechaPublicacion(LocalDateTime.now().plusDays(1));
+
+                Producto piedraPreciosa = producto(
+                                "Piedra Preciosa",
+                                "Exclusiva piedra preciosa de gran brillo y pureza. Una pieza de colección única.",
+                                1299.99, TipoOferta.VENTA, adrian, catOtros, null, null,
+                                CondicionProducto.COMO_NUEVO, true, 9.99, true, "Osuna, Sevilla",
+                                "https://i.postimg.cc/XYs97kjw/images-q-tbn-ANd9Gc-Thk-Axbg-Qo-Q5b-Bpa-Yk-ELVox6-Upeq-T-Ve0A-s.jpg");
+                piedraPreciosa.setFechaPublicacion(LocalDateTime.now().plusDays(2));
+
+                Producto mesaMezclas = producto(
+                                "Mesa de Mezclas de DJ",
+                                "Mesa de mezclas profesional para DJ. Ideal para eventos, mezclas en directo y grabaciones de alta calidad.",
+                                299.99, TipoOferta.VENTA, juanjo, catAudio, null, null,
+                                CondicionProducto.COMO_NUEVO, true, 8.99, true, "Casariche, Sevilla",
+                                "https://i.postimg.cc/0jSL9N7W/images-q-tbn-ANd9Gc-Tg-k-Egp9q81h-Syy78T-u-XZk-NUNMf-Pw-Quuil-Q-s.jpg");
+                mesaMezclas.setFechaPublicacion(LocalDateTime.now().plusDays(3));
 
                 // --- CONTRATO PATROCINADO PARA TEST ---
                 Contrato conPatrocinio = new Contrato();
@@ -1625,6 +1766,16 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 new Comentario("Ya no está disponible este precio, ha subido a 209€. :-/",
                                                 ofertaAirpods, andres));
 
+                comentarioRepository.save(new Comentario(
+                                "Vaya preciazo para los AirPods Pro 2, me los acabo de pillar y van finísimos. Cancelación de ruido top.",
+                                ofertaAirpods, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Cállate ya, anda, que eres un listillo y un fantasma. Seguro que ni tienes para pagarlos y vas de rico por la vida.",
+                                ofertaAirpods, alan));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas ¿Pero qué dices, amargado? Deja al chaval en paz, que solo está recomendando el chollo. ¡Vaya un bocazas!",
+                                ofertaAirpods, juanjo));
+
                 comentarioRepository.save(
                                 new Comentario("Compré la key, activé en 30 segundos. 100% real y funcional.",
                                                 ofertaWindows, sofia));
@@ -1638,11 +1789,31 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "Cuidado con las keys de Kinguin. Algunas son robadas. Mejor comprar en tiendas oficiales.",
                                 ofertaWindows, elena));
 
+                comentarioRepository.save(new Comentario(
+                                "Licencia pillada y activa en segundos. Un chollo perfecto para los que montamos PCs nuevos.",
+                                ofertaWindows, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Pero qué pesado eres con tus PCs de cartón. Cállate la boca ya, listillo de las narices, que te crees que sabes de todo y no tienes ni idea.",
+                                ofertaWindows, alan));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas Alan, relaja la vena un poco, crack. Que siempre estás saltando a la mínima. ¡A ver si te tomas una tila, chaval!",
+                                ofertaWindows, juanjo));
+
                 comentarioRepository.save(
                                 new Comentario("La PS5 ya merece la pena a este precio, hay un catálogo brutal.",
                                                 ofertaPS5, pedro));
                 comentarioRepository
                                 .save(new Comentario("¿Sigue en stock? Entro y me dice agotado.", ofertaPS5, andres));
+
+                comentarioRepository.save(new Comentario(
+                                "El mejor bundle de PS5 que he visto en meses. El stock va a volar, corred que es una ganga.",
+                                ofertaPS5, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares ¡Otro comentario del iluminado de turno! Cállate ya, listillo, que parece que te pagan comisión por cada consola. Vete a pastar un rato.",
+                                ofertaPS5, alan));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas Pero bueno Alan, ¿otra vez metiéndote con la gente? Menudo personaje estás hecho. Respeta un poco al personal, DJ de pacotilla.",
+                                ofertaPS5, juanjo));
 
                 comentarioRepository
                                 .save(new Comentario(
@@ -1658,6 +1829,44 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 comentarioRepository
                                 .save(new Comentario("¿Merece la pena respecto a una 3080 de segunda mano?",
                                                 ofertaRTX4060, maria));
+
+                comentarioRepository.save(new Comentario(
+                                "Vaya chollazo lo de Xbox Game Pass Ultimate gratis, activado a la primera. ¡El mejor servicio de videojuegos sin duda!",
+                                ofertaXboxPass, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Cállate de una puta vez, pedazo de subnormal. Vaya un arrastrado come-sobras de Microsoft, das auténtica pena chupándole los huevos a una multinacional.",
+                                ofertaXboxPass, alan));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas ¿Pero qué coño te pasa en la cabeza, desgraciado? Eres un frustrado de mierda y un maleducado. Vete a soltar tu bilis a otro lado, payaso integral.",
+                                ofertaXboxPass, juanjo));
+
+                // Hilo de Duolingo (ofertaDuolingo) con insultos fuertes de Alan y Joserra
+                comentarioRepository.save(new Comentario(
+                                "Estupendo chollo de Duolingo Super gratis, viene genial para repasar idiomas en verano.",
+                                ofertaDuolingo, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Pero si tú no sabes ni hablar tu propio idioma, payaso. Cállate la boca de una vez, a ver si aprendes a no dar la chapa en cada puto chollo.",
+                                ofertaDuolingo, alan));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Vaya retrasado mental estás hecho, Adrian. Dedícate a otra cosa en vez de venir aquí a hacer el ridículo con tus comentarios de mierda.",
+                                ofertaDuolingo, joserra));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas @joserra05 Vaya par de anormales estáis hechos, dejad al chaval en paz. Joserra, se supone que eres el CEO y eres el más impresentable de todos.",
+                                ofertaDuolingo, juanjo));
+
+                // Hilo de Netflix (ofertaNetflixTrial) con insultos fuertes de Alan y Joserra
+                comentarioRepository.save(new Comentario(
+                                "Netflix gratis siempre se agradece. Ya tengo plan para ver series el fin de semana.",
+                                ofertaNetflixTrial, adrian));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Vete a la mierda con tus planes de tieso. ¿En serio necesitas una promo de 3 meses gratis? Eres un muerto de hambre y un miserable.",
+                                ofertaNetflixTrial, alan));
+                comentarioRepository.save(new Comentario(
+                                "@adrian_linares Menudo espabilado de los cojones. Das asco mendigando meses de Netflix, búscate un trabajo de verdad y deja de dar por culo en el foro, desgraciado.",
+                                ofertaNetflixTrial, joserra));
+                comentarioRepository.save(new Comentario(
+                                "@alan_cabezas @joserra05 Pero qué ladráis, par de inútiles. A ver si os compráis una vida y dejáis de insultar a la gente por ahorrarse unos euros.",
+                                ofertaNetflixTrial, juanjo));
 
                 // ── 11. FAVORITOS
                 // ─────────────────────────────────────────────────────
@@ -2146,7 +2355,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 dev4.setEstado(EstadoDevolucion.DEVOLUCION_ENVIADA);
                 dev4.setMotivo(MotivoDevolucion.CAMBIO_DE_OPINION);
                 dev4.setDescripcion("He decidido que prefiero el modelo superior. El producto está precintado.");
-                dev4.setTrackingDevolucion("TRACK-DEV-12345");
+                dev4.setTrackingDevolucion("CORREOS-DEV-887766");
                 dev4.setFechaSolicitud(LocalDateTime.now().minusDays(2));
                 devolucionRepository.save(dev4);
 
@@ -2360,7 +2569,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                                 "María ha comprado tu iPhone 14 Pro por 725€. Prepara el envío lo antes posible.",
                                 "/ventas", true,
                                 -30);
-                notif(carlos, TipoNotificacion.NUEVA_VALORACION, "Nueva valoración de 5 estrellas â­",
+                notif(carlos, TipoNotificacion.NUEVA_VALORACION, "Nueva valoración de 5 estrellas â­ ",
                                 "María te ha valorado con 5 estrellas: 'Producto exactamente como se describía...'",
                                 "/perfil", true,
                                 -26);
@@ -2500,7 +2709,7 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 System.out.println("=== PopulateDB completado con éxito ===");
                 System.out.println("  - Categorías:    " + categoriaRepository.count());
                 System.out.println("  - Actores:       " + actorRepository.count()
-                                + " (2 Admins, 2 Empresas, 8 Usuarios)");
+                                + " (2 Admins, 2 Empresas, 12 Usuarios)");
                 System.out.println("  - Productos:     " + productoRepository.count());
                 System.out.println("  - Vehículos:     " + vehiculoRepository.count());
                 System.out.println("  - Ofertas:       " + ofertaRepository.count());
@@ -2548,6 +2757,9 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 productoRepository.save(libroDune);
                 productoRepository.save(sonyA7IV);
                 productoRepository.save(legoBatman);
+                productoRepository.save(pastelChoc);
+                productoRepository.save(piedraPreciosa);
+                productoRepository.save(mesaMezclas);
 
                 // Vehículos
                 vehiculoRepository.save(bmw320d);
@@ -2680,6 +2892,12 @@ public class PopulateDB implements ApplicationListener<ContextRefreshedEvent> {
                 } else if (u.contains("valencia")) {
                         lat = 39.4699;
                         lng = -0.3763;
+                } else if (u.contains("lora de estepa")) {
+                        lat = 37.2681;
+                        lng = -4.8276;
+                } else if (u.contains("osuna")) {
+                        lat = 37.2378;
+                        lng = -5.1031;
                 } else if (u.contains("sevilla")) {
                         lat = 37.3891;
                         lng = -5.9845;
